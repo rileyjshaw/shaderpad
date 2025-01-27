@@ -59,6 +59,8 @@ shader.play(time => {
 // shader.pause();
 ```
 
+See the [`examples/` directory](./examples/) for more.
+
 ## Included uniforms
 
 | Uniform       | Type     | Description                         |
@@ -67,8 +69,6 @@ shader.play(time => {
 | `uTime`       | float    | The current time in seconds.        |
 | `uResolution` | float[2] | The canvas element’s dimensions.    |
 | `uCursor`     | float[2] | The current mouse/cursor position.  |
-
-See the [`examples/` directory](./examples/) for more.
 
 ## License
 
