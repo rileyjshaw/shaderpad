@@ -1,8 +1,12 @@
 {
-	"mode": "pre",
-	"tag": "alpha",
-	"initialVersions": {
-		"shaderpad": "1.0.0-alpha.0"
-	},
-	"changesets": ["cool-melons-cheer", "long-ways-decide"]
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "shaderpad": "1.0.0-alpha.0"
+  },
+  "changesets": [
+    "cool-melons-cheer",
+    "long-ways-decide",
+    "rude-bugs-float"
+  ]
 }

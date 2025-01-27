@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.2
+
+### Patch Changes
+
+-   Remove log from save()
+
 ## 1.0.0-alpha.1
 
 ### Minor Changes
