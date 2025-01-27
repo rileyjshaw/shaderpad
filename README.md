@@ -1,17 +1,17 @@
-# 2js
+# ShaderPad
 
-2js is a lightweight, dependency-free library to reduce boilerplate when writing fragment shaders. It provides a simple interface to initialize shaders, manage uniforms, maintain an animation loop, and handle user interactions such as mouse movements and window resizing.
+ShaderPad is a lightweight, dependency-free library to reduce boilerplate when writing fragment shaders. It provides a simple interface to initialize shaders, manage uniforms, maintain an animation loop, and handle user interactions such as mouse movements and window resizing.
 
 ## Installation
 
 ```bash
-npm install 2js
+npm install shaderpad
 ```
 
 ## Example
 
 ```typescript
-import Shader from '2js';
+import ShaderPad from 'shaderpad';
 
 // Your custom GLSL fragment shader code.
 const fragmentShaderSrc = `
@@ -43,7 +43,7 @@ void main() {
 `;
 
 // Initialize the shader.
-const shader = new Shader(fragmentShaderSrc /* , canvasElement */);
+const shader = new ShaderPad(fragmentShaderSrc /* , canvasElement */);
 
 // Add your own custom uniforms.
 const getColor = (time: number) =>

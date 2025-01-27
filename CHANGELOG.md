@@ -1,4 +1,4 @@
-# 2js
+# shaderpad
 
 ## 1.0.0-alpha.0
 
@@ -6,6 +6,6 @@
 
 -   Initial alpha release 🎉
 
-    I’ve started using this on a few projects, and I’m pretty confident that the API will retain this general shape. I want to try adopting 2js into a few more projects before officially moving this out of alpha.
+    I’ve started using this on a few projects, and I’m pretty confident that the API will retain this general shape. I want to try adopting ShaderPad into a few more projects before officially moving this out of alpha.
 
     Always open to suggestions!

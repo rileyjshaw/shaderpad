@@ -1,5 +1,5 @@
 {
-	"name": "2js",
+	"name": "shaderpad",
 	"version": "1.0.0-alpha.0",
 	"description": "A lightweight, dependency-free library to reduce boilerplate when writing fragment shaders.",
 	"keywords": [

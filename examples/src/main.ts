@@ -1,4 +1,4 @@
-import Shader from '2js';
+import ShaderPad from 'shaderpad';
 
 // Your custom GLSL fragment shader code.
 const fragmentShaderSrc = `
@@ -30,7 +30,7 @@ void main() {
 `;
 
 // Initialize the shader.
-const shader = new Shader(fragmentShaderSrc);
+const shader = new ShaderPad(fragmentShaderSrc);
 
 // Add your own custom uniforms.
 const getColor = (time: number) =>
