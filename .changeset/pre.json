@@ -1,0 +1,10 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "2js": "1.0.0-alpha.0"
+  },
+  "changesets": [
+    "long-ways-decide"
+  ]
+}
