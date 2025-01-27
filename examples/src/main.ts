@@ -44,3 +44,18 @@ shader.play(time => {
 
 // Optionally pause the render loop.
 // shader.pause();
+
+let isPlaying = true;
+
+document.addEventListener('keydown', e => {
+	if (e.key === ' ') {
+		isPlaying = !isPlaying;
+		isPlaying ? shader.play() : shader.pause();
+	}
+});
+
+document.addEventListener('keydown', e => {
+	if (e.key === 's') {
+		shader.save('example');
+	}
+});

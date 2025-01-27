@@ -16,6 +16,7 @@ interface Uniform {
 class Shader {
 	private canvas: HTMLCanvasElement;
 	private gl: WebGLRenderingContext;
+	private downloadLink: HTMLAnchorElement;
 	private fragmentShaderSrc: string;
 	private uniforms: Map<string, Uniform> = new Map();
 	private animationFrameId: number | null;
@@ -32,6 +33,7 @@ class Shader {
 			this.canvas.style.width = '100dvw';
 		}
 		this.gl = this.canvas.getContext('webgl')!;
+		this.downloadLink = document.createElement('a');
 		this.fragmentShaderSrc = fragmentShaderSrc;
 		this.animationFrameId = null;
 		this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
@@ -216,6 +218,19 @@ class Shader {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
 		}
+	}
+
+	save(filename: string) {
+		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+		this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+
+		const image = this.canvas.toDataURL();
+		if (filename && !`${filename}`.toLowerCase().endsWith('.png')) {
+			filename = `${filename}.png`;
+		}
+		this.downloadLink.download = filename || 'export.png';
+		this.downloadLink.href = image;
+		this.downloadLink.click();
 	}
 }
 
