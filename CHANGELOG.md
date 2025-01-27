@@ -1,5 +1,13 @@
 # shaderpad
 
+## 1.0.0-alpha.1
+
+### Minor Changes
+
+-   Add save() method
+
+    This method saves the current frame to a PNG file. The filename is optional; if not provided, it will be "export.png".
+
 ## 1.0.0-alpha.0
 
 ### Major Changes

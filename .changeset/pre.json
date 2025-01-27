@@ -4,5 +4,5 @@
 	"initialVersions": {
 		"shaderpad": "1.0.0-alpha.0"
 	},
-	"changesets": ["long-ways-decide"]
+	"changesets": ["cool-melons-cheer", "long-ways-decide"]
 }
