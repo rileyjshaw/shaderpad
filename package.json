@@ -1,0 +1,32 @@
+{
+	"name": "2js",
+	"version": "1.0.0-alpha.1",
+	"description": "A lightweight, dependency-free library to reduce boilerplate when writing fragment shaders.",
+	"keywords": [
+		"shaders",
+		"webgl",
+		"frontend"
+	],
+	"author": "rileyjshaw",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup"
+	},
+	"devDependencies": {
+		"@changesets/cli": "^2.27.12",
+		"tsup": "^8.3.5",
+		"typescript": "^5.7.3"
+	},
+	"license": "GNU GPLv3"
+}
