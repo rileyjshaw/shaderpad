@@ -1,12 +1,17 @@
-declare class Shader {
+declare class ShaderPad {
+    private isInternalCanvas;
+    private isTouchDevice;
     private canvas;
     private gl;
     private downloadLink;
     private fragmentShaderSrc;
     private uniforms;
+    private textures;
+    private buffer;
+    private program;
     private animationFrameId;
     private resizeObserver;
-    private program;
+    private eventListeners;
     constructor(fragmentShaderSrc: string, canvas?: HTMLCanvasElement | null);
     private init;
     private createShader;
@@ -18,6 +23,9 @@ declare class Shader {
     play(callback?: (time: number) => void): void;
     pause(): void;
     save(filename: string): void;
+    initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement): void;
+    updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>): void;
+    destroy(): void;
 }
 
-export { Shader as default };
+export { ShaderPad as default };
