@@ -1,5 +1,15 @@
 # shaderpad
 
+## 1.0.0-alpha.3
+
+### Minor Changes
+
+-   Add texture and destroy methods
+
+    This release adds `shaderPad.initializeTexture` and `shaderPad.updateTextures` methods, which roughly map to how `initializeUniform` and `updateUniform` works. It also adds a `shaderPad.destroy` method, which runs some general cleanup.
+
+    This release also fixes a bug where a passed-in canvas would resize indefinitely on a retina display.
+
 ## 1.0.0-alpha.2
 
 ### Patch Changes
