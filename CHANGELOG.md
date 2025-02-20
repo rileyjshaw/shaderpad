@@ -1,5 +1,13 @@
 # shaderpad
 
+## 1.0.0-alpha.4
+
+### Minor Changes
+
+-   Add step method and frame counter
+
+    This release adds a `shaderPad.step` method, which enables finer-grained control over animation loops. The `shaderPad.play` callback now receives a `frame` parameter, which is the current frame number.
+
 ## 1.0.0-alpha.3
 
 ### Minor Changes
