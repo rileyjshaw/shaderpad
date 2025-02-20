@@ -32,6 +32,7 @@ class ShaderPad {
 	private animationFrameId: number | null;
 	private resizeObserver: ResizeObserver;
 	private eventListeners: Map<string, EventListener> = new Map();
+	private frame = 0;
 
 	constructor(fragmentShaderSrc: string, canvas: HTMLCanvasElement | null = null) {
 		this.canvas = canvas || document.createElement('canvas');
@@ -84,6 +85,7 @@ class ShaderPad {
 		this.initializeUniform('uResolution', 'float', [this.canvas.width, this.canvas.height]);
 		this.initializeUniform('uCursor', 'float', [0.5, 0.5]);
 		this.initializeUniform('uTime', 'float', 0);
+		this.initializeUniform('uFrame', 'int', 0);
 	}
 
 	private createShader(type: number, source: string): WebGLShader {
@@ -110,6 +112,7 @@ class ShaderPad {
 		this.gl.vertexAttribPointer(aPosition, 2, this.gl.FLOAT, false, 0, 0);
 	}
 
+	// TODO: This breaks for `position: fixed; inset: 0` canvases.
 	private resizeCanvas() {
 		const pixelRatio = window.devicePixelRatio || 1;
 		const width = this.canvas.clientWidth * pixelRatio;
@@ -206,23 +209,30 @@ class ShaderPad {
 		});
 	}
 
-	play(callback?: (time: number) => void) {
-		const renderFrame = (time: number) => {
-			time /= 1000; // Convert from milliseconds to seconds.
+	step(time: number) {
+		time /= 1000; // Convert from milliseconds to seconds.
 
-			this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-			if (this.uniforms.has('uTime')) {
-				this.updateUniforms({ uTime: time });
-			}
+		if (this.uniforms.has('uTime')) {
+			this.updateUniforms({ uTime: time });
+		}
 
-			if (callback) callback(time);
+		if (this.uniforms.has('uFrame')) {
+			this.updateUniforms({ uFrame: this.frame });
+		}
 
-			this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
-			this.animationFrameId = requestAnimationFrame(renderFrame);
+		++this.frame;
+		this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+	}
+
+	play(callback?: (time: number, frame: number) => void) {
+		const loop = (time: number) => {
+			this.step(time);
+			if (callback) callback(time, this.frame);
+			this.animationFrameId = requestAnimationFrame(loop);
 		};
-
-		this.animationFrameId = requestAnimationFrame(renderFrame);
+		this.animationFrameId = requestAnimationFrame(loop);
 	}
 
 	pause() {

@@ -67,6 +67,7 @@ See the [`examples/` directory](./examples/) for more.
 | ------------- | -------- | ----------------------------------- |
 | `uUv`         | float[2] | The UV coordinates of the fragment. |
 | `uTime`       | float    | The current time in seconds.        |
+| `uFrame`      | int      | The current frame number.           |
 | `uResolution` | float[2] | The canvas element’s dimensions.    |
 | `uCursor`     | float[2] | The current mouse/cursor position.  |
 

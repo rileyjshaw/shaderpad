@@ -12,6 +12,7 @@ declare class ShaderPad {
     private animationFrameId;
     private resizeObserver;
     private eventListeners;
+    private frame;
     constructor(fragmentShaderSrc: string, canvas?: HTMLCanvasElement | null);
     private init;
     private createShader;
@@ -20,7 +21,8 @@ declare class ShaderPad {
     private addEventListeners;
     initializeUniform(name: string, type: 'float' | 'int', value: number | number[]): void;
     updateUniforms(updates: Record<string, number | number[]>): void;
-    play(callback?: (time: number) => void): void;
+    step(time: number): void;
+    play(callback?: (time: number, frame: number) => void): void;
     pause(): void;
     save(filename: string): void;
     initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement): void;
