@@ -1,5 +1,22 @@
 # shaderpad
 
+## 1.0.0-alpha.5
+
+### Minor Changes
+
+-   Enhanced mouse interaction uniforms
+
+    Updated the mouse interaction uniforms to provide comprehensive input tracking:
+
+    -   `uCursor` is now a `vec4` with cursor position (x, y) and scroll position (z, w)
+    -   `uClick` is now a `vec3` with click position (x, y) and left click state (z)
+
+    This allows shaders to respond to cursor movement, scrolling, and mouse clicks.
+
+-   Callbacks passed to `play` now receive `time` in seconds, not milliseconds.
+
+    This improves consistency with the `uTime` uniform.
+
 ## 1.0.0-alpha.4
 
 ### Minor Changes
