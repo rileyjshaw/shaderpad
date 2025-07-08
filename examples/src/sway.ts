@@ -4,9 +4,9 @@ const fragmentShaderSrc = `
 precision highp float;
 
 // Built-in variables.
-varying vec2 vUv;
-uniform float uTime;
-uniform vec2 uResolution;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
 
 // Custom uniforms.
 uniform float uMaxAngle;
@@ -24,16 +24,16 @@ vec3 color_tr = vec3(1.0, 0.5, 0.0); // Top right: Orange.
 vec3 color_br = vec3(1.0, 0.0, 0.0); // Bottom right: Red.
 
 void main() {
-    vec2 uv = (gl_FragCoord.xy / uResolution.xy) * 2.0 - 1.0;
-    uv.x *= uResolution.x / uResolution.y;
-    vec2 center = uResolution * 0.5;
+    vec2 uv = (gl_FragCoord.xy / u_resolution.xy) * 2.0 - 1.0;
+    uv.x *= u_resolution.x / u_resolution.y;
+    vec2 center = u_resolution * 0.5;
     vec2 pos = gl_FragCoord.xy - center;
     float dist = length(pos);
 
     // Compute which ring we're in.
     float iRing = floor(dist / uStepSize);
     float phase = -iRing * uPhaseStep;
-    float angle = sin(uTime * uSpeed + phase) * uMaxAngle;
+    float angle = sin(u_time * uSpeed + phase) * uMaxAngle;
 
     // Rotate position by angle.
     float s = sin(angle);
@@ -48,7 +48,7 @@ void main() {
 
     // --- Gradient color after rotation ---
     // Compute uv01 from rotated coordinates
-    vec2 uv01_rotated = gridUv / uResolution.xy;
+    vec2 uv01_rotated = gridUv / u_resolution.xy;
 
     // Bilinear interpolation
     vec3 color_left = mix(color_bl, color_tl, uv01_rotated.y);
@@ -59,7 +59,7 @@ void main() {
 
     // Grid: use pixel units so each cell is square.
     float gridPixelSize = uSquareSize;
-    vec2 offset = mod(uResolution, gridPixelSize) * 0.5;
+    vec2 offset = mod(u_resolution, gridPixelSize) * 0.5;
     vec2 grid = fract((gridUv - offset) / gridPixelSize);
 
     // Draw squares: inside each cell, color if inside uBorder of cell

@@ -18,25 +18,25 @@ const fragmentShaderSrc = `
 precision highp float;
 
 // Built-in variables.
-varying vec2 vUv;
-uniform float uTime;
-uniform vec2 uResolution;
-uniform vec4 uCursor; // [cursorX, cursorY, scrollX, scrollY]
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec4 u_cursor; // [cursorX, cursorY, scrollX, scrollY]
 
 // Custom variables.
-uniform vec3 uCursorColor;
+uniform vec3 u_cursorColor;
 
 void main() {
-  vec2 uv = vUv * uResolution;
+  vec2 uv = v_uv * u_resolution;
   vec2 dotGrid = mod(uv, 50.) - 25.;
   float dotDist = length(dotGrid);
   float dot = step(dotDist, 5.);
 
-  float cursorDist = distance(uv, uCursor.xy * uResolution);
-  float cursor = step(cursorDist, 25. + sin(uTime * 5.) * 5.);
+  float cursorDist = distance(uv, u_cursor.xy * u_resolution);
+  float cursor = step(cursorDist, 25. + sin(u_time * 5.) * 5.);
 
   vec3 color = mix(vec3(0., 0., 1.), vec3(1.), dot);
-  color = mix(color, uCursorColor, cursor);
+  color = mix(color, u_cursorColor, cursor);
 
   gl_FragColor = vec4(color, 1.);
 }
@@ -48,11 +48,11 @@ const shader = new ShaderPad(fragmentShaderSrc /* , canvasElement */);
 // Add your own custom uniforms.
 const getColor = (time: number) =>
 	[time, time + (Math.PI * 2) / 3, time + (Math.PI * 4) / 3].map(x => 1 + Math.sin(x) / 2);
-shader.initializeUniform('uCursorColor', 'float', getColor(0));
+shader.initializeUniform('u_cursorColor', 'float', getColor(0));
 
 // Start the render loop.
 shader.play(time => {
-	shader.updateUniforms({ uCursorColor: getColor(time) });
+	shader.updateUniforms({ u_cursorColor: getColor(time) });
 });
 
 // Optionally pause the render loop.
@@ -63,14 +63,19 @@ See the [`examples/` directory](./examples/) for more.
 
 ## Included uniforms
 
-| Uniform       | Type     | Description                                        |
-| ------------- | -------- | -------------------------------------------------- |
-| `uUv`         | float[2] | The UV coordinates of the fragment.                |
-| `uTime`       | float    | The current time in seconds.                       |
-| `uFrame`      | int      | The current frame number.                          |
-| `uResolution` | float[2] | The canvas element's dimensions.                   |
-| `uCursor`     | float[4] | Cursor position (x, y) and scroll position (z, w). |
-| `uClick`      | float[3] | Click position (x, y) and left click state (z).    |
+| Uniform        | Type     | Description                                        |
+| -------------- | -------- | -------------------------------------------------- |
+| `u_time`       | float    | The current time in seconds.                       |
+| `u_frame`      | int      | The current frame number.                          |
+| `u_resolution` | float[2] | The canvas element's dimensions.                   |
+| `u_cursor`     | float[4] | Cursor position (x, y) and scroll position (z, w). |
+| `u_click`      | float[3] | Click position (x, y) and left click state (z).    |
+
+## Included varyings
+
+| Varying | Type     | Description                         |
+| ------- | -------- | ----------------------------------- |
+| `v_uv`  | float[2] | The UV coordinates of the fragment. |
 
 ## Contributing
 

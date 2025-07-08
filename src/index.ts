@@ -1,8 +1,8 @@
 const defaultVertexShaderSrc = `
 attribute vec2 aPosition;
-varying vec2 vUv;
+varying vec2 v_uv;
 void main() {
-    vUv = aPosition * 0.5 + 0.5;
+    v_uv = aPosition * 0.5 + 0.5;
     gl_Position = vec4(aPosition, 0.0, 1.0);
 }
 `;
@@ -87,11 +87,11 @@ class ShaderPad {
 
 		this.gl.useProgram(this.program);
 
-		this.initializeUniform('uResolution', 'float', [this.canvas.width, this.canvas.height]);
-		this.initializeUniform('uCursor', 'float', [...this.cursorPosition, this.scrollX, this.scrollY]); // [cursorX, cursorY, scrollX, scrollY]
-		this.initializeUniform('uClick', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]); // [clickX, clickY, leftClick]
-		this.initializeUniform('uTime', 'float', 0);
-		this.initializeUniform('uFrame', 'int', 0);
+		this.initializeUniform('u_resolution', 'float', [this.canvas.width, this.canvas.height]);
+		this.initializeUniform('u_cursor', 'float', [...this.cursorPosition, this.scrollX, this.scrollY]); // [cursorX, cursorY, scrollX, scrollY]
+		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]); // [clickX, clickY, leftClick]
+		this.initializeUniform('u_time', 'float', 0);
+		this.initializeUniform('u_frame', 'int', 0);
 	}
 
 	private createShader(type: number, source: string): WebGLShader {
@@ -136,20 +136,20 @@ class ShaderPad {
 			this.canvas.width = width;
 			this.canvas.height = height;
 			this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-			if (this.uniforms.has('uResolution')) {
-				this.updateUniforms({ uResolution: [this.canvas.width, this.canvas.height] });
+			if (this.uniforms.has('u_resolution')) {
+				this.updateUniforms({ u_resolution: [this.canvas.width, this.canvas.height] });
 			}
 		}
 	}
 
 	private addEventListeners() {
 		const updateCursor = (x: number, y: number) => {
-			if (!this.uniforms.has('uCursor')) return;
+			if (!this.uniforms.has('u_cursor')) return;
 			const rect = this.canvas.getBoundingClientRect();
 			this.cursorPosition[0] = (x - rect.left) / rect.width;
 			this.cursorPosition[1] = 1 - (y - rect.top) / rect.height; // Flip Y for WebGL
 			this.updateUniforms({
-				uCursor: [this.cursorPosition[0], this.cursorPosition[1], this.scrollX, this.scrollY],
+				u_cursor: [this.cursorPosition[0], this.cursorPosition[1], this.scrollX, this.scrollY],
 			});
 		};
 
@@ -163,7 +163,7 @@ class ShaderPad {
 				this.clickPosition[1] = 1 - (yVal - rect.top) / rect.height; // Flip Y for WebGL
 			}
 			this.updateUniforms({
-				uClick: [this.clickPosition[0], this.clickPosition[1], this.isMouseDown ? 1.0 : 0.0],
+				u_click: [this.clickPosition[0], this.clickPosition[1], this.isMouseDown ? 1.0 : 0.0],
 			});
 		};
 
@@ -275,12 +275,12 @@ class ShaderPad {
 	step(time: number) {
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-		if (this.uniforms.has('uTime')) {
-			this.updateUniforms({ uTime: time });
+		if (this.uniforms.has('u_time')) {
+			this.updateUniforms({ u_time: time });
 		}
 
-		if (this.uniforms.has('uFrame')) {
-			this.updateUniforms({ uFrame: this.frame });
+		if (this.uniforms.has('u_frame')) {
+			this.updateUniforms({ u_frame: this.frame });
 		}
 
 		++this.frame;
@@ -330,7 +330,7 @@ class ShaderPad {
 		this.gl.activeTexture(this.gl.TEXTURE0 + unitIndex);
 		this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
-		// Flip the texture vertically since vUv is flipped, and set up filters and wrapping.
+		// Flip the texture vertically since v_uv is flipped, and set up filters and wrapping.
 		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
 		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
 		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);

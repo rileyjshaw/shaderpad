@@ -22,10 +22,10 @@ async function main() {
 precision mediump float;
 uniform sampler2D uPictureFrame;
 uniform sampler2D uWebcam;
-varying vec2 vUv;
+varying vec2 v_uv;
 void main() {
-	vec4 frameColor = texture2D(uPictureFrame, vUv);
-	vec4 webcamColor = texture2D(uWebcam, vUv);
+	vec4 frameColor = texture2D(uPictureFrame, v_uv);
+	vec4 webcamColor = texture2D(uWebcam, v_uv);
 	gl_FragColor = mix(webcamColor, frameColor, frameColor.a);
 }
 `;
