@@ -1,6 +1,5 @@
 import ShaderPad from 'shaderpad';
 
-// Your custom GLSL fragment shader code.
 const fragmentShaderSrc = `
 precision highp float;
 
@@ -8,7 +7,8 @@ precision highp float;
 varying vec2 vUv;
 uniform float uTime;
 uniform vec2 uResolution;
-uniform vec2 uCursor;
+uniform vec4 uCursor; // [cursorX, cursorY, scrollX, scrollY]
+uniform vec3 uClick; // [clickX, clickY, isClicked]
 
 // Custom variables.
 uniform vec3 uCursorColor;
@@ -19,11 +19,23 @@ void main() {
   float dotDist = length(dotGrid);
   float dot = step(dotDist, 5.);
 
-  float cursorDist = distance(uv, uCursor * uResolution);
-  float cursor = step(cursorDist, 25. + sin(uTime * 5.) * 5.);
+  vec2 cursorPos = uCursor.xy;
+  vec2 scrollPos = uCursor.zw;
+  vec2 clickPos = uClick.xy;
+  float isClicked = uClick.z;
+
+  float cursorDist = distance(uv, cursorPos * uResolution);
+  float clickDist = distance(uv, clickPos * uResolution);
+
+  float cursorRadius = 25. + sin(uTime * 5.) * 5. + isClicked * 15.;
+  float cursor = step(cursorDist, cursorRadius);
+  float click = step(clickDist, 15.);
 
   vec3 color = mix(vec3(0., 0., 1.), vec3(1.), dot);
   color = mix(color, uCursorColor, cursor);
+  color = mix(color, vec3(1., 1., 1.), click);
+  color.r += sin(scrollPos.x);
+  color.g += sin(scrollPos.y);
 
   gl_FragColor = vec4(color, 1.);
 }

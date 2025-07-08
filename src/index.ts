@@ -33,6 +33,11 @@ class ShaderPad {
 	private resizeObserver: ResizeObserver;
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;
+	private cursorPosition = [0.5, 0.5];
+	private scrollX = 0;
+	private scrollY = 0;
+	private clickPosition = [0.5, 0.5];
+	private isMouseDown = false;
 
 	constructor(fragmentShaderSrc: string, canvas: HTMLCanvasElement | null = null) {
 		this.canvas = canvas || document.createElement('canvas');
@@ -83,7 +88,8 @@ class ShaderPad {
 		this.gl.useProgram(this.program);
 
 		this.initializeUniform('uResolution', 'float', [this.canvas.width, this.canvas.height]);
-		this.initializeUniform('uCursor', 'float', [0.5, 0.5]);
+		this.initializeUniform('uCursor', 'float', [...this.cursorPosition, this.scrollX, this.scrollY]); // [cursorX, cursorY, scrollX, scrollY]
+		this.initializeUniform('uClick', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]); // [clickX, clickY, leftClick]
 		this.initializeUniform('uTime', 'float', 0);
 		this.initializeUniform('uFrame', 'int', 0);
 	}
@@ -140,24 +146,81 @@ class ShaderPad {
 		const updateCursor = (x: number, y: number) => {
 			if (!this.uniforms.has('uCursor')) return;
 			const rect = this.canvas.getBoundingClientRect();
-			const cursorX = (x - rect.left) / rect.width;
-			const cursorY = 1 - (y - rect.top) / rect.height; // Flip Y for WebGL
-			this.updateUniforms({ uCursor: [cursorX, cursorY] });
+			this.cursorPosition[0] = (x - rect.left) / rect.width;
+			this.cursorPosition[1] = 1 - (y - rect.top) / rect.height; // Flip Y for WebGL
+			this.updateUniforms({
+				uCursor: [this.cursorPosition[0], this.cursorPosition[1], this.scrollX, this.scrollY],
+			});
 		};
+
+		const updateClick = (isMouseDown: boolean, x?: number, y?: number) => {
+			this.isMouseDown = isMouseDown;
+			if (isMouseDown) {
+				const rect = this.canvas.getBoundingClientRect();
+				const xVal = x as number;
+				const yVal = y as number;
+				this.clickPosition[0] = (xVal - rect.left) / rect.width;
+				this.clickPosition[1] = 1 - (yVal - rect.top) / rect.height; // Flip Y for WebGL
+			}
+			this.updateUniforms({
+				uClick: [this.clickPosition[0], this.clickPosition[1], this.isMouseDown ? 1.0 : 0.0],
+			});
+		};
+
 		this.eventListeners.set('mousemove', event => {
 			const mouseEvent = event as MouseEvent;
 			if (!this.isTouchDevice) {
 				updateCursor(mouseEvent.clientX, mouseEvent.clientY);
 			}
 		});
+
+		this.eventListeners.set('mousedown', event => {
+			const mouseEvent = event as MouseEvent;
+			if (!this.isTouchDevice) {
+				if (mouseEvent.button === 0) {
+					this.isMouseDown = true;
+					updateClick(true, mouseEvent.clientX, mouseEvent.clientY);
+				}
+			}
+		});
+
+		this.eventListeners.set('mouseup', event => {
+			const mouseEvent = event as MouseEvent;
+			if (!this.isTouchDevice) {
+				if (mouseEvent.button === 0) {
+					updateClick(false);
+				}
+			}
+		});
+
+		this.eventListeners.set('wheel', event => {
+			const wheelEvent = event as WheelEvent;
+			this.scrollX += wheelEvent.deltaX * 0.01;
+			this.scrollY += wheelEvent.deltaY * 0.01;
+			updateCursor(wheelEvent.clientX, wheelEvent.clientY);
+		});
+
 		this.eventListeners.set('touchmove', event => {
 			const touchEvent = event as TouchEvent;
 			if (touchEvent.touches.length > 0) {
 				updateCursor(touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
 			}
 		});
-		this.eventListeners.set('touchstart', () => {
+
+		this.eventListeners.set('touchstart', event => {
+			const touchEvent = event as TouchEvent;
 			this.isTouchDevice = true;
+			if (touchEvent.touches.length > 0) {
+				updateClick(true, touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
+				updateCursor(touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
+			}
+		});
+
+		this.eventListeners.set('touchend', event => {
+			const touchEvent = event as TouchEvent;
+			if (touchEvent.touches.length === 0) {
+				updateClick(false);
+			}
 		});
 
 		this.eventListeners.forEach((listener, event) => {
@@ -176,7 +239,7 @@ class ShaderPad {
 
 		const location = this.gl.getUniformLocation(this.program!, name);
 		if (!location) {
-			console.log(`Uniform ${name} not found in fragment shader. Skipping initialization.`);
+			console.debug(`Uniform ${name} not found in fragment shader. Skipping initialization.`);
 			return;
 		}
 
@@ -210,8 +273,6 @@ class ShaderPad {
 	}
 
 	step(time: number) {
-		time /= 1000; // Convert from milliseconds to seconds.
-
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
 		if (this.uniforms.has('uTime')) {
@@ -228,6 +289,7 @@ class ShaderPad {
 
 	play(callback?: (time: number, frame: number) => void) {
 		const loop = (time: number) => {
+			time /= 1000; // Convert from milliseconds to seconds.
 			this.step(time);
 			if (callback) callback(time, this.frame);
 			this.animationFrameId = requestAnimationFrame(loop);

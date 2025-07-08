@@ -13,6 +13,11 @@ declare class ShaderPad {
     private resizeObserver;
     private eventListeners;
     private frame;
+    private cursorPosition;
+    private scrollX;
+    private scrollY;
+    private clickPosition;
+    private isMouseDown;
     constructor(fragmentShaderSrc: string, canvas?: HTMLCanvasElement | null);
     private init;
     private createShader;
