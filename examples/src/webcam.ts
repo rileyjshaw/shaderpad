@@ -18,15 +18,19 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 }
 
 async function main() {
-	const fragmentShaderSrc = `
+	const fragmentShaderSrc = `#version 300 es
 precision mediump float;
+
+in vec2 v_uv;
 uniform sampler2D uPictureFrame;
 uniform sampler2D uWebcam;
-varying vec2 v_uv;
+
+out vec4 outColor;
+
 void main() {
-	vec4 frameColor = texture2D(uPictureFrame, v_uv);
-	vec4 webcamColor = texture2D(uWebcam, v_uv);
-	gl_FragColor = mix(webcamColor, frameColor, frameColor.a);
+	vec4 frameColor = texture(uPictureFrame, v_uv);
+	vec4 webcamColor = texture(uWebcam, v_uv);
+	outColor = mix(webcamColor, frameColor, frameColor.a);
 }
 `;
 
@@ -43,7 +47,7 @@ void main() {
 	outputCanvas.height = video.videoHeight;
 	document.body.appendChild(outputCanvas);
 
-	const shader = new ShaderPad(fragmentShaderSrc, outputCanvas);
+	const shader = new ShaderPad(fragmentShaderSrc, { canvas: outputCanvas });
 	shader.initializeTexture('uPictureFrame', pictureFrame);
 	shader.initializeTexture('uWebcam', video);
 

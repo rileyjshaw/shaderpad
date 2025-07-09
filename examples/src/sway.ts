@@ -1,10 +1,10 @@
 import ShaderPad from 'shaderpad';
 
-const fragmentShaderSrc = `
+const fragmentShaderSrc = `#version 300 es
 precision highp float;
 
 // Built-in variables.
-varying vec2 v_uv;
+in vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_resolution;
 
@@ -22,6 +22,8 @@ vec3 color_tl = vec3(0.0, 1.0, 0.0); // Top left: Green.
 vec3 color_bl = vec3(0.0, 0.0, 1.0); // Bottom left: Blue.
 vec3 color_tr = vec3(1.0, 0.5, 0.0); // Top right: Orange.
 vec3 color_br = vec3(1.0, 0.0, 0.0); // Bottom right: Red.
+
+out vec4 outColor;
 
 void main() {
     vec2 uv = (gl_FragCoord.xy / u_resolution.xy) * 2.0 - 1.0;
@@ -68,7 +70,7 @@ void main() {
 
     // Blend the grid mask with the gradient color or grayscale
     vec3 color = mix(vec3(0.0), baseColor, mask);
-    gl_FragColor = vec4(color, 1.0);
+    outColor = vec4(color, 1.0);
 }
 `;
 

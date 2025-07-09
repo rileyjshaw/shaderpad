@@ -1,10 +1,10 @@
 import ShaderPad from 'shaderpad';
 
-const fragmentShaderSrc = `
+const fragmentShaderSrc = `#version 300 es
 precision highp float;
 
 // Built-in variables.
-varying vec2 v_uv;
+in vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec4 u_cursor; // [cursorX, cursorY, scrollX, scrollY]
@@ -12,6 +12,8 @@ uniform vec3 u_click; // [clickX, clickY, isClicked]
 
 // Custom variables.
 uniform vec3 u_cursorColor;
+
+out vec4 outColor;
 
 void main() {
   vec2 uv = v_uv * u_resolution;
@@ -37,7 +39,7 @@ void main() {
   color.r += sin(scrollPos.x);
   color.g += sin(scrollPos.y);
 
-  gl_FragColor = vec4(color, 1.);
+  outColor = vec4(color, 1.);
 }
 `;
 

@@ -1,3 +1,7 @@
+interface Options {
+    history?: number;
+    canvas?: HTMLCanvasElement | null;
+}
 declare class ShaderPad {
     private isInternalCanvas;
     private isTouchDevice;
@@ -11,6 +15,8 @@ declare class ShaderPad {
     private program;
     private animationFrameId;
     private resizeObserver;
+    private resizeTimeout;
+    private lastResizeTime;
     private eventListeners;
     private frame;
     private cursorPosition;
@@ -18,11 +24,15 @@ declare class ShaderPad {
     private scrollY;
     private clickPosition;
     private isMouseDown;
-    constructor(fragmentShaderSrc: string, canvas?: HTMLCanvasElement | null);
+    private historyLength;
+    private historyTexture;
+    constructor(fragmentShaderSrc: string, options?: Options);
     private init;
+    private initializeHistoryBuffer;
     private createShader;
     private setupBuffer;
-    private resizeCanvas;
+    private throttledHandleResize;
+    private handleResize;
     private addEventListeners;
     initializeUniform(name: string, type: 'float' | 'int', value: number | number[]): void;
     updateUniforms(updates: Record<string, number | number[]>): void;

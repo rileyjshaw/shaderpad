@@ -1,11 +1,12 @@
-const defaultVertexShaderSrc = `
-attribute vec2 aPosition;
-varying vec2 v_uv;
+const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
+in vec2 aPosition;
+out vec2 v_uv;
 void main() {
     v_uv = aPosition * 0.5 + 0.5;
     gl_Position = vec4(aPosition, 0.0, 1.0);
 }
 `;
+const RESIZE_THROTTLE_INTERVAL = 1000 / 30;
 
 interface Uniform {
 	type: 'float' | 'int';
@@ -18,11 +19,16 @@ interface Texture {
 	unitIndex: number;
 }
 
+interface Options {
+	canvas?: HTMLCanvasElement | null;
+	history?: number;
+}
+
 class ShaderPad {
 	private isInternalCanvas = false;
 	private isTouchDevice = false;
 	private canvas: HTMLCanvasElement;
-	private gl: WebGLRenderingContext;
+	private gl: WebGL2RenderingContext;
 	private downloadLink: HTMLAnchorElement;
 	private fragmentShaderSrc: string;
 	private uniforms: Map<string, Uniform> = new Map();
@@ -31,6 +37,8 @@ class ShaderPad {
 	private program: WebGLProgram | null = null;
 	private animationFrameId: number | null;
 	private resizeObserver: ResizeObserver;
+	private resizeTimeout: NodeJS.Timeout = null as unknown as NodeJS.Timeout;
+	private lastResizeTime = 0;
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;
 	private cursorPosition = [0.5, 0.5];
@@ -38,10 +46,13 @@ class ShaderPad {
 	private scrollY = 0;
 	private clickPosition = [0.5, 0.5];
 	private isMouseDown = false;
+	private historyLength: number;
+	private historyTexture: WebGLTexture | null = null;
 
-	constructor(fragmentShaderSrc: string, canvas: HTMLCanvasElement | null = null) {
-		this.canvas = canvas || document.createElement('canvas');
-		if (!canvas) {
+	constructor(fragmentShaderSrc: string, options: Options = {}) {
+		this.canvas = options.canvas || document.createElement('canvas');
+		this.historyLength = options.history || 0;
+		if (!options.canvas) {
 			this.isInternalCanvas = true;
 			document.body.appendChild(this.canvas);
 			this.canvas.style.position = 'fixed';
@@ -49,18 +60,23 @@ class ShaderPad {
 			this.canvas.style.height = '100dvh';
 			this.canvas.style.width = '100dvw';
 		}
-		this.gl = this.canvas.getContext('webgl')!;
+
+		this.gl = this.canvas.getContext('webgl2', { antialias: false }) as WebGL2RenderingContext;
+		if (!this.gl) {
+			throw new Error('WebGL2 not supported. Please use a browser that supports WebGL2.');
+		}
+
 		this.downloadLink = document.createElement('a');
 		this.fragmentShaderSrc = fragmentShaderSrc;
 		this.animationFrameId = null;
-		this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
+		this.resizeObserver = new ResizeObserver(() => this.throttledHandleResize());
 		this.resizeObserver.observe(this.canvas);
 		this.init();
 		this.addEventListeners();
 	}
 
 	private init() {
-		const vertexShaderSrc = defaultVertexShaderSrc;
+		const vertexShaderSrc = DEFAULT_VERTEX_SHADER_SRC;
 
 		this.program = this.gl.createProgram();
 		if (!this.program) {
@@ -83,7 +99,7 @@ class ShaderPad {
 
 		const aPosition = this.gl.getAttribLocation(this.program, 'aPosition');
 		this.setupBuffer(aPosition);
-		this.resizeCanvas();
+		this.handleResize();
 
 		this.gl.useProgram(this.program);
 
@@ -92,6 +108,33 @@ class ShaderPad {
 		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]); // [clickX, clickY, leftClick]
 		this.initializeUniform('u_time', 'float', 0);
 		this.initializeUniform('u_frame', 'int', 0);
+
+		if (this.historyLength > 0) {
+			this.initializeHistoryBuffer();
+		}
+	}
+
+	private initializeHistoryBuffer() {
+		const { gl } = this;
+
+		this.historyTexture = gl.createTexture();
+		if (!this.historyTexture) {
+			throw new Error('Failed to create history texture');
+		}
+
+		gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
+		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, this.canvas.width, this.canvas.height, this.historyLength);
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
+
+		if (!this.uniforms.has('u_history')) {
+			this.initializeUniform('u_history', 'int', 0);
+		}
 	}
 
 	private createShader(type: number, source: string): WebGLShader {
@@ -118,8 +161,20 @@ class ShaderPad {
 		this.gl.vertexAttribPointer(aPosition, 2, this.gl.FLOAT, false, 0, 0);
 	}
 
+	private throttledHandleResize() {
+		clearTimeout(this.resizeTimeout);
+		const now = performance.now();
+		const timeUntilNextResize = this.lastResizeTime + RESIZE_THROTTLE_INTERVAL - now;
+		if (timeUntilNextResize <= 0) {
+			this.lastResizeTime = now;
+			this.handleResize();
+		} else {
+			this.resizeTimeout = setTimeout(() => this.throttledHandleResize(), timeUntilNextResize);
+		}
+	}
+
 	// TODO: This breaks for `position: fixed; inset: 0` canvases.
-	private resizeCanvas() {
+	private handleResize() {
 		const pixelRatio = window.devicePixelRatio || 1;
 		const width = this.canvas.clientWidth * pixelRatio;
 		const height = this.canvas.clientHeight * pixelRatio;
@@ -139,6 +194,12 @@ class ShaderPad {
 			if (this.uniforms.has('u_resolution')) {
 				this.updateUniforms({ u_resolution: [this.canvas.width, this.canvas.height] });
 			}
+
+			// Delete and recreate history buffer, since the canvas size won’t be correct anymore.
+			if (this.historyLength > 0 && this.historyTexture) {
+				this.gl.deleteTexture(this.historyTexture);
+				this.initializeHistoryBuffer();
+			}
 		}
 	}
 
@@ -154,6 +215,7 @@ class ShaderPad {
 		};
 
 		const updateClick = (isMouseDown: boolean, x?: number, y?: number) => {
+			if (!this.uniforms.has('u_click')) return;
 			this.isMouseDown = isMouseDown;
 			if (isMouseDown) {
 				const rect = this.canvas.getBoundingClientRect();
@@ -273,18 +335,31 @@ class ShaderPad {
 	}
 
 	step(time: number) {
-		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+		const gl = this.gl;
 
 		if (this.uniforms.has('u_time')) {
 			this.updateUniforms({ u_time: time });
 		}
-
 		if (this.uniforms.has('u_frame')) {
 			this.updateUniforms({ u_frame: this.frame });
 		}
 
+		if (this.historyLength > 0) {
+			const writeIdx = this.frame % this.historyLength;
+
+			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+			gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+			gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
+			gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, writeIdx, 0, 0, this.canvas.width, this.canvas.height);
+		} else {
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.drawArrays(gl.TRIANGLES, 0, 6);
+		}
+
 		++this.frame;
-		this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 	}
 
 	play(callback?: (time: number, frame: number) => void) {
@@ -376,6 +451,11 @@ class ShaderPad {
 		this.textures.forEach(texture => {
 			this.gl.deleteTexture(texture.texture);
 		});
+
+		if (this.historyTexture) {
+			this.gl.deleteTexture(this.historyTexture);
+			this.historyTexture = null;
+		}
 
 		if (this.buffer) {
 			this.gl.deleteBuffer(this.buffer);
