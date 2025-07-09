@@ -352,6 +352,7 @@ class ShaderPad {
 			gl.clear(gl.COLOR_BUFFER_BIT);
 			gl.drawArrays(gl.TRIANGLES, 0, 6);
 
+			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
 			gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, writeIdx, 0, 0, this.canvas.width, this.canvas.height);
 		} else {
@@ -401,7 +402,7 @@ class ShaderPad {
 		if (!texture) {
 			throw new Error('Failed to create texture');
 		}
-		const unitIndex = this.textures.size;
+		const unitIndex = this.textures.size + 1; // Start from unit 1 to avoid conflict with history texture at unit 0.
 		this.gl.activeTexture(this.gl.TEXTURE0 + unitIndex);
 		this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 

@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.8
+
+### Minor Changes
+
+-   Allow `initializeTexture` and `history` to exist in the same shader
+
 ## 1.0.0-alpha.7
 
 ### Minor Changes

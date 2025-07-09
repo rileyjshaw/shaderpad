@@ -1,6 +1,6 @@
 interface Options {
-    history?: number;
     canvas?: HTMLCanvasElement | null;
+    history?: number;
 }
 declare class ShaderPad {
     private isInternalCanvas;

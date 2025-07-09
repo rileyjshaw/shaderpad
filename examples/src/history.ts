@@ -3,7 +3,7 @@ import ShaderPad from 'shaderpad';
 const gridLength = 5;
 const gridSize = gridLength * gridLength;
 
-const trailShader = `#version 300 es
+const fragmentShaderSrc = `#version 300 es
 precision highp float;
 
 in vec2 v_uv;
@@ -46,5 +46,5 @@ void main() {
 }
 `;
 
-const shader = new ShaderPad(trailShader, { history: gridSize });
+const shader = new ShaderPad(fragmentShaderSrc, { history: gridSize });
 shader.play();
