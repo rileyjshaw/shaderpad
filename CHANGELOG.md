@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.10
+
+### Minor Changes
+
+-   Add reset() and onResize
+
 ## 1.0.0-alpha.9
 
 ### Patch Changes

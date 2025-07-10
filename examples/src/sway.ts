@@ -9,13 +9,13 @@ uniform float u_time;
 uniform vec2 u_resolution;
 
 // Custom uniforms.
-uniform float uMaxAngle;
-uniform float uSpeed;
-uniform float uPhaseStep;
-uniform float uStepSize;
-uniform float uSquareSize;
-uniform float uBorder;
-uniform float uIsColorful;
+uniform float u_maxAngle;
+uniform float u_speed;
+uniform float u_phaseStep;
+uniform float u_stepSize;
+uniform float u_squareSize;
+uniform float u_border;
+uniform float u_isColorful;
 
 // Corner colors:
 vec3 color_tl = vec3(0.0, 1.0, 0.0); // Top left: Green.
@@ -33,9 +33,9 @@ void main() {
     float dist = length(pos);
 
     // Compute which ring we're in.
-    float iRing = floor(dist / uStepSize);
-    float phase = -iRing * uPhaseStep;
-    float angle = sin(u_time * uSpeed + phase) * uMaxAngle;
+    float iRing = floor(dist / u_stepSize);
+    float phase = -iRing * u_phaseStep;
+    float angle = sin(u_time * u_speed + phase) * u_maxAngle;
 
     // Rotate position by angle.
     float s = sin(angle);
@@ -56,16 +56,16 @@ void main() {
     vec3 color_right = mix(color_br, color_tr, uv01_rotated.y);
     vec3 gradientColor = mix(color_left, color_right, uv01_rotated.x);
     vec3 bwColor = vec3(1.0);
-    vec3 baseColor = (uIsColorful > 0.5) ? gradientColor : bwColor;
+    vec3 baseColor = (u_isColorful > 0.5) ? gradientColor : bwColor;
 
     // Grid: use pixel units so each cell is square.
-    float gridPixelSize = uSquareSize;
+    float gridPixelSize = u_squareSize;
     vec2 offset = mod(u_resolution, gridPixelSize) * 0.5;
     vec2 grid = fract((gridUv - offset) / gridPixelSize);
 
-    // Draw squares: inside each cell, color if inside uBorder of cell.
-    float mask = step(uBorder, grid.x) * step(uBorder, grid.y) *
-                 step(grid.x, 1.0 - uBorder) * step(grid.y, 1.0 - uBorder);
+    // Draw squares: inside each cell, color if inside u_border of cell.
+    float mask = step(u_border, grid.x) * step(u_border, grid.y) *
+                 step(grid.x, 1.0 - u_border) * step(grid.y, 1.0 - u_border);
 
     // Blend the grid mask with the gradient color or grayscale.
     vec3 color = mix(vec3(0.0), baseColor, mask);
@@ -77,83 +77,83 @@ const shader = new ShaderPad(fragmentShaderSrc);
 const variants = [
 	// Original.
 	{
-		uMaxAngle: (6 * Math.PI) / 180, // 6 degrees.
-		uSpeed: 2,
-		uPhaseStep: Math.PI / 8,
-		uStepSize: 142,
-		uSquareSize: 100,
-		uBorder: 0.25,
-		uIsColorful: 0,
+		u_maxAngle: (6 * Math.PI) / 180, // 6 degrees.
+		u_speed: 2,
+		u_phaseStep: Math.PI / 8,
+		u_stepSize: 142,
+		u_squareSize: 100,
+		u_border: 0.25,
+		u_isColorful: 0,
 	},
 	// Rainbow.
 	{
-		uMaxAngle: Math.PI, // 180 degrees.
-		uSpeed: 2,
-		uPhaseStep: Math.PI / 16,
-		uStepSize: 160,
-		uSquareSize: 1,
-		uBorder: 0,
-		uIsColorful: 1,
+		u_maxAngle: Math.PI, // 180 degrees.
+		u_speed: 2,
+		u_phaseStep: Math.PI / 16,
+		u_stepSize: 160,
+		u_squareSize: 1,
+		u_border: 0,
+		u_isColorful: 1,
 	},
 	// Wavy squares at the edges.
 	{
-		uMaxAngle: Math.PI / 180, // 1 degree.
-		uSpeed: 4,
-		uPhaseStep: 0.3,
-		uStepSize: 1,
-		uSquareSize: 120,
-		uBorder: 0.3,
-		uIsColorful: 0,
+		u_maxAngle: Math.PI / 180, // 1 degree.
+		u_speed: 4,
+		u_phaseStep: 0.3,
+		u_stepSize: 1,
+		u_squareSize: 120,
+		u_border: 0.3,
+		u_isColorful: 0,
 	},
 	// Interlaced stripes (2 sections).
 	{
-		uMaxAngle: 2 * Math.PI, // 360 degrees.
-		uSpeed: 0.025,
-		uPhaseStep: Math.PI,
-		uStepSize: 10,
-		uSquareSize: 160,
-		uBorder: 0.2,
-		uIsColorful: 0,
+		u_maxAngle: 2 * Math.PI, // 360 degrees.
+		u_speed: 0.025,
+		u_phaseStep: Math.PI,
+		u_stepSize: 10,
+		u_squareSize: 160,
+		u_border: 0.2,
+		u_isColorful: 0,
 	},
 	// Interlaced stripes (3 sections).
 	{
-		uMaxAngle: 2 * Math.PI, // 360 degrees.
-		uSpeed: 0.025,
-		uPhaseStep: (Math.PI * 3) / 2,
-		uStepSize: 18,
-		uSquareSize: 160,
-		uBorder: 0.3,
-		uIsColorful: 0,
+		u_maxAngle: 2 * Math.PI, // 360 degrees.
+		u_speed: 0.025,
+		u_phaseStep: (Math.PI * 3) / 2,
+		u_stepSize: 18,
+		u_squareSize: 160,
+		u_border: 0.3,
+		u_isColorful: 0,
 	},
 	// Graph paper.
 	{
-		uMaxAngle: 2 * Math.PI, // 360 degrees.
-		uSpeed: 0.025,
-		uPhaseStep: Math.PI,
-		uStepSize: 100,
-		uSquareSize: 20,
-		uBorder: 0.05,
-		uIsColorful: 0,
+		u_maxAngle: 2 * Math.PI, // 360 degrees.
+		u_speed: 0.025,
+		u_phaseStep: Math.PI,
+		u_stepSize: 100,
+		u_squareSize: 20,
+		u_border: 0.05,
+		u_isColorful: 0,
 	},
 	// Twisting rug.
 	{
-		uMaxAngle: 200 * Math.PI, // 100 turns.
-		uSpeed: 0.001,
-		uPhaseStep: Math.PI / 120,
-		uStepSize: 4,
-		uSquareSize: 20,
-		uBorder: 0.15,
-		uIsColorful: 1,
+		u_maxAngle: 200 * Math.PI, // 100 turns.
+		u_speed: 0.001,
+		u_phaseStep: Math.PI / 120,
+		u_stepSize: 4,
+		u_squareSize: 20,
+		u_border: 0.15,
+		u_isColorful: 1,
 	},
 	// Dot ripple.
 	{
-		uMaxAngle: Math.PI / 100,
-		uSpeed: 4,
-		uPhaseStep: Math.PI / 42,
-		uStepSize: 10,
-		uSquareSize: 42,
-		uBorder: 0.42,
-		uIsColorful: 0,
+		u_maxAngle: Math.PI / 100,
+		u_speed: 4,
+		u_phaseStep: Math.PI / 42,
+		u_stepSize: 10,
+		u_squareSize: 42,
+		u_border: 0.42,
+		u_isColorful: 0,
 	},
 ];
 

@@ -57,8 +57,14 @@ shader.play(time => {
 	shader.updateUniforms({ u_cursorColor: getColor(time) });
 });
 
-// Optionally pause the render loop.
+// Optionally pause or reset the render loop.
 // shader.pause();
+// shader.reset();
+
+// ShaderPad also attaches a throttled resize observer that you can hook into.
+// shader.onResize = (width, height) => {
+// 	console.log('Canvas resized:', width, height);
+// };
 ```
 
 See the [`examples/` directory](./examples/) for more.

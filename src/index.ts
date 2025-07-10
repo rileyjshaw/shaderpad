@@ -41,6 +41,7 @@ class ShaderPad {
 	private lastResizeTime = 0;
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;
+	private startTime = 0;
 	private cursorPosition = [0.5, 0.5];
 	private scrollX = 0;
 	private scrollY = 0;
@@ -48,6 +49,7 @@ class ShaderPad {
 	private isMouseDown = false;
 	private historyLength: number;
 	private historyTexture: WebGLTexture | null = null;
+	public onResize?: (width: number, height: number) => void;
 
 	constructor(fragmentShaderSrc: string, options: Options = {}) {
 		this.canvas = options.canvas || document.createElement('canvas');
@@ -128,12 +130,21 @@ class ShaderPad {
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 		gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, this.canvas.width, this.canvas.height, this.historyLength);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
 
-		// Make initial frames transparent.
+		this.clearHistory();
+
+		if (!this.uniforms.has('u_history')) {
+			this.initializeUniform('u_history', 'int', 0);
+		}
+	}
+
+	private clearHistory() {
 		const transparent = new Uint8Array(this.canvas.width * this.canvas.height * 4); // All zeroes.
 		for (let layer = 0; layer < this.historyLength; ++layer) {
-			gl.texSubImage3D(
-				gl.TEXTURE_2D_ARRAY,
+			this.gl.texSubImage3D(
+				this.gl.TEXTURE_2D_ARRAY,
 				0,
 				0,
 				0,
@@ -141,17 +152,10 @@ class ShaderPad {
 				this.canvas.width,
 				this.canvas.height,
 				1,
-				gl.RGBA,
-				gl.UNSIGNED_BYTE,
+				this.gl.RGBA,
+				this.gl.UNSIGNED_BYTE,
 				transparent
 			);
-		}
-
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
-
-		if (!this.uniforms.has('u_history')) {
-			this.initializeUniform('u_history', 'int', 0);
 		}
 	}
 
@@ -218,6 +222,8 @@ class ShaderPad {
 				this.gl.deleteTexture(this.historyTexture);
 				this.initializeHistoryBuffer();
 			}
+
+			this.onResize?.(this.canvas.width, this.canvas.height);
 		}
 	}
 
@@ -383,7 +389,7 @@ class ShaderPad {
 
 	play(callback?: (time: number, frame: number) => void) {
 		const loop = (time: number) => {
-			time /= 1000; // Convert from milliseconds to seconds.
+			time = (time - this.startTime) / 1000; // Convert from milliseconds to seconds.
 			this.step(time);
 			if (callback) callback(time, this.frame);
 			this.animationFrameId = requestAnimationFrame(loop);
@@ -396,6 +402,12 @@ class ShaderPad {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
 		}
+	}
+
+	reset() {
+		this.frame = 0;
+		this.startTime = performance.now();
+		this.clearHistory();
 	}
 
 	save(filename: string) {

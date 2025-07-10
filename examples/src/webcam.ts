@@ -22,14 +22,14 @@ async function main() {
 precision mediump float;
 
 in vec2 v_uv;
-uniform sampler2D uPictureFrame;
-uniform sampler2D uWebcam;
+uniform sampler2D u_pictureFrame;
+uniform sampler2D u_webcam;
 
 out vec4 outColor;
 
 void main() {
-	vec4 frameColor = texture(uPictureFrame, v_uv);
-	vec4 webcamColor = texture(uWebcam, v_uv);
+	vec4 frameColor = texture(u_pictureFrame, v_uv);
+	vec4 webcamColor = texture(u_webcam, v_uv);
 	outColor = mix(webcamColor, frameColor, frameColor.a);
 }`;
 
@@ -47,11 +47,11 @@ void main() {
 	document.body.appendChild(outputCanvas);
 
 	const shader = new ShaderPad(fragmentShaderSrc, { canvas: outputCanvas });
-	shader.initializeTexture('uPictureFrame', pictureFrame);
-	shader.initializeTexture('uWebcam', video);
+	shader.initializeTexture('u_pictureFrame', pictureFrame);
+	shader.initializeTexture('u_webcam', video);
 
 	shader.play(() => {
-		shader.updateTextures({ uWebcam: video });
+		shader.updateTextures({ u_webcam: video });
 	});
 }
 

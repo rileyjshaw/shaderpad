@@ -19,6 +19,7 @@ declare class ShaderPad {
     private lastResizeTime;
     private eventListeners;
     private frame;
+    private startTime;
     private cursorPosition;
     private scrollX;
     private scrollY;
@@ -26,9 +27,11 @@ declare class ShaderPad {
     private isMouseDown;
     private historyLength;
     private historyTexture;
+    onResize?: (width: number, height: number) => void;
     constructor(fragmentShaderSrc: string, options?: Options);
     private init;
     private initializeHistoryBuffer;
+    private clearHistory;
     private createShader;
     private setupBuffer;
     private throttledHandleResize;
@@ -39,6 +42,7 @@ declare class ShaderPad {
     step(time: number): void;
     play(callback?: (time: number, frame: number) => void): void;
     pause(): void;
+    reset(): void;
     save(filename: string): void;
     initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement): void;
     updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>): void;
