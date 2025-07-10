@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.11
+
+### Patch Changes
+
+-   Remove wheel position from u_cursor
+
 ## 1.0.0-alpha.10
 
 ### Minor Changes

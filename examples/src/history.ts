@@ -7,12 +7,11 @@ const fragmentShaderSrc = `#version 300 es
 precision highp float;
 
 in vec2 v_uv;
+out vec4 outColor;
 uniform int u_frame;
-uniform vec4 u_cursor;
+uniform vec2 u_cursor;
 
 uniform highp sampler2DArray u_history;
-
-out vec4 fragColor;
 
 void main() {
     vec2 gridUV = fract(v_uv * ${gridLength}.0);
@@ -30,13 +29,12 @@ void main() {
     historyColor *= dim;
 
     // Add cursor overlay.
-    vec2 cursorPos = u_cursor.xy;
-    float cursorDist = distance(v_uv, cursorPos);
+    float cursorDist = distance(v_uv, u_cursor);
     float cursor = smoothstep(0.05, 0.02, cursorDist);
     vec3 cursorColor = vec3(cursor, 0.0, 0.0);
 
     vec3 finalColor = historyColor + cursorColor;
-    fragColor = vec4(finalColor, 1.0);
+    outColor = vec4(finalColor, 1.0);
 }`;
 
 const shader = new ShaderPad(fragmentShaderSrc, { history: gridSize });

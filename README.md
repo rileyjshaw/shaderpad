@@ -96,14 +96,14 @@ const shader = new ShaderPad(fragmentShaderSrc, { history: 10 });
 
 ## Included uniforms
 
-| Uniform        | Type           | Description                                        |
-| -------------- | -------------- | -------------------------------------------------- |
-| `u_time`       | float          | The current time in seconds.                       |
-| `u_frame`      | int            | The current frame number.                          |
-| `u_resolution` | float[2]       | The canvas element's dimensions.                   |
-| `u_cursor`     | float[4]       | Cursor position (x, y) and scroll position (z, w). |
-| `u_click`      | float[3]       | Click position (x, y) and left click state (z).    |
-| `u_history`    | sampler2DArray | Buffer texture of prior frames.                    |
+| Uniform        | Type           | Description                                     |
+| -------------- | -------------- | ----------------------------------------------- |
+| `u_time`       | float          | The current time in seconds.                    |
+| `u_frame`      | int            | The current frame number.                       |
+| `u_resolution` | float[2]       | The canvas element's dimensions.                |
+| `u_cursor`     | float[2]       | Cursor position (x, y).                         |
+| `u_click`      | float[3]       | Click position (x, y) and left click state (z). |
+| `u_history`    | sampler2DArray | Buffer texture of prior frames.                 |
 
 ## Included varyings
 

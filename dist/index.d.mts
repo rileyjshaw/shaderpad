@@ -21,8 +21,6 @@ declare class ShaderPad {
     private frame;
     private startTime;
     private cursorPosition;
-    private scrollX;
-    private scrollY;
     private clickPosition;
     private isMouseDown;
     private historyLength;

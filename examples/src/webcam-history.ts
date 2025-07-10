@@ -24,11 +24,10 @@ async function main() {
 precision highp float;
 
 in vec2 v_uv;
+out vec4 outColor;
 uniform int u_frame;
 uniform highp sampler2DArray u_history;
 uniform sampler2D u_webcam;
-
-out vec4 fragColor;
 
 void main() {
     vec2 gridUV = fract(v_uv * ${gridLength}.0);
@@ -44,7 +43,7 @@ void main() {
     vec4 webcamColor = texture(u_webcam, gridUV);
 
     vec4 finalColor = vec4(mix(webcamColor, historyColor, step(0.5, age)).rgb, 1.0);
-    fragColor = finalColor;
+    outColor = finalColor;
 }`;
 
 	let isPlaying = true;

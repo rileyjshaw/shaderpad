@@ -7,7 +7,7 @@ precision highp float;
 in vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_resolution;
-uniform vec4 u_cursor; // [cursorX, cursorY, scrollX, scrollY]
+uniform vec2 u_cursor; // [cursorX, cursorY]
 uniform vec3 u_click; // [clickX, clickY, isClicked]
 
 // Custom variables.
@@ -21,12 +21,10 @@ void main() {
   float dotDist = length(dotGrid);
   float dot = step(dotDist, 5.);
 
-  vec2 cursorPos = u_cursor.xy;
-  vec2 scrollPos = u_cursor.zw;
   vec2 clickPos = u_click.xy;
   float isClicked = u_click.z;
 
-  float cursorDist = distance(uv, cursorPos * u_resolution);
+  float cursorDist = distance(uv, u_cursor * u_resolution);
   float clickDist = distance(uv, clickPos * u_resolution);
 
   float cursorRadius = 25. + sin(u_time * 5.) * 5. + isClicked * 15.;
@@ -36,8 +34,6 @@ void main() {
   vec3 color = mix(vec3(0., 0., 1.), vec3(1.), dot);
   color = mix(color, u_cursorColor, cursor);
   color = mix(color, vec3(1., 1., 1.), click);
-  color.r += sin(scrollPos.x);
-  color.g += sin(scrollPos.y);
 
   outColor = vec4(color, 1.);
 }`;

@@ -22,10 +22,9 @@ async function main() {
 precision mediump float;
 
 in vec2 v_uv;
+out vec4 outColor;
 uniform sampler2D u_pictureFrame;
 uniform sampler2D u_webcam;
-
-out vec4 outColor;
 
 void main() {
 	vec4 frameColor = texture(u_pictureFrame, v_uv);

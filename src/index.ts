@@ -43,8 +43,6 @@ class ShaderPad {
 	private frame = 0;
 	private startTime = 0;
 	private cursorPosition = [0.5, 0.5];
-	private scrollX = 0;
-	private scrollY = 0;
 	private clickPosition = [0.5, 0.5];
 	private isMouseDown = false;
 	private historyLength: number;
@@ -106,8 +104,8 @@ class ShaderPad {
 		this.gl.useProgram(this.program);
 
 		this.initializeUniform('u_resolution', 'float', [this.canvas.width, this.canvas.height]);
-		this.initializeUniform('u_cursor', 'float', [...this.cursorPosition, this.scrollX, this.scrollY]); // [cursorX, cursorY, scrollX, scrollY]
-		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]); // [clickX, clickY, leftClick]
+		this.initializeUniform('u_cursor', 'float', this.cursorPosition);
+		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]);
 		this.initializeUniform('u_time', 'float', 0);
 		this.initializeUniform('u_frame', 'int', 0);
 
@@ -233,9 +231,7 @@ class ShaderPad {
 			const rect = this.canvas.getBoundingClientRect();
 			this.cursorPosition[0] = (x - rect.left) / rect.width;
 			this.cursorPosition[1] = 1 - (y - rect.top) / rect.height; // Flip Y for WebGL
-			this.updateUniforms({
-				u_cursor: [this.cursorPosition[0], this.cursorPosition[1], this.scrollX, this.scrollY],
-			});
+			this.updateUniforms({ u_cursor: this.cursorPosition });
 		};
 
 		const updateClick = (isMouseDown: boolean, x?: number, y?: number) => {
@@ -248,9 +244,7 @@ class ShaderPad {
 				this.clickPosition[0] = (xVal - rect.left) / rect.width;
 				this.clickPosition[1] = 1 - (yVal - rect.top) / rect.height; // Flip Y for WebGL
 			}
-			this.updateUniforms({
-				u_click: [this.clickPosition[0], this.clickPosition[1], this.isMouseDown ? 1.0 : 0.0],
-			});
+			this.updateUniforms({ u_click: [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0] });
 		};
 
 		this.eventListeners.set('mousemove', event => {
@@ -279,13 +273,6 @@ class ShaderPad {
 			}
 		});
 
-		this.eventListeners.set('wheel', event => {
-			const wheelEvent = event as WheelEvent;
-			this.scrollX += wheelEvent.deltaX * 0.01;
-			this.scrollY += wheelEvent.deltaY * 0.01;
-			updateCursor(wheelEvent.clientX, wheelEvent.clientY);
-		});
-
 		this.eventListeners.set('touchmove', event => {
 			const touchEvent = event as TouchEvent;
 			if (touchEvent.touches.length > 0) {
@@ -297,8 +284,8 @@ class ShaderPad {
 			const touchEvent = event as TouchEvent;
 			this.isTouchDevice = true;
 			if (touchEvent.touches.length > 0) {
-				updateClick(true, touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
 				updateCursor(touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
+				updateClick(true, touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
 			}
 		});
 
