@@ -40,8 +40,7 @@ void main() {
   color.g += sin(scrollPos.y);
 
   outColor = vec4(color, 1.);
-}
-`;
+}`;
 
 // Initialize the shader.
 const shader = new ShaderPad(fragmentShaderSrc);

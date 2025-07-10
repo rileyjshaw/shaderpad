@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+-   Make initial history frames transparent
+
 ## 1.0.0-alpha.8
 
 ### Minor Changes

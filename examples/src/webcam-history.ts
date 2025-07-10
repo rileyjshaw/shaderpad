@@ -25,17 +25,14 @@ precision highp float;
 
 in vec2 v_uv;
 uniform int u_frame;
-uniform vec4 u_cursor;
 uniform highp sampler2DArray u_history;
 uniform sampler2D u_webcam;
 
 out vec4 fragColor;
 
 void main() {
-    vec2 uv = v_uv;
-
-    vec2 gridUV = fract(uv * ${gridLength}.0);
-    vec2 gridPos = floor(uv * ${gridLength}.0);
+    vec2 gridUV = fract(v_uv * ${gridLength}.0);
+    vec2 gridPos = floor(v_uv * ${gridLength}.0);
 
     // Calculate which history frame to show based on grid position
     int historyLength = textureSize(u_history, 0).z;
@@ -43,11 +40,11 @@ void main() {
     float age = ${gridLength}.0 - gridPos.x + gridPos.y * ${gridLength}.0 - 1.0; // 25 is top left, 1 is bottom right.
     int historyIndex = (outputFrameIndex + historyLength - int(age)) % historyLength; // Newest frame is at the bottom right.
 
-    vec3 historyColor = texture(u_history, vec3(gridUV, float(historyIndex))).rgb;
+    vec4 historyColor = texture(u_history, vec3(gridUV, float(historyIndex)));
     vec4 webcamColor = texture(u_webcam, gridUV);
 
-    vec3 finalColor = mix(webcamColor.rgb, historyColor, step(0.5, age));
-    fragColor = vec4(finalColor, 1.0);
+    vec4 finalColor = vec4(mix(webcamColor, historyColor, step(0.5, age)).rgb, 1.0);
+    fragColor = finalColor;
 }`;
 
 	let isPlaying = true;

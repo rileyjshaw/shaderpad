@@ -45,14 +45,13 @@ void main() {
         s * pos.x + c * pos.y
     );
 
-    // Move back to pixel coordinates after rotation
+    // Move back to pixel coordinates after rotation.
     vec2 gridUv = (rotated + center);
 
-    // --- Gradient color after rotation ---
-    // Compute uv01 from rotated coordinates
+    // Compute uv01 from rotated coordinates.
     vec2 uv01_rotated = gridUv / u_resolution.xy;
 
-    // Bilinear interpolation
+    // Bilinear interpolation.
     vec3 color_left = mix(color_bl, color_tl, uv01_rotated.y);
     vec3 color_right = mix(color_br, color_tr, uv01_rotated.y);
     vec3 gradientColor = mix(color_left, color_right, uv01_rotated.x);
@@ -64,15 +63,14 @@ void main() {
     vec2 offset = mod(u_resolution, gridPixelSize) * 0.5;
     vec2 grid = fract((gridUv - offset) / gridPixelSize);
 
-    // Draw squares: inside each cell, color if inside uBorder of cell
+    // Draw squares: inside each cell, color if inside uBorder of cell.
     float mask = step(uBorder, grid.x) * step(uBorder, grid.y) *
                  step(grid.x, 1.0 - uBorder) * step(grid.y, 1.0 - uBorder);
 
-    // Blend the grid mask with the gradient color or grayscale
+    // Blend the grid mask with the gradient color or grayscale.
     vec3 color = mix(vec3(0.0), baseColor, mask);
     outColor = vec4(color, 1.0);
-}
-`;
+}`;
 
 const shader = new ShaderPad(fragmentShaderSrc);
 

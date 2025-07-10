@@ -129,6 +129,24 @@ class ShaderPad {
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 		gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, this.canvas.width, this.canvas.height, this.historyLength);
 
+		// Make initial frames transparent.
+		const transparent = new Uint8Array(this.canvas.width * this.canvas.height * 4); // All zeroes.
+		for (let layer = 0; layer < this.historyLength; ++layer) {
+			gl.texSubImage3D(
+				gl.TEXTURE_2D_ARRAY,
+				0,
+				0,
+				0,
+				layer,
+				this.canvas.width,
+				this.canvas.height,
+				1,
+				gl.RGBA,
+				gl.UNSIGNED_BYTE,
+				transparent
+			);
+		}
+
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
 

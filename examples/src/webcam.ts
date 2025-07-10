@@ -31,8 +31,7 @@ void main() {
 	vec4 frameColor = texture(uPictureFrame, v_uv);
 	vec4 webcamColor = texture(uWebcam, v_uv);
 	outColor = mix(webcamColor, frameColor, frameColor.a);
-}
-`;
+}`;
 
 	const pictureFrame = new Image();
 	pictureFrame.src = '/picture-frame.png';
