@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.12
+
+### Minor Changes
+
+-   Improve resize behaviour
+
 ## 1.0.0-alpha.11
 
 ### Patch Changes
