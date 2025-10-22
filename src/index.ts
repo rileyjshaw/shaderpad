@@ -36,6 +36,7 @@ class ShaderPad {
 	private buffer: WebGLBuffer | null = null;
 	private program: WebGLProgram | null = null;
 	private animationFrameId: number | null;
+	private resolutionObserver: MutationObserver;
 	private resizeObserver: ResizeObserver;
 	private resizeTimeout: NodeJS.Timeout = null as unknown as NodeJS.Timeout;
 	private lastResizeTime = 0;
@@ -69,8 +70,9 @@ class ShaderPad {
 		this.downloadLink = document.createElement('a');
 		this.fragmentShaderSrc = fragmentShaderSrc;
 		this.animationFrameId = null;
+		this.resolutionObserver = new MutationObserver(() => this.updateResolution());
 		this.resizeObserver = new ResizeObserver(() => this.throttledHandleResize());
-		this.resizeObserver.observe(this.canvas);
+
 		this.init();
 		this.addEventListeners();
 	}
@@ -99,16 +101,19 @@ class ShaderPad {
 
 		const aPosition = this.gl.getAttribLocation(this.program, 'aPosition');
 		this.setupBuffer(aPosition);
-		this.handleResize();
 
 		this.gl.useProgram(this.program);
 
-		this.initializeUniform('u_resolution', 'float', [this.canvas.width, this.canvas.height]);
+		this.resolutionObserver.observe(this.canvas, { attributes: true, attributeFilter: ['width', 'height'] });
+		this.resizeObserver.observe(this.canvas);
+
+		if (!this.isInternalCanvas) {
+			this.updateResolution();
+		}
 		this.initializeUniform('u_cursor', 'float', this.cursorPosition);
 		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]);
 		this.initializeUniform('u_time', 'float', 0);
 		this.initializeUniform('u_frame', 'int', 0);
-
 		if (this.historyLength > 0) {
 			this.initializeHistoryBuffer();
 		}
@@ -127,7 +132,14 @@ class ShaderPad {
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-		gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, this.canvas.width, this.canvas.height, this.historyLength);
+		gl.texStorage3D(
+			gl.TEXTURE_2D_ARRAY,
+			1,
+			gl.RGBA8,
+			this.gl.drawingBufferWidth,
+			this.gl.drawingBufferHeight,
+			this.historyLength
+		);
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
 
@@ -139,7 +151,7 @@ class ShaderPad {
 	}
 
 	private clearHistory() {
-		const transparent = new Uint8Array(this.canvas.width * this.canvas.height * 4); // All zeroes.
+		const transparent = new Uint8Array(this.gl.drawingBufferWidth * this.gl.drawingBufferHeight * 4); // All zeroes.
 		for (let layer = 0; layer < this.historyLength; ++layer) {
 			this.gl.texSubImage3D(
 				this.gl.TEXTURE_2D_ARRAY,
@@ -147,8 +159,8 @@ class ShaderPad {
 				0,
 				0,
 				layer,
-				this.canvas.width,
-				this.canvas.height,
+				this.gl.drawingBufferWidth,
+				this.gl.drawingBufferHeight,
 				1,
 				this.gl.RGBA,
 				this.gl.UNSIGNED_BYTE,
@@ -176,7 +188,7 @@ class ShaderPad {
 		this.buffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, quadVertices, this.gl.STATIC_DRAW);
-		this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+		this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 		this.gl.enableVertexAttribArray(aPosition);
 		this.gl.vertexAttribPointer(aPosition, 2, this.gl.FLOAT, false, 0, 0);
 	}
@@ -193,36 +205,15 @@ class ShaderPad {
 		}
 	}
 
-	// TODO: This breaks for `position: fixed; inset: 0` canvases.
 	private handleResize() {
 		const pixelRatio = window.devicePixelRatio || 1;
 		const width = this.canvas.clientWidth * pixelRatio;
 		const height = this.canvas.clientHeight * pixelRatio;
-
-		const computedStyle = getComputedStyle(this.canvas);
-		const hasExplicitWidth = computedStyle.width !== `${this.canvas.width}px` && computedStyle.width !== 'auto';
-		const hasExplicitHeight = computedStyle.height !== `${this.canvas.height}px` && computedStyle.height !== 'auto';
-		if (!hasExplicitWidth || !hasExplicitHeight) {
-			this.canvas.style.width = `${this.canvas.clientWidth}px`;
-			this.canvas.style.height = `${this.canvas.clientHeight}px`;
-		}
-
-		if (this.canvas.width !== width || this.canvas.height !== height) {
+		if (this.isInternalCanvas && (this.canvas.width !== width || this.canvas.height !== height)) {
 			this.canvas.width = width;
 			this.canvas.height = height;
-			this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-			if (this.uniforms.has('u_resolution')) {
-				this.updateUniforms({ u_resolution: [this.canvas.width, this.canvas.height] });
-			}
-
-			// Delete and recreate history buffer, since the canvas size won’t be correct anymore.
-			if (this.historyLength > 0 && this.historyTexture) {
-				this.gl.deleteTexture(this.historyTexture);
-				this.initializeHistoryBuffer();
-			}
-
-			this.onResize?.(this.canvas.width, this.canvas.height);
 		}
+		this.onResize?.(width, height);
 	}
 
 	private addEventListeners() {
@@ -301,6 +292,23 @@ class ShaderPad {
 		});
 	}
 
+	private updateResolution() {
+		const width = this.gl.drawingBufferWidth;
+		const height = this.gl.drawingBufferHeight;
+		this.gl.viewport(0, 0, width, height);
+		if (this.uniforms.has('u_resolution')) {
+			this.updateUniforms({ u_resolution: [width, height] });
+		} else {
+			this.initializeUniform('u_resolution', 'float', [width, height]);
+		}
+
+		// Delete and recreate history buffer, since the canvas size won’t be correct anymore.
+		if (this.historyLength > 0 && this.historyTexture) {
+			this.gl.deleteTexture(this.historyTexture);
+			this.initializeHistoryBuffer();
+		}
+	}
+
 	initializeUniform(name: string, type: 'float' | 'int', value: number | number[]) {
 		if (this.uniforms.has(name)) {
 			throw new Error(`Uniform '${name}' is already initialized.`);
@@ -359,13 +367,23 @@ class ShaderPad {
 			const writeIdx = this.frame % this.historyLength;
 
 			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-			gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+			gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 			gl.clear(gl.COLOR_BUFFER_BIT);
 			gl.drawArrays(gl.TRIANGLES, 0, 6);
 
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
-			gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, writeIdx, 0, 0, this.canvas.width, this.canvas.height);
+			gl.copyTexSubImage3D(
+				gl.TEXTURE_2D_ARRAY,
+				0,
+				0,
+				0,
+				writeIdx,
+				0,
+				0,
+				this.gl.drawingBufferWidth,
+				this.gl.drawingBufferHeight
+			);
 		} else {
 			gl.clear(gl.COLOR_BUFFER_BIT);
 			gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -457,7 +475,8 @@ class ShaderPad {
 			this.animationFrameId = null;
 		}
 
-		this.resizeObserver.unobserve(this.canvas);
+		this.resolutionObserver.disconnect();
+		this.resizeObserver.disconnect();
 		this.eventListeners.forEach((listener, event) => {
 			this.canvas.removeEventListener(event, listener);
 		});

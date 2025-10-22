@@ -62,6 +62,8 @@ shader.play(time => {
 // shader.reset();
 
 // ShaderPad also attaches a throttled resize observer that you can hook into.
+// It fires when the canvas size changes visually. If you supplied a custom
+// canvas, you may use this to update its `width` and `height` attributes.
 // shader.onResize = (width, height) => {
 // 	console.log('Canvas resized:', width, height);
 // };
@@ -80,6 +82,10 @@ The `canvas` option allows you to pass in an existing canvas element. If not pro
 ```typescript
 const canvas = document.createElement('canvas');
 const shader = new ShaderPad(fragmentShaderSrc, { canvas });
+shader.onResize = (width, height) => {
+	canvas.width = width;
+	canvas.height = height;
+};
 ```
 
 ### history

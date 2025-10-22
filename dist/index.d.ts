@@ -14,6 +14,7 @@ declare class ShaderPad {
     private buffer;
     private program;
     private animationFrameId;
+    private resolutionObserver;
     private resizeObserver;
     private resizeTimeout;
     private lastResizeTime;
@@ -35,6 +36,7 @@ declare class ShaderPad {
     private throttledHandleResize;
     private handleResize;
     private addEventListeners;
+    private updateResolution;
     initializeUniform(name: string, type: 'float' | 'int', value: number | number[]): void;
     updateUniforms(updates: Record<string, number | number[]>): void;
     step(time: number): void;

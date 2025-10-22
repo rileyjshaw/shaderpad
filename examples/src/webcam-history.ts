@@ -62,8 +62,8 @@ void main() {
 	const video = await getWebcamStream();
 
 	const outputCanvas = document.createElement('canvas');
-	outputCanvas.width = video.videoWidth;
-	outputCanvas.height = video.videoHeight;
+	outputCanvas.width = video.videoWidth * 2;
+	outputCanvas.height = video.videoHeight * 2;
 	outputCanvas.style.position = 'fixed';
 	outputCanvas.style.inset = '0';
 	outputCanvas.style.width = '100vw';
