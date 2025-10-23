@@ -5,7 +5,6 @@ interface Options {
 declare class ShaderPad {
     private isInternalCanvas;
     private isTouchDevice;
-    private canvas;
     private gl;
     private downloadLink;
     private fragmentShaderSrc;
@@ -26,6 +25,7 @@ declare class ShaderPad {
     private isMouseDown;
     private historyLength;
     private historyTexture;
+    canvas: HTMLCanvasElement;
     onResize?: (width: number, height: number) => void;
     constructor(fragmentShaderSrc: string, options?: Options);
     private init;
@@ -43,9 +43,9 @@ declare class ShaderPad {
     play(callback?: (time: number, frame: number) => void): void;
     pause(): void;
     reset(): void;
-    save(filename: string): Promise<void>;
     initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement): void;
     updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>): void;
+    save(filename: string): Promise<void>;
     destroy(): void;
 }
 
