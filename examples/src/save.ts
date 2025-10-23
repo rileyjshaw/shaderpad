@@ -42,6 +42,7 @@ void main() {
 	saveButton.style.bottom = '32px';
 	saveButton.style.left = '50%';
 	saveButton.style.transform = 'translateX(-50%)';
+	saveButton.style.fontSize = '24px';
 	document.body.appendChild(saveButton);
 	shader.initializeTexture('u_webcam', video);
 	shader.play(() => {

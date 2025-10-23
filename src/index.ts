@@ -464,29 +464,27 @@ class ShaderPad {
 			filename = `${filename}.png`;
 		}
 		filename = filename || 'export.png';
-		if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+		if ('ongesturechange' in window) {
+			// Mobile.
 			try {
 				const blob: Blob = await new Promise(resolve =>
 					this.canvas.toBlob(resolve as BlobCallback, 'image/png')
 				);
-				const file = new File([blob], filename, { type: 'image/png' });
+				const file = new File([blob], filename, { type: blob.type });
 
 				if (navigator.canShare?.({ files: [file] })) {
-					await navigator.share({
-						files: [file],
-						title: 'Exported image',
-						text: filename,
-					});
+					await navigator.share({ files: [file] });
 					return;
 				}
 			} catch (error) {
 				console.warn('Web Share API failed:', error);
 			}
+		} else {
+			// Desktop.
+			this.downloadLink.download = filename;
+			this.downloadLink.href = this.canvas.toDataURL();
+			this.downloadLink.click();
 		}
-		// Fallback for desktop browsers / mobile browsers that couldn’t use the share API.
-		this.downloadLink.download = filename;
-		this.downloadLink.href = this.canvas.toDataURL();
-		this.downloadLink.click();
 	}
 
 	destroy() {
