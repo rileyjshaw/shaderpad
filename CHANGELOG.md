@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.15
+
+### Patch Changes
+
+-   Improve iOS recognition on save
+
 ## 1.0.0-alpha.14
 
 ### Patch Changes
