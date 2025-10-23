@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.14
+
+### Patch Changes
+
+-   Improve mobile save experience
+
 ## 1.0.0-alpha.13
 
 ### Minor Changes
