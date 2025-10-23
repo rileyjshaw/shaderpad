@@ -43,7 +43,7 @@ declare class ShaderPad {
     play(callback?: (time: number, frame: number) => void): void;
     pause(): void;
     reset(): void;
-    save(filename: string): void;
+    save(filename: string): Promise<void>;
     initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement): void;
     updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>): void;
     destroy(): void;

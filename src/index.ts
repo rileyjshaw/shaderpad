@@ -415,17 +415,41 @@ class ShaderPad {
 		this.clearHistory();
 	}
 
-	save(filename: string) {
+	async save(filename: string) {
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 		this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
-		const image = this.canvas.toDataURL();
 		if (filename && !`${filename}`.toLowerCase().endsWith('.png')) {
 			filename = `${filename}.png`;
 		}
-		this.downloadLink.download = filename || 'export.png';
-		this.downloadLink.href = image;
-		this.downloadLink.click();
+		filename = filename || 'export.png';
+
+		if (
+			navigator.canShare?.() &&
+			/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+		) {
+			try {
+				const blob: Blob = await new Promise(resolve =>
+					this.canvas.toBlob(resolve as BlobCallback, 'image/png')
+				);
+				const file = new File([blob], filename, { type: 'image/png' });
+
+				if (navigator.canShare({ files: [file] })) {
+					await navigator.share({
+						files: [file],
+						title: filename,
+						text: 'Exported image',
+					});
+					return;
+				}
+			} catch (error) {
+				console.warn('Web Share API failed:', error);
+			}
+		} else {
+			this.downloadLink.download = filename;
+			this.downloadLink.href = this.canvas.toDataURL();
+			this.downloadLink.click();
+		}
 	}
 
 	initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement) {
