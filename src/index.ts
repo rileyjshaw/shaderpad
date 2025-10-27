@@ -393,6 +393,7 @@ class ShaderPad {
 	}
 
 	play(callback?: (time: number, frame: number) => void) {
+		this.pause(); // Prevent double play.
 		const loop = (time: number) => {
 			time = (time - this.startTime) / 1000; // Convert from milliseconds to seconds.
 			this.step(time);
