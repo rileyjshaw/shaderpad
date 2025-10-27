@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-alpha.16
+
+### Minor Changes
+
+-   Prevent double play
+
 ## 1.0.0-alpha.15
 
 ### Patch Changes
