@@ -1,11 +1,12 @@
 {
   "mode": "pre",
-  "tag": "alpha",
+  "tag": "beta",
   "initialVersions": {
-    "shaderpad": "1.0.0-alpha.0"
+    "shaderpad": "1.0.0-alpha.16"
   },
   "changesets": [
     "cool-melons-cheer",
+    "dull-deers-guess",
     "flat-pears-greet",
     "fresh-lions-build",
     "long-olives-wonder",
