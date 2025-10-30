@@ -1,70 +1,58 @@
-import ShaderPad from 'shaderpad';
+let currentDemo: { init: () => Promise<void>; destroy: () => void } | null = null;
 
-const fragmentShaderSrc = `#version 300 es
-precision highp float;
+const demos = [
+	{ path: './basic', name: 'Basic' },
+	{ path: './webcam', name: 'Webcam' },
+	{ path: './sway', name: 'Sway' },
+	{ path: './save', name: 'Save' },
+	{ path: './history', name: 'History' },
+	{ path: './history-tiles', name: 'History - tiles' },
+	{ path: './history-webcam-accumulation', name: 'History - webcam accumulation' },
+] as const;
 
-// Built-in variables.
-in vec2 v_uv;
-uniform float u_time;
-uniform vec2 u_resolution;
-uniform vec2 u_cursor; // [cursorX, cursorY]
-uniform vec3 u_click; // [clickX, clickY, isClicked]
-
-// Custom variables.
-uniform vec3 u_cursorColor;
-
-out vec4 outColor;
-
-void main() {
-  vec2 uv = v_uv * u_resolution;
-  vec2 dotGrid = mod(uv, 50.) - 25.;
-  float dotDist = length(dotGrid);
-  float dot = step(dotDist, 5.);
-
-  vec2 clickPos = u_click.xy;
-  float isClicked = u_click.z;
-
-  float cursorDist = distance(uv, u_cursor * u_resolution);
-  float clickDist = distance(uv, clickPos * u_resolution);
-
-  float cursorRadius = 25. + sin(u_time * 5.) * 5. + isClicked * 15.;
-  float cursor = step(cursorDist, cursorRadius);
-  float click = step(clickDist, 15.);
-
-  vec3 color = mix(vec3(0., 0., 1.), vec3(1.), dot);
-  color = mix(color, u_cursorColor, cursor);
-  color = mix(color, vec3(1., 1., 1.), click);
-
-  outColor = vec4(color, 1.);
-}`;
-
-// Initialize the shader.
-const shader = new ShaderPad(fragmentShaderSrc);
-
-// Add your own custom uniforms.
-const getColor = (time: number) =>
-	[time, time + (Math.PI * 2) / 3, time + (Math.PI * 4) / 3].map(x => 1 + Math.sin(x) / 2);
-shader.initializeUniform('u_cursorColor', 'float', getColor(0));
-
-// Start the render loop.
-shader.play(time => {
-	shader.updateUniforms({ u_cursorColor: getColor(time) });
-});
-
-// Optionally pause the render loop.
-// shader.pause();
-
-let isPlaying = true;
-
-document.addEventListener('keydown', e => {
-	if (e.key === ' ') {
-		isPlaying = !isPlaying;
-		isPlaying ? shader.play() : shader.pause();
+async function loadDemo(demoPath: string) {
+	if (currentDemo) {
+		currentDemo.destroy();
+		currentDemo = null;
 	}
-});
 
-document.addEventListener('keydown', e => {
-	if (e.key === 's') {
-		shader.save('example');
+	try {
+		const demoExists = demos.some(demo => demo.path === demoPath);
+		if (!demoExists) {
+			throw new Error(`Unknown demo: ${demoPath}`);
+		}
+
+		const demoModule = await import(/* @vite-ignore */ demoPath);
+		currentDemo = demoModule;
+		await demoModule.init();
+
+		const errorDiv = document.getElementById('error')!;
+		errorDiv.style.display = 'none';
+	} catch (error) {
+		console.error('Failed to load demo:', error);
+		const errorDiv = document.getElementById('error')!;
+		errorDiv.textContent = `Failed to load demo: ${error}`;
+		errorDiv.style.display = 'block';
 	}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+	const select = document.getElementById('demo-select') as HTMLSelectElement;
+
+	demos.forEach((demo, index) => {
+		const option = document.createElement('option');
+		option.value = demo.path;
+		option.textContent = demo.name;
+		if (index === 0) {
+			option.selected = true;
+		}
+		select.appendChild(option);
+	});
+
+	select.addEventListener('change', e => {
+		const target = e.target as HTMLSelectElement;
+		loadDemo(target.value);
+	});
+
+	loadDemo(select.value);
 });

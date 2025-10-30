@@ -19,9 +19,21 @@ interface Texture {
 	unitIndex: number;
 }
 
+export interface PluginContext {
+	gl: WebGL2RenderingContext;
+	uniforms: Map<string, Uniform>;
+	textures: Map<string, Texture>;
+	program: WebGLProgram | null;
+	canvas: HTMLCanvasElement;
+}
+
+type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
+
+type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset';
+
 interface Options {
 	canvas?: HTMLCanvasElement | null;
-	history?: number;
+	plugins?: Plugin[];
 }
 
 class ShaderPad {
@@ -45,14 +57,12 @@ class ShaderPad {
 	private cursorPosition = [0.5, 0.5];
 	private clickPosition = [0.5, 0.5];
 	private isMouseDown = false;
-	private historyLength: number;
-	private historyTexture: WebGLTexture | null = null;
 	public canvas: HTMLCanvasElement;
 	public onResize?: (width: number, height: number) => void;
+	private hooks: Map<LifecycleMethod, Function[]> = new Map();
 
 	constructor(fragmentShaderSrc: string, options: Options = {}) {
 		this.canvas = options.canvas || document.createElement('canvas');
-		this.historyLength = options.history || 0;
 		if (!options.canvas) {
 			this.isInternalCanvas = true;
 			document.body.appendChild(this.canvas);
@@ -73,8 +83,25 @@ class ShaderPad {
 		this.resolutionObserver = new MutationObserver(() => this.updateResolution());
 		this.resizeObserver = new ResizeObserver(() => this.throttledHandleResize());
 
+		if (options.plugins) {
+			const context: PluginContext = {
+				gl: this.gl,
+				uniforms: this.uniforms,
+				textures: this.textures,
+				program: this.program,
+				canvas: this.canvas,
+			};
+			options.plugins.forEach(plugin => plugin(this, context));
+		}
 		this.init();
 		this.addEventListeners();
+	}
+
+	registerHook(name: LifecycleMethod, fn: Function) {
+		if (!this.hooks.has(name)) {
+			this.hooks.set(name, []);
+		}
+		this.hooks.get(name)!.push(fn);
 	}
 
 	private init() {
@@ -114,59 +141,8 @@ class ShaderPad {
 		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]);
 		this.initializeUniform('u_time', 'float', 0);
 		this.initializeUniform('u_frame', 'int', 0);
-		if (this.historyLength > 0) {
-			this.initializeHistoryBuffer();
-		}
-	}
 
-	private initializeHistoryBuffer() {
-		const { gl } = this;
-
-		this.historyTexture = gl.createTexture();
-		if (!this.historyTexture) {
-			throw new Error('Failed to create history texture');
-		}
-
-		gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
-		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-		gl.texStorage3D(
-			gl.TEXTURE_2D_ARRAY,
-			1,
-			gl.RGBA8,
-			this.gl.drawingBufferWidth,
-			this.gl.drawingBufferHeight,
-			this.historyLength
-		);
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
-
-		this.clearHistory();
-
-		if (!this.uniforms.has('u_history')) {
-			this.initializeUniform('u_history', 'int', 0);
-		}
-	}
-
-	private clearHistory() {
-		const transparent = new Uint8Array(this.gl.drawingBufferWidth * this.gl.drawingBufferHeight * 4); // All zeroes.
-		for (let layer = 0; layer < this.historyLength; ++layer) {
-			this.gl.texSubImage3D(
-				this.gl.TEXTURE_2D_ARRAY,
-				0,
-				0,
-				0,
-				layer,
-				this.gl.drawingBufferWidth,
-				this.gl.drawingBufferHeight,
-				1,
-				this.gl.RGBA,
-				this.gl.UNSIGNED_BYTE,
-				transparent
-			);
-		}
+		this.hooks.get('init')?.forEach(hook => hook.call(this));
 	}
 
 	private createShader(type: number, source: string): WebGLShader {
@@ -302,11 +278,7 @@ class ShaderPad {
 			this.initializeUniform('u_resolution', 'float', [width, height]);
 		}
 
-		// Delete and recreate history buffer, since the canvas size won’t be correct anymore.
-		if (this.historyLength > 0 && this.historyTexture) {
-			this.gl.deleteTexture(this.historyTexture);
-			this.initializeHistoryBuffer();
-		}
+		this.hooks.get('updateResolution')?.forEach(hook => hook.call(this));
 	}
 
 	initializeUniform(name: string, type: 'float' | 'int', value: number | number[]) {
@@ -363,31 +335,10 @@ class ShaderPad {
 			this.updateUniforms({ u_frame: this.frame });
 		}
 
-		if (this.historyLength > 0) {
-			const writeIdx = this.frame % this.historyLength;
+		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-			gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-			gl.clear(gl.COLOR_BUFFER_BIT);
-			gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-			gl.activeTexture(gl.TEXTURE0);
-			gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.historyTexture);
-			gl.copyTexSubImage3D(
-				gl.TEXTURE_2D_ARRAY,
-				0,
-				0,
-				0,
-				writeIdx,
-				0,
-				0,
-				this.gl.drawingBufferWidth,
-				this.gl.drawingBufferHeight
-			);
-		} else {
-			gl.clear(gl.COLOR_BUFFER_BIT);
-			gl.drawArrays(gl.TRIANGLES, 0, 6);
-		}
+		this.hooks.get('step')?.forEach(hook => hook.call(this, time, this.frame));
 
 		++this.frame;
 	}
@@ -397,8 +348,8 @@ class ShaderPad {
 		const loop = (time: number) => {
 			time = (time - this.startTime) / 1000; // Convert from milliseconds to seconds.
 			this.step(time);
-			if (callback) callback(time, this.frame);
 			this.animationFrameId = requestAnimationFrame(loop);
+			if (callback) callback(time, this.frame);
 		};
 		this.animationFrameId = requestAnimationFrame(loop);
 	}
@@ -413,7 +364,7 @@ class ShaderPad {
 	reset() {
 		this.frame = 0;
 		this.startTime = performance.now();
-		this.clearHistory();
+		this.hooks.get('reset')?.forEach(hook => hook.call(this));
 	}
 
 	initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement) {
@@ -508,15 +459,12 @@ class ShaderPad {
 			this.gl.deleteTexture(texture.texture);
 		});
 
-		if (this.historyTexture) {
-			this.gl.deleteTexture(this.historyTexture);
-			this.historyTexture = null;
-		}
-
 		if (this.buffer) {
 			this.gl.deleteBuffer(this.buffer);
 			this.buffer = null;
 		}
+
+		this.hooks.get('destroy')?.forEach(hook => hook.call(this));
 
 		if (this.isInternalCanvas) {
 			this.canvas.remove();
@@ -524,4 +472,5 @@ class ShaderPad {
 	}
 }
 
+export * from './plugins';
 export default ShaderPad;

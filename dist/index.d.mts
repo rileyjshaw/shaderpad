@@ -1,6 +1,36 @@
+declare function history(depth?: number): (shaderPad: ShaderPad, context: PluginContext) => void;
+
+declare module '../index' {
+    interface ShaderPad {
+        save(filename: string): Promise<void>;
+    }
+}
+declare function save(): (shaderPad: ShaderPad, context: PluginContext) => void;
+type WithSave<T extends ShaderPad> = T & {
+    save(filename: string): Promise<void>;
+};
+
+interface Uniform {
+    type: 'float' | 'int';
+    length: 1 | 2 | 3 | 4;
+    location: WebGLUniformLocation;
+}
+interface Texture {
+    texture: WebGLTexture;
+    unitIndex: number;
+}
+interface PluginContext {
+    gl: WebGL2RenderingContext;
+    uniforms: Map<string, Uniform>;
+    textures: Map<string, Texture>;
+    program: WebGLProgram | null;
+    canvas: HTMLCanvasElement;
+}
+type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
+type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset';
 interface Options {
     canvas?: HTMLCanvasElement | null;
-    history?: number;
+    plugins?: Plugin[];
 }
 declare class ShaderPad {
     private isInternalCanvas;
@@ -23,14 +53,12 @@ declare class ShaderPad {
     private cursorPosition;
     private clickPosition;
     private isMouseDown;
-    private historyLength;
-    private historyTexture;
     canvas: HTMLCanvasElement;
     onResize?: (width: number, height: number) => void;
+    private hooks;
     constructor(fragmentShaderSrc: string, options?: Options);
+    registerHook(name: LifecycleMethod, fn: Function): void;
     private init;
-    private initializeHistoryBuffer;
-    private clearHistory;
     private createShader;
     private setupBuffer;
     private throttledHandleResize;
@@ -49,4 +77,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { ShaderPad as default };
+export { type PluginContext, type WithSave, ShaderPad as default, history, save };

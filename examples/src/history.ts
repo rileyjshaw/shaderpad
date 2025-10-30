@@ -1,4 +1,4 @@
-import ShaderPad from 'shaderpad';
+import ShaderPad, { history } from 'shaderpad';
 
 const gridLength = 5;
 const gridSize = gridLength * gridLength;
@@ -37,5 +37,33 @@ void main() {
     outColor = vec4(finalColor, 1.0);
 }`;
 
-const shader = new ShaderPad(fragmentShaderSrc, { history: gridSize });
-shader.play();
+let shader: ShaderPad | null = null;
+let canvas: HTMLCanvasElement | null = null;
+
+export async function init() {
+	canvas = document.createElement('canvas');
+	canvas.width = 1000;
+	canvas.height = 1000;
+	canvas.style.position = 'fixed';
+	canvas.style.inset = '0';
+	canvas.style.height = '100dvh';
+	canvas.style.width = '100dvw';
+	document.body.appendChild(canvas);
+
+	shader = new ShaderPad(fragmentShaderSrc, {
+		canvas,
+		plugins: [history(gridSize)],
+	});
+	shader.play();
+}
+
+export function destroy() {
+	if (shader) {
+		shader.destroy();
+		shader = null;
+	}
+	if (canvas) {
+		canvas.remove();
+		canvas = null;
+	}
+}

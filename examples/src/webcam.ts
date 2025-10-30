@@ -17,7 +17,11 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 	return video;
 }
 
-async function main() {
+let shader: ShaderPad | null = null;
+let video: HTMLVideoElement | null = null;
+let outputCanvas: HTMLCanvasElement | null = null;
+
+export async function init() {
 	const fragmentShaderSrc = `#version 300 es
 precision mediump float;
 
@@ -38,20 +42,37 @@ void main() {
 		pictureFrame.onload = resolve;
 		pictureFrame.onerror = reject;
 	});
-	const video = await getWebcamStream();
+	
+	video = await getWebcamStream();
 
-	const outputCanvas = document.createElement('canvas');
+	outputCanvas = document.createElement('canvas');
 	outputCanvas.width = video.videoWidth;
 	outputCanvas.height = video.videoHeight;
 	document.body.appendChild(outputCanvas);
 
-	const shader = new ShaderPad(fragmentShaderSrc, { canvas: outputCanvas });
+	shader = new ShaderPad(fragmentShaderSrc, { canvas: outputCanvas });
 	shader.initializeTexture('u_pictureFrame', pictureFrame);
 	shader.initializeTexture('u_webcam', video);
 
 	shader.play(() => {
-		shader.updateTextures({ u_webcam: video });
+		shader!.updateTextures({ u_webcam: video! });
 	});
 }
 
-document.addEventListener('DOMContentLoaded', main);
+export function destroy() {
+	if (shader) {
+		shader.destroy();
+		shader = null;
+	}
+	
+	if (video) {
+		video.srcObject = null;
+		video.remove();
+		video = null;
+	}
+	
+	if (outputCanvas) {
+		outputCanvas.remove();
+		outputCanvas = null;
+	}
+}

@@ -88,28 +88,43 @@ shader.onResize = (width, height) => {
 };
 ```
 
-### history
+### plugins
 
-ShaderPad supports frame history buffers for effects like motion blur, feedback, and trails:
+ShaderPad supports plugins to add additional functionality.
+
+#### history
+
+The `history` plugin adds a frame history buffer to the shader. It is useful for effects like motion blur, feedback, and trails.
 
 ```typescript
+import ShaderPad, { history } from 'shaderpad';
 // 2-frame history (eg. for cellular automata).
-const shader = new ShaderPad(fragmentShaderSrc, { history: 2 });
+const shader = new ShaderPad(fragmentShaderSrc, { plugins: [history(2)] });
 
 // 10-frame history (eg. for motion blur).
-const shader = new ShaderPad(fragmentShaderSrc, { history: 10 });
+const shader = new ShaderPad(fragmentShaderSrc, { plugins: [history(10)] });
+```
+
+#### save
+
+The `save` plugin adds a `.save()` method to the shader that saves the current frame to a PNG file.
+
+```typescript
+import ShaderPad, { save, WithSave } from 'shaderpad';
+const shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
+shader.save('my-frame');
 ```
 
 ## Included uniforms
 
-| Uniform        | Type           | Description                                     |
-| -------------- | -------------- | ----------------------------------------------- |
-| `u_time`       | float          | The current time in seconds.                    |
-| `u_frame`      | int            | The current frame number.                       |
-| `u_resolution` | float[2]       | The canvas element's dimensions.                |
-| `u_cursor`     | float[2]       | Cursor position (x, y).                         |
-| `u_click`      | float[3]       | Click position (x, y) and left click state (z). |
-| `u_history`    | sampler2DArray | Buffer texture of prior frames.                 |
+| Uniform        | Type           | Description                                                                     |
+| -------------- | -------------- | ------------------------------------------------------------------------------- |
+| `u_time`       | float          | The current time in seconds.                                                    |
+| `u_frame`      | int            | The current frame number.                                                       |
+| `u_resolution` | float[2]       | The canvas element's dimensions.                                                |
+| `u_cursor`     | float[2]       | Cursor position (x, y).                                                         |
+| `u_click`      | float[3]       | Click position (x, y) and left click state (z).                                 |
+| `u_history`    | sampler2DArray | Buffer texture of prior frames. Only available if the `history` plugin is used. |
 
 ## Included varyings
 
@@ -132,15 +147,13 @@ npm install
 npm run dev
 ```
 
-This will launch a local server (powered by Vite). Open the provided URL (usually `http://localhost:5173`) in your browser to view and interact with the examples.
-
-`examples/index.html` hardcodes the `main.ts` example. To view a different example, change `<script type="module" src="/src/main.ts"></script>` to point to your new example.
+This will launch a local server. Open the provided URL (usually `http://localhost:5173`) in your browser to view and interact with the examples. Use the select box to view a different example.
 
 ### Adding an example
 
 -   Add a new `.ts` file in `examples/src/`.
--   Follow the structure of an existing example as a template.
--   Change `<script type="module" src="/src/main.ts"></script>` in `examples/index.html` to point to your new example.
+-   Follow the structure of an existing example as a template. The example must export an `init` function and a `destroy` function.
+-   Add the example to the `demos` array in `examples/src/main.ts`.
 -   If your example needs images or other assets, place them in `examples/public/` and reference them with a relative path.
 
 ## License

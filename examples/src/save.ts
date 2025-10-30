@@ -1,4 +1,4 @@
-import ShaderPad from 'shaderpad';
+import ShaderPad, { save, WithSave } from 'shaderpad';
 
 async function getWebcamStream(): Promise<HTMLVideoElement> {
 	const video = document.createElement('video');
@@ -17,7 +17,11 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 	return video;
 }
 
-async function main() {
+let shader: WithSave<ShaderPad> | null = null;
+let video: HTMLVideoElement | null = null;
+let saveButton: HTMLButtonElement | null = null;
+
+export async function init() {
 	const fragmentShaderSrc = `#version 300 es
 precision mediump float;
 
@@ -29,14 +33,16 @@ void main() {
     vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
 	outColor = texture(u_webcam, uv);
 }`;
-	const video = await getWebcamStream();
-	const shader = new ShaderPad(fragmentShaderSrc);
+
+	video = await getWebcamStream();
+	shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
 	shader.canvas.width = video.videoWidth;
 	shader.canvas.height = video.videoHeight;
-	const saveButton = document.createElement('button');
+
+	saveButton = document.createElement('button');
 	saveButton.textContent = 'Save';
 	saveButton.addEventListener('click', () => {
-		shader.save('selfie');
+		shader!.save('selfie');
 	});
 	saveButton.style.position = 'fixed';
 	saveButton.style.bottom = '32px';
@@ -44,10 +50,27 @@ void main() {
 	saveButton.style.transform = 'translateX(-50%)';
 	saveButton.style.fontSize = '24px';
 	document.body.appendChild(saveButton);
+
 	shader.initializeTexture('u_webcam', video);
 	shader.play(() => {
-		shader.updateTextures({ u_webcam: video });
+		shader!.updateTextures({ u_webcam: video! });
 	});
 }
 
-document.addEventListener('DOMContentLoaded', main);
+export function destroy() {
+	if (shader) {
+		shader.destroy();
+		shader = null;
+	}
+
+	if (video) {
+		video.srcObject = null;
+		video.remove();
+		video = null;
+	}
+
+	if (saveButton) {
+		saveButton.remove();
+		saveButton = null;
+	}
+}

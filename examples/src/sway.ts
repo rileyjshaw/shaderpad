@@ -1,4 +1,4 @@
-import ShaderPad from 'shaderpad';
+import ShaderPad, { save, WithSave } from 'shaderpad';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
@@ -71,8 +71,6 @@ void main() {
     vec3 color = mix(vec3(0.0), baseColor, mask);
     outColor = vec4(color, 1.0);
 }`;
-
-const shader = new ShaderPad(fragmentShaderSrc);
 
 const variants = [
 	// Original.
@@ -157,30 +155,54 @@ const variants = [
 	},
 ];
 
-Object.entries(variants[0]).forEach(([key, value]) => {
-	shader.initializeUniform(key, 'float', value);
-});
-
-shader.play();
-
+let shader: WithSave<ShaderPad> | null = null;
 let isPlaying = true;
 let variantIdx = 0;
-document.addEventListener('keydown', e => {
-	switch (e.key) {
-		case ' ':
-			isPlaying = !isPlaying;
-			isPlaying ? shader.play() : shader.pause();
-			break;
-		// @ts-expect-error
-		case 'ArrowRight':
-			variantIdx += 2;
-		// Falls through.
-		case 'ArrowLeft':
-			variantIdx = (variantIdx - 1 + variants.length) % variants.length;
-			shader.updateUniforms(variants[variantIdx]);
-			break;
-		case 's':
-			shader.save('sway');
-			break;
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+
+export async function init() {
+	shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
+
+	Object.entries(variants[0]).forEach(([key, value]) => {
+		shader!.initializeUniform(key, 'float', value);
+	});
+
+	shader.play();
+
+	keydownHandler = (e: KeyboardEvent) => {
+		switch (e.key) {
+			case ' ':
+				isPlaying = !isPlaying;
+				isPlaying ? shader!.play() : shader!.pause();
+				break;
+			// @ts-expect-error
+			case 'ArrowRight':
+				variantIdx += 2;
+			// Falls through.
+			case 'ArrowLeft':
+				variantIdx = (variantIdx - 1 + variants.length) % variants.length;
+				shader!.updateUniforms(variants[variantIdx]);
+				break;
+			case 's':
+				shader!.save('sway');
+				break;
+		}
+	};
+	
+	document.addEventListener('keydown', keydownHandler);
+}
+
+export function destroy() {
+	if (shader) {
+		shader.destroy();
+		shader = null;
 	}
-});
+	
+	if (keydownHandler) {
+		document.removeEventListener('keydown', keydownHandler);
+		keydownHandler = null;
+	}
+	
+	isPlaying = true;
+	variantIdx = 0;
+}

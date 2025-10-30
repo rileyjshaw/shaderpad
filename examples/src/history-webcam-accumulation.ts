@@ -1,4 +1,4 @@
-import ShaderPad from 'shaderpad';
+import ShaderPad, { history } from 'shaderpad';
 
 const gridLength = 5;
 const gridSize = gridLength * gridLength;
@@ -19,7 +19,13 @@ async function getWebcamStream() {
 	return video;
 }
 
-async function main() {
+let shader: ShaderPad | null = null;
+let video: HTMLVideoElement | null = null;
+let outputCanvas: HTMLCanvasElement | null = null;
+let isPlaying = true;
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+
+export async function init() {
 	const fragmentShaderSrc = `#version 300 es
 precision highp float;
 
@@ -30,38 +36,37 @@ uniform highp sampler2DArray u_history;
 uniform sampler2D u_webcam;
 
 void main() {
-    vec2 gridUV = fract(v_uv * ${gridLength}.0);
-    vec2 gridPos = floor(v_uv * ${gridLength}.0);
+    const float gridLength = ${gridLength}.0;
+    vec2 scaledUV = v_uv * gridLength;
+    vec2 localUV = fract(scaledUV);
+    vec2 gridPos = floor(scaledUV);
 
     // Calculate which history frame to show based on grid position
     int historyLength = textureSize(u_history, 0).z;
     int outputFrameIndex = u_frame % historyLength; // Index of the frame this full render will write to.
-    float age = ${gridLength}.0 - gridPos.x + gridPos.y * ${gridLength}.0 - 1.0; // 25 is top left, 1 is bottom right.
+    float age = gridLength - gridPos.x + gridPos.y * gridLength - 1.0; // 25 is top left, 1 is bottom right.
     int historyIndex = (outputFrameIndex + historyLength - int(age)) % historyLength; // Newest frame is at the bottom right.
 
-    vec4 historyColor = texture(u_history, vec3(gridUV, float(historyIndex)));
-    vec4 webcamColor = texture(u_webcam, gridUV);
+    vec4 historyColor = texture(u_history, vec3(localUV, float(historyIndex)));
+    vec4 webcamColor = texture(u_webcam, vec2(1.0 - localUV.x, localUV.y));
 
     vec4 finalColor = vec4(mix(webcamColor, historyColor, step(0.5, age)).rgb, 1.0);
     outColor = finalColor;
 }`;
 
-	let isPlaying = true;
-	document.addEventListener('keydown', e => {
+	keydownHandler = (e: KeyboardEvent) => {
 		switch (e.key) {
 			case ' ':
 				isPlaying = !isPlaying;
-				isPlaying ? shader.play() : shader.pause();
-				break;
-			case 's':
-				shader.save('shift');
+				isPlaying ? shader!.play() : shader!.pause();
 				break;
 		}
-	});
+	};
+	document.addEventListener('keydown', keydownHandler);
 
-	const video = await getWebcamStream();
+	video = await getWebcamStream();
 
-	const outputCanvas = document.createElement('canvas');
+	outputCanvas = document.createElement('canvas');
 	outputCanvas.width = video.videoWidth * 2;
 	outputCanvas.height = video.videoHeight * 2;
 	outputCanvas.style.position = 'fixed';
@@ -70,12 +75,35 @@ void main() {
 	outputCanvas.style.height = '100vh';
 	document.body.appendChild(outputCanvas);
 
-	const shader = new ShaderPad(fragmentShaderSrc, { canvas: outputCanvas, history: gridSize - 1 });
+	shader = new ShaderPad(fragmentShaderSrc, { canvas: outputCanvas, plugins: [history(gridSize - 1)] });
 	shader.initializeTexture('u_webcam', video);
 
 	shader.play(() => {
-		shader.updateTextures({ u_webcam: video });
+		shader!.updateTextures({ u_webcam: video! });
 	});
 }
 
-document.addEventListener('DOMContentLoaded', main);
+export function destroy() {
+	if (shader) {
+		shader.destroy();
+		shader = null;
+	}
+
+	if (video) {
+		video.srcObject = null;
+		video.remove();
+		video = null;
+	}
+
+	if (outputCanvas) {
+		outputCanvas.remove();
+		outputCanvas = null;
+	}
+
+	if (keydownHandler) {
+		document.removeEventListener('keydown', keydownHandler);
+		keydownHandler = null;
+	}
+
+	isPlaying = true;
+}

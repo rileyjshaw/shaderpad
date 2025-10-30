@@ -1,0 +1,44 @@
+body {
+	margin: 0;
+	padding: 0;
+	background: #000;
+	overflow: hidden;
+	font-family: system-ui, sans-serif;
+}
+
+canvas {
+	display: block;
+}
+
+.demo-selector {
+	position: fixed;
+	top: 20px;
+	left: 20px;
+	z-index: 1000;
+	background: rgba(0, 0, 0, 0.8);
+	padding: 20px;
+	border-radius: 8px;
+	color: white;
+}
+
+.demo-selector h2 {
+	margin: 0 0 15px 0;
+	font-size: 18px;
+}
+
+#demo-select {
+	padding: 8px 12px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: white;
+	color: black;
+	font-size: 14px;
+	min-width: 200px;
+}
+
+.error-message {
+	margin-top: 10px;
+	color: #ff6b6b;
+	font-size: 12px;
+	display: none;
+}

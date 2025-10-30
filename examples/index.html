@@ -3,9 +3,17 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>ShaderPad examples</title>
+		<title>ShaderPad Examples</title>
+		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body>
+		<div class="demo-selector">
+			<h2>ShaderPad Examples</h2>
+			<select id="demo-select">
+				<!-- Options are populated dynamically from `main.ts`. -->
+			</select>
+			<div id="error" class="error-message"></div>
+		</div>
 		<script type="module" src="/src/main.ts"></script>
 	</body>
 </html>
