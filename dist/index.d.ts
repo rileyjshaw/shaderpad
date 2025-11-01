@@ -1,4 +1,7 @@
-declare function history(depth?: number): (shaderPad: ShaderPad, context: PluginContext) => void;
+type WithHistory<T extends ShaderPad> = T & {
+    initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement, historyDepth?: number): void;
+};
+declare function history(framebufferDepth?: number): (shaderPad: ShaderPad, context: PluginContext) => void;
 
 declare module '../index' {
     interface ShaderPad {
@@ -18,13 +21,18 @@ interface Uniform {
 interface Texture {
     texture: WebGLTexture;
     unitIndex: number;
+    historyDepth?: number;
+    writeIndex?: number;
 }
+type TextureSource = HTMLImageElement | HTMLVideoElement;
 interface PluginContext {
     gl: WebGL2RenderingContext;
     uniforms: Map<string, Uniform>;
     textures: Map<string, Texture>;
-    program: WebGLProgram | null;
+    get program(): WebGLProgram | null;
     canvas: HTMLCanvasElement;
+    reserveTextureUnit: (name: string) => number;
+    releaseTextureUnit: (name: string) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset';
@@ -40,6 +48,7 @@ declare class ShaderPad {
     private fragmentShaderSrc;
     private uniforms;
     private textures;
+    private textureUnitPool;
     private buffer;
     private program;
     private animationFrameId;
@@ -75,6 +84,8 @@ declare class ShaderPad {
     updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>): void;
     save(filename: string): Promise<void>;
     destroy(): void;
+    private reserveTextureUnit;
+    private releaseTextureUnit;
 }
 
-export { type PluginContext, type WithSave, ShaderPad as default, history, save };
+export { type PluginContext, type TextureSource, type WithHistory, type WithSave, ShaderPad as default, history, save };

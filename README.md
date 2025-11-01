@@ -94,15 +94,17 @@ ShaderPad supports plugins to add additional functionality.
 
 #### history
 
-The `history` plugin adds a frame history buffer to the shader. It is useful for effects like motion blur, feedback, and trails.
+The `history` plugin can capture both the framebuffer output and texture history. The plugin argument controls how many frames to keep for the framebuffer (defaults to `1`).
 
 ```typescript
-import ShaderPad, { history } from 'shaderpad';
-// 2-frame history (eg. for cellular automata).
-const shader = new ShaderPad(fragmentShaderSrc, { plugins: [history(2)] });
+import ShaderPad, { history, WithHistory } from 'shaderpad';
 
-// 10-frame history (eg. for motion blur).
-const shader = new ShaderPad(fragmentShaderSrc, { plugins: [history(10)] });
+// Store the last 10 frames of shader output.
+const shaderWithOutputHistory = new ShaderPad(fragmentShaderSrc, { plugins: [history(10)] });
+
+// Store the last 30 webcam frames.
+const shader = new ShaderPad(fragmentShaderSrc, { plugins: [history()] }) as WithHistory<ShaderPad>;
+shader.initializeTexture('u_webcam', videoElement, 30);
 ```
 
 #### save

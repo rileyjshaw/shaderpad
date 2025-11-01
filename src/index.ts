@@ -19,12 +19,16 @@ interface Texture {
 	unitIndex: number;
 }
 
+export type TextureSource = HTMLImageElement | HTMLVideoElement;
+
 export interface PluginContext {
 	gl: WebGL2RenderingContext;
 	uniforms: Map<string, Uniform>;
 	textures: Map<string, Texture>;
-	program: WebGLProgram | null;
+	get program(): WebGLProgram | null;
 	canvas: HTMLCanvasElement;
+	reserveTextureUnit: (name: string) => number;
+	releaseTextureUnit: (name: string) => void;
 }
 
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
@@ -36,6 +40,12 @@ interface Options {
 	plugins?: Plugin[];
 }
 
+type TextureUnitPool = {
+	free: number[];
+	next: number;
+	max: number;
+};
+
 class ShaderPad {
 	private isInternalCanvas = false;
 	private isTouchDevice = false;
@@ -44,6 +54,7 @@ class ShaderPad {
 	private fragmentShaderSrc: string;
 	private uniforms: Map<string, Uniform> = new Map();
 	private textures: Map<string, Texture> = new Map();
+	private textureUnitPool: TextureUnitPool;
 	private buffer: WebGLBuffer | null = null;
 	private program: WebGLProgram | null = null;
 	private animationFrameId: number | null;
@@ -77,6 +88,12 @@ class ShaderPad {
 			throw new Error('WebGL2 not supported. Please use a browser that supports WebGL2.');
 		}
 
+		this.textureUnitPool = {
+			free: [],
+			next: 1, // Start from 1 to avoid conflict with framebuffer history texture at unit 0.
+			max: this.gl.getParameter(this.gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),
+		};
+
 		this.downloadLink = document.createElement('a');
 		this.fragmentShaderSrc = fragmentShaderSrc;
 		this.animationFrameId = null;
@@ -88,9 +105,16 @@ class ShaderPad {
 				gl: this.gl,
 				uniforms: this.uniforms,
 				textures: this.textures,
-				program: this.program,
 				canvas: this.canvas,
-			};
+				reserveTextureUnit: this.reserveTextureUnit.bind(this),
+				releaseTextureUnit: this.releaseTextureUnit.bind(this),
+			} as PluginContext;
+			// Define program as a getter so it always returns the current program.
+			Object.defineProperty(context, 'program', {
+				get: () => this.program,
+				enumerable: true,
+				configurable: true,
+			});
 			options.plugins.forEach(plugin => plugin(this, context));
 		}
 		this.init();
@@ -281,6 +305,23 @@ class ShaderPad {
 		this.hooks.get('updateResolution')?.forEach(hook => hook.call(this));
 	}
 
+	private reserveTextureUnit(name: string) {
+		const existing = this.textures.get(name);
+		if (existing) return existing.unitIndex;
+		if (this.textureUnitPool.free.length > 0) return this.textureUnitPool.free.pop()!;
+		if (this.textureUnitPool.next >= this.textureUnitPool.max) {
+			throw new Error('Exceeded the available texture units for this device.');
+		}
+		return this.textureUnitPool.next++;
+	}
+
+	private releaseTextureUnit(name: string) {
+		const existing = this.textures.get(name);
+		if (existing) {
+			this.textureUnitPool.free.push(existing.unitIndex);
+		}
+	}
+
 	initializeUniform(name: string, type: 'float' | 'int', value: number | number[]) {
 		if (this.uniforms.has(name)) {
 			throw new Error(`Uniform '${name}' is already initialized.`);
@@ -325,6 +366,54 @@ class ShaderPad {
 		});
 	}
 
+	initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement) {
+		if (this.textures.has(name)) {
+			throw new Error(`Texture '${name}' is already initialized.`);
+		}
+
+		const texture = this.gl.createTexture();
+		if (!texture) {
+			throw new Error('Failed to create texture');
+		}
+		let unitIndex: number;
+		try {
+			unitIndex = this.reserveTextureUnit(name);
+		} catch (error) {
+			this.gl.deleteTexture(texture);
+			throw error;
+		}
+		this.gl.activeTexture(this.gl.TEXTURE0 + unitIndex);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+		// Flip the texture vertically during upload to match WebGL's coordinate system.
+		// WebGL uses bottom-left origin, while images/videos use top-left origin.
+		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+
+		this.textures.set(name, { texture, unitIndex });
+		this.updateTextures({ [name]: source });
+
+		const uSampler = this.gl.getUniformLocation(this.program!, name);
+		if (uSampler) {
+			this.gl.uniform1i(uSampler, unitIndex);
+		}
+	}
+
+	updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>) {
+		Object.entries(updates).forEach(([name, source]) => {
+			const info = this.textures.get(name);
+			if (!info) {
+				throw new Error(`Texture '${name}' is not initialized.`);
+			}
+			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
+			this.gl.bindTexture(this.gl.TEXTURE_2D, info.texture);
+			this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, source);
+		});
+	}
+
 	step(time: number) {
 		const gl = this.gl;
 
@@ -365,47 +454,6 @@ class ShaderPad {
 		this.frame = 0;
 		this.startTime = performance.now();
 		this.hooks.get('reset')?.forEach(hook => hook.call(this));
-	}
-
-	initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement) {
-		if (this.textures.has(name)) {
-			throw new Error(`Texture '${name}' is already initialized.`);
-		}
-
-		const texture = this.gl.createTexture();
-		if (!texture) {
-			throw new Error('Failed to create texture');
-		}
-		const unitIndex = this.textures.size + 1; // Start from unit 1 to avoid conflict with history texture at unit 0.
-		this.gl.activeTexture(this.gl.TEXTURE0 + unitIndex);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-
-		// Flip the texture vertically since v_uv is flipped, and set up filters and wrapping.
-		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-
-		this.textures.set(name, { texture, unitIndex });
-		this.updateTextures({ [name]: source });
-
-		const uSampler = this.gl.getUniformLocation(this.program!, name);
-		if (uSampler) {
-			this.gl.uniform1i(uSampler, unitIndex);
-		}
-	}
-
-	updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>) {
-		Object.entries(updates).forEach(([name, source]) => {
-			const info = this.textures.get(name);
-			if (!info) {
-				throw new Error(`Texture '${name}' is not initialized.`);
-			}
-			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
-			this.gl.bindTexture(this.gl.TEXTURE_2D, info.texture);
-			this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, source);
-		});
 	}
 
 	async save(filename: string) {
@@ -458,6 +506,8 @@ class ShaderPad {
 		this.textures.forEach(texture => {
 			this.gl.deleteTexture(texture.texture);
 		});
+		this.textureUnitPool.free = [];
+		this.textureUnitPool.next = 1;
 
 		if (this.buffer) {
 			this.gl.deleteBuffer(this.buffer);
