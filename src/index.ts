@@ -19,7 +19,7 @@ interface Texture {
 	unitIndex: number;
 }
 
-export type TextureSource = HTMLImageElement | HTMLVideoElement;
+export type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
 
 export interface PluginContext {
 	gl: WebGL2RenderingContext;
@@ -33,7 +33,16 @@ export interface PluginContext {
 
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 
-type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset';
+type LifecycleMethod =
+	| 'init'
+	| 'step'
+	| 'destroy'
+	| 'updateResolution'
+	| 'reset'
+	| 'initializeTexture'
+	| 'updateTextures'
+	| 'initializeUniform'
+	| 'updateUniforms';
 
 interface Options {
 	canvas?: HTMLCanvasElement | null;
@@ -346,10 +355,13 @@ class ShaderPad {
 
 		const length = value.length as 1 | 2 | 3 | 4;
 		this.uniforms.set(name, { type, length, location });
+		this.hooks.get('initializeUniform')?.forEach(hook => hook.call(this, ...arguments));
 		this.updateUniforms({ [name]: value });
 	}
 
 	updateUniforms(updates: Record<string, number | number[]>) {
+		this.hooks.get('updateUniforms')?.forEach(hook => hook.call(this, ...arguments));
+
 		Object.entries(updates).forEach(([name, value]: [string, number | number[]]) => {
 			if (!this.uniforms.has(name)) {
 				throw new Error(`Uniform '${name}' is not initialized.`);
@@ -366,7 +378,7 @@ class ShaderPad {
 		});
 	}
 
-	initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement) {
+	initializeTexture(name: string, source: TextureSource) {
 		if (this.textures.has(name)) {
 			throw new Error(`Texture '${name}' is already initialized.`);
 		}
@@ -394,15 +406,17 @@ class ShaderPad {
 		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
 
 		this.textures.set(name, { texture, unitIndex });
+		this.hooks.get('initializeTexture')?.forEach(hook => hook.call(this, ...arguments));
 		this.updateTextures({ [name]: source });
-
 		const uSampler = this.gl.getUniformLocation(this.program!, name);
 		if (uSampler) {
 			this.gl.uniform1i(uSampler, unitIndex);
 		}
 	}
 
-	updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>) {
+	updateTextures(updates: Record<string, TextureSource>) {
+		this.hooks.get('updateTextures')?.forEach(hook => hook.call(this, ...arguments));
+
 		Object.entries(updates).forEach(([name, source]) => {
 			const info = this.textures.get(name);
 			if (!info) {
@@ -454,37 +468,6 @@ class ShaderPad {
 		this.frame = 0;
 		this.startTime = performance.now();
 		this.hooks.get('reset')?.forEach(hook => hook.call(this));
-	}
-
-	async save(filename: string) {
-		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-		this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
-
-		if (filename && !`${filename}`.toLowerCase().endsWith('.png')) {
-			filename = `${filename}.png`;
-		}
-		filename = filename || 'export.png';
-		if ('ongesturechange' in window) {
-			// Mobile.
-			try {
-				const blob: Blob = await new Promise(resolve =>
-					this.canvas.toBlob(resolve as BlobCallback, 'image/png')
-				);
-				const file = new File([blob], filename, { type: blob.type });
-
-				if (navigator.canShare?.({ files: [file] })) {
-					await navigator.share({ files: [file] });
-					return;
-				}
-			} catch (error) {
-				console.warn('Web Share API failed:', error);
-			}
-		} else {
-			// Desktop.
-			this.downloadLink.download = filename;
-			this.downloadLink.href = this.canvas.toDataURL();
-			this.downloadLink.click();
-		}
 	}
 
 	destroy() {

@@ -1,15 +1,18 @@
 import ShaderPad, { PluginContext, TextureSource } from '../index';
 
 export type WithHistory<T extends ShaderPad> = T & {
-	initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement, historyDepth?: number): void;
+	initializeTexture(name: string, source: TextureSource, historyDepth?: number): void;
 };
 
 function getSourceDimensions(source: TextureSource) {
-	const video = source as HTMLVideoElement;
-	const image = source as HTMLImageElement;
-	const width = video.videoWidth || image.naturalWidth || image.width;
-	const height = video.videoHeight || image.naturalHeight || image.height;
-	return { width, height };
+	if (source instanceof HTMLVideoElement) {
+		return { width: source.videoWidth, height: source.videoHeight };
+	}
+	if (source instanceof HTMLCanvasElement) {
+		return { width: source.width, height: source.height };
+	}
+	// HTMLImageElement
+	return { width: source.naturalWidth || source.width, height: source.naturalHeight || source.height };
 }
 
 function clearHistoryTextureLayers(gl: WebGL2RenderingContext, width: number, height: number, depth: number): void {

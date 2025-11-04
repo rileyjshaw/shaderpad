@@ -1,5 +1,5 @@
 type WithHistory<T extends ShaderPad> = T & {
-    initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement, historyDepth?: number): void;
+    initializeTexture(name: string, source: TextureSource, historyDepth?: number): void;
 };
 declare function history(framebufferDepth?: number): (shaderPad: ShaderPad, context: PluginContext) => void;
 
@@ -13,6 +13,21 @@ type WithSave<T extends ShaderPad> = T & {
     save(filename: string): Promise<void>;
 };
 
+interface FacePluginOptions {
+    modelPath?: string;
+    numFaces?: number;
+    minFaceDetectionConfidence?: number;
+    minFacePresenceConfidence?: number;
+    minTrackingConfidence?: number;
+    outputFaceBlendshapes?: boolean;
+    outputFacialTransformationMatrixes?: boolean;
+}
+declare function face(config: {
+    textureName: string;
+    options?: FacePluginOptions;
+}): (shaderPad: ShaderPad, context: PluginContext) => void;
+type WithFace<T extends ShaderPad> = T;
+
 interface Uniform {
     type: 'float' | 'int';
     length: 1 | 2 | 3 | 4;
@@ -21,10 +36,8 @@ interface Uniform {
 interface Texture {
     texture: WebGLTexture;
     unitIndex: number;
-    historyDepth?: number;
-    writeIndex?: number;
 }
-type TextureSource = HTMLImageElement | HTMLVideoElement;
+type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
 interface PluginContext {
     gl: WebGL2RenderingContext;
     uniforms: Map<string, Uniform>;
@@ -35,7 +48,7 @@ interface PluginContext {
     releaseTextureUnit: (name: string) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
-type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset';
+type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset' | 'initializeTexture' | 'updateTextures' | 'initializeUniform' | 'updateUniforms';
 interface Options {
     canvas?: HTMLCanvasElement | null;
     plugins?: Plugin[];
@@ -74,18 +87,17 @@ declare class ShaderPad {
     private handleResize;
     private addEventListeners;
     private updateResolution;
+    private reserveTextureUnit;
+    private releaseTextureUnit;
     initializeUniform(name: string, type: 'float' | 'int', value: number | number[]): void;
     updateUniforms(updates: Record<string, number | number[]>): void;
+    initializeTexture(name: string, source: TextureSource): void;
+    updateTextures(updates: Record<string, TextureSource>): void;
     step(time: number): void;
     play(callback?: (time: number, frame: number) => void): void;
     pause(): void;
     reset(): void;
-    initializeTexture(name: string, source: HTMLImageElement | HTMLVideoElement): void;
-    updateTextures(updates: Record<string, HTMLImageElement | HTMLVideoElement>): void;
-    save(filename: string): Promise<void>;
     destroy(): void;
-    private reserveTextureUnit;
-    private releaseTextureUnit;
 }
 
-export { type PluginContext, type TextureSource, type WithHistory, type WithSave, ShaderPad as default, history, save };
+export { type FacePluginOptions, type PluginContext, type TextureSource, type WithFace, type WithHistory, type WithSave, ShaderPad as default, face, history, save };
