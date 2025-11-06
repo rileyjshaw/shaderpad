@@ -29,25 +29,20 @@ export function face(config: { textureName: string; options?: FacePluginOptions 
 		'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { uniforms } = context;
+		const { uniforms, injectGLSL } = context;
 
 		let faceLandmarker: FaceLandmarker | null = null;
 		let vision: any = null;
 		let lastVideoTime = -1;
 		const textureSources = new Map<string, TextureSource>();
 
-		let faceMaskCanvas: HTMLCanvasElement | null = null;
-		let faceMaskCtx: CanvasRenderingContext2D | null = null;
 		const maskWidth = 512;
 		const maskHeight = 512;
-
-		function initializeMaskCanvas() {
-			faceMaskCanvas = document.createElement('canvas');
-			faceMaskCanvas.width = maskWidth;
-			faceMaskCanvas.height = maskHeight;
-			faceMaskCtx = faceMaskCanvas.getContext('2d')!;
-			faceMaskCtx.globalCompositeOperation = 'lighten'; // Keep the highest value of each channel.
-		}
+		const faceMaskCanvas = document.createElement('canvas');
+		faceMaskCanvas.width = maskWidth;
+		faceMaskCanvas.height = maskHeight;
+		const faceMaskCtx = faceMaskCanvas.getContext('2d')!;
+		faceMaskCtx.globalCompositeOperation = 'lighten'; // Keep the highest value of each channel.
 
 		async function initializeFaceLandmarker() {
 			try {
@@ -94,23 +89,22 @@ export function face(config: { textureName: string; options?: FacePluginOptions 
 		}
 
 		function fillRegion(landmarks: NormalizedLandmark[], color: { r: number; g: number; b: number }) {
-			if (!faceMaskCtx) return;
 			faceMaskCtx.fillStyle = `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(
 				color.b * 255
 			)})`;
 			const origin = landmarks[0];
 			faceMaskCtx.beginPath();
-			faceMaskCtx.moveTo(origin.x * faceMaskCtx.canvas.width, origin.y * faceMaskCtx.canvas.height);
+			faceMaskCtx.moveTo(origin.x * faceMaskCanvas.width, origin.y * faceMaskCanvas.height);
 			for (let i = 1; i < landmarks.length; i++) {
 				const destination = landmarks[i];
-				faceMaskCtx.lineTo(destination.x * faceMaskCtx.canvas.width, destination.y * faceMaskCtx.canvas.height);
+				faceMaskCtx.lineTo(destination.x * faceMaskCanvas.width, destination.y * faceMaskCanvas.height);
 			}
 			faceMaskCtx.closePath();
 			faceMaskCtx.fill();
 		}
 
 		async function updateMaskTexture(landmarks: NormalizedLandmark[]) {
-			if (!faceLandmarker || !faceMaskCanvas) {
+			if (!faceLandmarker) {
 				console.warn('[Face Plugin] Cannot update mask: faceLandmarker or canvas missing');
 				return;
 			}
@@ -119,7 +113,6 @@ export function face(config: { textureName: string; options?: FacePluginOptions 
 				// Get MediaPipe landmark connection constants
 				const { FaceLandmarker } = await import('@mediapipe/tasks-vision');
 
-				if (!faceMaskCtx) return;
 				faceMaskCtx.clearRect(0, 0, faceMaskCanvas.width, faceMaskCanvas.height);
 
 				// Build combined mask with RGBA channels
@@ -226,16 +219,13 @@ export function face(config: { textureName: string; options?: FacePluginOptions 
 		}
 
 		shaderPad.registerHook('init', async () => {
-			initializeMaskCanvas();
-			await initializeFaceLandmarker();
-			if (!faceMaskCanvas) {
-				throw new Error('Face mask canvas not initialized');
-			}
 			shaderPad.initializeTexture('u_faceMask', faceMaskCanvas);
 			shaderPad.initializeUniform('u_faceCenter', 'float', [0.5, 0.5]);
 			shaderPad.initializeUniform('u_leftEye', 'float', [0.5, 0.5]);
 			shaderPad.initializeUniform('u_rightEye', 'float', [0.5, 0.5]);
 			shaderPad.initializeUniform('u_noseTip', 'float', [0.5, 0.5]);
+
+			await initializeFaceLandmarker();
 		});
 
 		shaderPad.registerHook('updateTextures', (updates: Record<string, TextureSource>) => {
@@ -268,8 +258,18 @@ export function face(config: { textureName: string; options?: FacePluginOptions 
 			}
 			vision = null;
 			textureSources.clear();
-			faceMaskCanvas = null;
+			faceMaskCanvas.remove();
 		});
+
+		injectGLSL(`
+uniform vec2 u_faceCenter;
+uniform vec2 u_leftEye;
+uniform vec2 u_rightEye;
+uniform vec2 u_noseTip;
+uniform sampler2D u_faceMask;
+float getFace(vec2 pos) { return texture(u_faceMask, pos).g; }
+float getEye(vec2 pos) { return texture(u_faceMask, pos).b; }
+float getMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`);
 	};
 }
 

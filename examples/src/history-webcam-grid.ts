@@ -1,4 +1,4 @@
-import ShaderPad, { history, WithHistory } from 'shaderpad';
+import ShaderPad, { helpers } from 'shaderpad';
 
 const FRAME_RATE = 24;
 const GRID_LENGTH = 5;
@@ -26,7 +26,7 @@ async function getWebcamStream() {
 	return video;
 }
 
-let shader: WithHistory<ShaderPad> | null = null;
+let shader: ShaderPad | null = null;
 let video: HTMLVideoElement | null = null;
 let outputCanvas: HTMLCanvasElement | null = null;
 let frameCallbackHandle: number | null = null;
@@ -64,6 +64,7 @@ in vec2 v_uv;
 out vec4 outColor;
 uniform int u_webcamFrame;
 uniform highp sampler2DArray u_webcam;
+uniform int u_webcamFrameOffset;
 
 const float GRID_LENGTH = ${GRID_LENGTH}.0;
 const float FRAMES_PER_SQUARE = ${FRAMES_PER_SQUARE}.0;
@@ -74,10 +75,9 @@ void main() {
 	vec2 gridPos = floor(scaledUV); // [0.0, GRID_LENGTH - 1.0]
 
 	// Calculate which history frame to show based on grid position.
-	int historyDepth = textureSize(u_webcam, 0).z;
-	int historyIndex = (u_webcamFrame - int(FRAMES_PER_SQUARE * (GRID_LENGTH - gridPos.x - 1.0 + gridPos.y * GRID_LENGTH)) + historyDepth) % historyDepth;
-
-	outColor = texture(u_webcam, vec3(1.0 - localUV.x, localUV.y, float(historyIndex)));
+	int framesAgo = int(FRAMES_PER_SQUARE * (GRID_LENGTH - gridPos.x - 1.0 + gridPos.y * GRID_LENGTH));
+	float z = historyZ(u_webcam, u_webcamFrameOffset, framesAgo);
+	outColor = texture(u_webcam, vec3(1.0 - localUV.x, localUV.y, z));
 }`;
 
 	video = await getWebcamStream();
@@ -93,10 +93,10 @@ void main() {
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
-		plugins: [history()],
-	}) as WithHistory<ShaderPad>;
+		plugins: [helpers()],
+	});
 	shader.initializeUniform('u_webcamFrame', 'int', 0);
-	shader.initializeTexture('u_webcam', video, GRID_SIZE * FRAMES_PER_SQUARE);
+	shader.initializeTexture('u_webcam', video, { history: GRID_SIZE * FRAMES_PER_SQUARE });
 
 	shader.play();
 	startFrameCallback();

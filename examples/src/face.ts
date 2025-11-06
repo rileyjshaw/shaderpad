@@ -29,28 +29,6 @@ in vec2 v_uv;
 out vec4 outColor;
 uniform sampler2D u_webcam;
 
-// Face plugin uniforms
-uniform vec2 u_faceCenter;
-uniform vec2 u_leftEye;
-uniform vec2 u_rightEye;
-uniform vec2 u_noseTip;
-
-// Single combined mask texture (internal/private)
-uniform sampler2D u_faceMask;
-
-// Helper functions to sample masks
-float getFace(vec2 pos) {
-	return texture(u_faceMask, pos).g;  // Green channel: 1.0 if in face
-}
-
-float getEye(vec2 pos) {
-	return texture(u_faceMask, pos).b;  // Blue channel: 0.25 left eyebrow, 0.5 right eyebrow, 0.75 left eye, 1.0 right eye
-}
-
-float getMouth(vec2 pos) {
-	return texture(u_faceMask, pos).r;  // Red channel: 0.5 for lips, 1.0 for mouth hole
-}
-
 void main() {
 	vec4 webcamColor = texture(u_webcam, v_uv);
 	vec4 mask = texture(u_faceMask, v_uv);

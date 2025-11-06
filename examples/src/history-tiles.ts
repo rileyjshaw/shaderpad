@@ -1,6 +1,12 @@
-import ShaderPad, { history } from 'shaderpad';
+import ShaderPad, { helpers } from 'shaderpad';
 
-const historyLength = 4;
+const COLORS = [
+	[1, 0, 0],
+	[1, 0, 0.5],
+	[0.5, 0, 1],
+	[0, 0, 1],
+];
+const HISTORY_LENGTH = COLORS.length;
 
 let shader: ShaderPad | null = null;
 let outputCanvas: HTMLCanvasElement | null = null;
@@ -13,24 +19,22 @@ in vec2 v_uv;
 out vec4 outColor;
 uniform int u_frame;
 uniform highp sampler2DArray u_history;
+uniform int u_historyFrameOffset;
 
 void main() {
-    if (u_frame == 0) {
-        outColor = vec4(1.0, 0.0, 0.0, 1.0);
-    } else if (u_frame == 1) {
-        outColor = vec4(1.0, 0.0, 0.5, 1.0);
-    } else if (u_frame == 2) {
-        outColor = vec4(0.5, 0.0, 1.0, 1.0);
-    } else if (u_frame == 3) {
-        outColor = vec4(0.0, 0.0, 1.0, 1.0);
-    } else if (u_frame == 4) {
-        // Show the prior 4 frames as columns.
-        float scaledX = v_uv.x * 4.0;
-        float columnX = floor(scaledX);
-        vec2 historyUV = vec2(fract(scaledX), v_uv.y);
-        vec4 historyColor = texture(u_history, vec3(historyUV, columnX));
-        outColor = historyColor;
-    }
+	// Flash each color for one frame.
+	${COLORS.map(
+		(color, i) => `if (u_frame == ${i}) {
+		outColor = vec4(${color.map(c => c.toFixed(1)).join(', ')}, 1.0);
+	} else `
+	).join('')} if (u_frame == ${HISTORY_LENGTH}) {
+		// Show the prior frames as columns.
+		float scaledX = v_uv.x * ${HISTORY_LENGTH}.0;
+		int age = ${HISTORY_LENGTH} - 1 - int(scaledX); // We want the first column on the left to have the highest “age”.
+		vec2 historyUV = vec2(fract(scaledX), v_uv.y);
+		vec4 historyColor = texture(u_history, vec3(historyUV, historyZ(u_history, u_historyFrameOffset, age)));
+		outColor = historyColor;
+	}
 }`;
 
 	outputCanvas = document.createElement('canvas');
@@ -44,12 +48,13 @@ void main() {
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
-		plugins: [history(historyLength)],
+		history: HISTORY_LENGTH,
+		plugins: [helpers()],
 	});
 
 	shader.play((_t, frame) => {
-		if (frame >= 5) {
-			console.log('History is full; pausing the shader.');
+		if (frame >= HISTORY_LENGTH + 1) {
+			console.log('Pausing the shader for inspection now that the history buffer is full.');
 			shader!.pause();
 		}
 	});

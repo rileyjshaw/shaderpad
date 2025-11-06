@@ -10,6 +10,8 @@ const demos = [
 	{ path: './history-webcam-channels', name: 'History - webcam channels' },
 	{ path: './history-webcam-grid', name: 'History - webcam grid' },
 	{ path: './face', name: 'Face Detection' },
+	{ path: './face-camo', name: 'Face Camo' },
+	{ path: './resize-test', name: 'Resize Test' },
 ] as const;
 
 async function loadDemo(demoPath: string) {

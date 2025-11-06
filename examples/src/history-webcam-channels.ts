@@ -1,4 +1,4 @@
-import ShaderPad, { history, WithHistory } from 'shaderpad';
+import ShaderPad, { helpers } from 'shaderpad';
 
 const FRAME_DELAY_PER_CHANNEL = 15;
 
@@ -22,7 +22,7 @@ async function getWebcamStream() {
 	return video;
 }
 
-let shader: WithHistory<ShaderPad> | null = null;
+let shader: ShaderPad | null = null;
 let video: HTMLVideoElement | null = null;
 let outputCanvas: HTMLCanvasElement | null = null;
 
@@ -33,17 +33,15 @@ precision highp float;
 in vec2 v_uv;
 out vec4 outColor;
 uniform highp sampler2DArray u_webcam;
+uniform int u_webcamFrameOffset;
 uniform int u_frame;
 
 void main() {
 	vec2 uv = vec2(1.0 - v_uv.x, v_uv.y); // Selfie mode: flip X-axis.
-	int historyDepth = textureSize(u_webcam, 0).z;
 
-	vec4 redChannel = texture(u_webcam, vec3(uv, u_frame % historyDepth));
-	vec4 greenChannel = texture(u_webcam, vec3(uv, (u_frame + historyDepth - ${FRAME_DELAY_PER_CHANNEL}) % historyDepth));
-	vec4 blueChannel = texture(u_webcam, vec3(uv, (u_frame + historyDepth - ${
-		FRAME_DELAY_PER_CHANNEL * 2
-	}) % historyDepth));
+	vec4 redChannel = texture(u_webcam, vec3(uv, historyZ(u_webcam, u_webcamFrameOffset, 0)));
+	vec4 greenChannel = texture(u_webcam, vec3(uv, historyZ(u_webcam, u_webcamFrameOffset, ${FRAME_DELAY_PER_CHANNEL})));
+	vec4 blueChannel = texture(u_webcam, vec3(uv, historyZ(u_webcam, u_webcamFrameOffset, ${FRAME_DELAY_PER_CHANNEL * 2})));
 
 	outColor = vec4(redChannel.r, greenChannel.g, blueChannel.b, 1.0);
 }`;
@@ -62,9 +60,9 @@ void main() {
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
-		plugins: [history()],
-	}) as WithHistory<ShaderPad>;
-	shader.initializeTexture('u_webcam', video, FRAME_DELAY_PER_CHANNEL * 2 + 1);
+		plugins: [helpers()],
+	});
+	shader.initializeTexture('u_webcam', video, { history: FRAME_DELAY_PER_CHANNEL * 2 + 1 });
 
 	shader.play(() => {
 		shader!.updateTextures({ u_webcam: video! });

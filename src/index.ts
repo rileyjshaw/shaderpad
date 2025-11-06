@@ -17,6 +17,12 @@ interface Uniform {
 interface Texture {
 	texture: WebGLTexture;
 	unitIndex: number;
+	width: number;
+	height: number;
+	history?: {
+		depth: number;
+		writeIndex: number;
+	};
 }
 
 export type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
@@ -24,11 +30,12 @@ export type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElem
 export interface PluginContext {
 	gl: WebGL2RenderingContext;
 	uniforms: Map<string, Uniform>;
-	textures: Map<string, Texture>;
+	textures: Map<string | symbol, Texture>;
 	get program(): WebGLProgram | null;
 	canvas: HTMLCanvasElement;
-	reserveTextureUnit: (name: string) => number;
-	releaseTextureUnit: (name: string) => void;
+	reserveTextureUnit: (name: string | symbol) => number;
+	releaseTextureUnit: (name: string | symbol) => void;
+	injectGLSL: (code: string) => void;
 }
 
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
@@ -44,9 +51,10 @@ type LifecycleMethod =
 	| 'initializeUniform'
 	| 'updateUniforms';
 
-interface Options {
+export interface Options {
 	canvas?: HTMLCanvasElement | null;
 	plugins?: Plugin[];
+	history?: number;
 }
 
 type TextureUnitPool = {
@@ -55,14 +63,44 @@ type TextureUnitPool = {
 	max: number;
 };
 
+const HISTORY_TEXTURE_KEY = Symbol('u_history');
+
+function combineShaderCode(shader: string, injections: string[]): string {
+	if (!injections?.length) return shader;
+	const lines = shader.split('\n');
+	const insertAt =
+		lines.findLastIndex(line => {
+			const trimmed = line.trimStart();
+			return trimmed.startsWith('precision ') || trimmed.startsWith('#version ');
+		}) + 1;
+	lines.splice(insertAt, 0, '', ...injections);
+	return lines.join('\n');
+}
+
+function getSourceDimensions(source: TextureSource) {
+	if (source instanceof HTMLVideoElement) {
+		return { width: source.videoWidth, height: source.videoHeight };
+	} else if (source instanceof HTMLCanvasElement) {
+		const gl = source.getContext('webgl2');
+		return gl
+			? { width: gl.drawingBufferWidth, height: gl.drawingBufferHeight }
+			: { width: source.width, height: source.height };
+	}
+	// HTMLImageElement
+	return { width: source.naturalWidth ?? source.width, height: source.naturalHeight ?? source.height };
+}
+
+function stringFrom(name: string | symbol) {
+	return typeof name === 'symbol' ? name.description ?? '' : name;
+}
+
 class ShaderPad {
 	private isInternalCanvas = false;
 	private isTouchDevice = false;
 	private gl: WebGL2RenderingContext;
-	private downloadLink: HTMLAnchorElement;
 	private fragmentShaderSrc: string;
 	private uniforms: Map<string, Uniform> = new Map();
-	private textures: Map<string, Texture> = new Map();
+	private textures: Map<string | symbol, Texture> = new Map();
 	private textureUnitPool: TextureUnitPool;
 	private buffer: WebGLBuffer | null = null;
 	private program: WebGLProgram | null = null;
@@ -80,6 +118,7 @@ class ShaderPad {
 	public canvas: HTMLCanvasElement;
 	public onResize?: (width: number, height: number) => void;
 	private hooks: Map<LifecycleMethod, Function[]> = new Map();
+	private historyDepth: number;
 
 	constructor(fragmentShaderSrc: string, options: Options = {}) {
 		this.canvas = options.canvas || document.createElement('canvas');
@@ -99,16 +138,15 @@ class ShaderPad {
 
 		this.textureUnitPool = {
 			free: [],
-			next: 1, // Start from 1 to avoid conflict with framebuffer history texture at unit 0.
+			next: 0,
 			max: this.gl.getParameter(this.gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),
 		};
-
-		this.downloadLink = document.createElement('a');
-		this.fragmentShaderSrc = fragmentShaderSrc;
+		this.historyDepth = options.history ?? 0;
 		this.animationFrameId = null;
 		this.resolutionObserver = new MutationObserver(() => this.updateResolution());
 		this.resizeObserver = new ResizeObserver(() => this.throttledHandleResize());
 
+		const glslInjections: string[] = [];
 		if (options.plugins) {
 			const context: PluginContext = {
 				gl: this.gl,
@@ -117,6 +155,9 @@ class ShaderPad {
 				canvas: this.canvas,
 				reserveTextureUnit: this.reserveTextureUnit.bind(this),
 				releaseTextureUnit: this.releaseTextureUnit.bind(this),
+				injectGLSL: (code: string) => {
+					glslInjections.push(code);
+				},
 			} as PluginContext;
 			// Define program as a getter so it always returns the current program.
 			Object.defineProperty(context, 'program', {
@@ -126,6 +167,8 @@ class ShaderPad {
 			});
 			options.plugins.forEach(plugin => plugin(this, context));
 		}
+
+		this.fragmentShaderSrc = combineShaderCode(fragmentShaderSrc, glslInjections);
 		this.init();
 		this.addEventListeners();
 	}
@@ -174,6 +217,9 @@ class ShaderPad {
 		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]);
 		this.initializeUniform('u_time', 'float', 0);
 		this.initializeUniform('u_frame', 'int', 0);
+		if (this.historyDepth > 0) {
+			this._initializeTexture(HISTORY_TEXTURE_KEY, this.canvas, { history: this.historyDepth });
+		}
 
 		this.hooks.get('init')?.forEach(hook => hook.call(this));
 	}
@@ -302,19 +348,17 @@ class ShaderPad {
 	}
 
 	private updateResolution() {
-		const width = this.gl.drawingBufferWidth;
-		const height = this.gl.drawingBufferHeight;
-		this.gl.viewport(0, 0, width, height);
+		const resolution: [number, number] = [this.gl.drawingBufferWidth, this.gl.drawingBufferHeight];
+		this.gl.viewport(0, 0, ...resolution);
 		if (this.uniforms.has('u_resolution')) {
-			this.updateUniforms({ u_resolution: [width, height] });
+			this.updateUniforms({ u_resolution: resolution });
 		} else {
-			this.initializeUniform('u_resolution', 'float', [width, height]);
+			this.initializeUniform('u_resolution', 'float', resolution);
 		}
-
 		this.hooks.get('updateResolution')?.forEach(hook => hook.call(this));
 	}
 
-	private reserveTextureUnit(name: string) {
+	private reserveTextureUnit(name: string | symbol) {
 		const existing = this.textures.get(name);
 		if (existing) return existing.unitIndex;
 		if (this.textureUnitPool.free.length > 0) return this.textureUnitPool.free.pop()!;
@@ -324,10 +368,33 @@ class ShaderPad {
 		return this.textureUnitPool.next++;
 	}
 
-	private releaseTextureUnit(name: string) {
+	private releaseTextureUnit(name: string | symbol) {
 		const existing = this.textures.get(name);
 		if (existing) {
 			this.textureUnitPool.free.push(existing.unitIndex);
+		}
+	}
+
+	private clearHistoryTextureLayers(textureInfo: Texture): void {
+		if (!textureInfo.history) return;
+
+		const transparent = new Uint8Array(textureInfo.width * textureInfo.height * 4);
+		this.gl.activeTexture(this.gl.TEXTURE0 + textureInfo.unitIndex);
+		this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, textureInfo.texture);
+		for (let layer = 0; layer < textureInfo.history.depth; ++layer) {
+			this.gl.texSubImage3D(
+				this.gl.TEXTURE_2D_ARRAY,
+				0,
+				0,
+				0,
+				layer,
+				textureInfo.width,
+				textureInfo.height,
+				1,
+				this.gl.RGBA,
+				this.gl.UNSIGNED_BYTE,
+				transparent
+			);
 		}
 	}
 
@@ -363,11 +430,12 @@ class ShaderPad {
 		this.hooks.get('updateUniforms')?.forEach(hook => hook.call(this, ...arguments));
 
 		Object.entries(updates).forEach(([name, value]: [string, number | number[]]) => {
-			if (!this.uniforms.has(name)) {
-				throw new Error(`Uniform '${name}' is not initialized.`);
+			const uniform = this.uniforms.get(name)!;
+			if (!uniform) {
+				console.debug(`Uniform ${name} not found in fragment shader. Skipping update.`);
+				return;
 			}
 
-			const uniform = this.uniforms.get(name)!;
 			if (!Array.isArray(value)) {
 				value = [value];
 			}
@@ -378,54 +446,146 @@ class ShaderPad {
 		});
 	}
 
-	initializeTexture(name: string, source: TextureSource) {
-		if (this.textures.has(name)) {
-			throw new Error(`Texture '${name}' is already initialized.`);
-		}
+	private createTexture(
+		name: string | symbol,
+		textureInfo: Pick<Texture, 'width' | 'height' | 'history'>,
+		unitIndex?: number
+	) {
+		const { width, height } = textureInfo;
+		const historyDepth = textureInfo.history?.depth ?? 0;
 
 		const texture = this.gl.createTexture();
 		if (!texture) {
 			throw new Error('Failed to create texture');
 		}
-		let unitIndex: number;
-		try {
-			unitIndex = this.reserveTextureUnit(name);
-		} catch (error) {
-			this.gl.deleteTexture(texture);
-			throw error;
-		}
-		this.gl.activeTexture(this.gl.TEXTURE0 + unitIndex);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
-		// Flip the texture vertically during upload to match WebGL's coordinate system.
+		if (typeof unitIndex !== 'number') {
+			try {
+				unitIndex = this.reserveTextureUnit(name);
+			} catch (error) {
+				this.gl.deleteTexture(texture);
+				throw error;
+			}
+		}
+
+		const hasHistory = historyDepth > 0;
+		const textureTarget = hasHistory ? this.gl.TEXTURE_2D_ARRAY : this.gl.TEXTURE_2D;
+
+		this.gl.activeTexture(this.gl.TEXTURE0 + unitIndex);
+		this.gl.bindTexture(textureTarget, texture);
+		// Flip the texture vertically during upload to match WebGL’s coordinate system.
 		// WebGL uses bottom-left origin, while images/videos use top-left origin.
 		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+		if (hasHistory) {
+			this.gl.texStorage3D(textureTarget, 1, this.gl.RGBA8, width, height, historyDepth);
+		}
+		return { texture, unitIndex };
+	}
 
-		this.textures.set(name, { texture, unitIndex });
-		this.hooks.get('initializeTexture')?.forEach(hook => hook.call(this, ...arguments));
-		this.updateTextures({ [name]: source });
-		const uSampler = this.gl.getUniformLocation(this.program!, name);
+	private _initializeTexture(name: string | symbol, source: TextureSource, options?: { history?: number }) {
+		if (this.textures.has(name)) {
+			throw new Error(`Texture '${stringFrom(name)}' is already initialized.`);
+		}
+
+		const historyDepth = options?.history ?? 0;
+		const { width, height } = getSourceDimensions(source);
+		if (!width || !height) {
+			throw new Error(`Texture source must have valid dimensions`);
+		}
+		const textureInfo: Pick<Texture, 'width' | 'height' | 'history'> = { width, height };
+		if (historyDepth > 0) {
+			textureInfo.history = { depth: historyDepth, writeIndex: 0 };
+		}
+		const { texture, unitIndex } = this.createTexture(name, textureInfo);
+		const completeTextureInfo: Texture = { texture, unitIndex, ...textureInfo };
+		if (historyDepth > 0) {
+			this.initializeUniform(`${stringFrom(name)}FrameOffset`, 'int', 0);
+			this.clearHistoryTextureLayers(completeTextureInfo);
+		}
+		this.textures.set(name, completeTextureInfo);
+		this.updateTexture(name, source);
+
+		// Set a uniform to access the texture in the fragment shader.
+		const uSampler = this.gl.getUniformLocation(this.program!, stringFrom(name));
 		if (uSampler) {
 			this.gl.uniform1i(uSampler, unitIndex);
 		}
 	}
 
+	initializeTexture(name: string, source: TextureSource, options?: { history?: number }) {
+		this._initializeTexture(name, source, options);
+		this.hooks.get('initializeTexture')?.forEach(hook => hook.call(this, ...arguments));
+	}
+
 	updateTextures(updates: Record<string, TextureSource>) {
 		this.hooks.get('updateTextures')?.forEach(hook => hook.call(this, ...arguments));
-
 		Object.entries(updates).forEach(([name, source]) => {
-			const info = this.textures.get(name);
-			if (!info) {
-				throw new Error(`Texture '${name}' is not initialized.`);
+			this.updateTexture(name, source);
+		});
+	}
+
+	private updateTexture(name: string | symbol, source: TextureSource) {
+		const info = this.textures.get(name);
+		if (!info) throw new Error(`Texture '${stringFrom(name)}' is not initialized.`);
+
+		// If dimensions changed, recreate the texture with new dimensions.
+		const { width, height } = getSourceDimensions(source);
+		if (info.width !== width || info.height !== height) {
+			this.gl.deleteTexture(info.texture);
+			info.width = width;
+			info.height = height;
+			const { texture } = this.createTexture(name, info, info.unitIndex);
+			info.texture = texture;
+			if (info.history) {
+				info.history.writeIndex = 0;
+				this.clearHistoryTextureLayers(info);
 			}
+		}
+
+		if (info.history) {
+			const isFramebufferHistory = name === HISTORY_TEXTURE_KEY;
+
+			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
+			this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
+			if (isFramebufferHistory) {
+				this.gl.copyTexSubImage3D(
+					this.gl.TEXTURE_2D_ARRAY,
+					0,
+					0,
+					0,
+					info.history.writeIndex,
+					0,
+					0,
+					width,
+					height
+				);
+			} else {
+				this.gl.texSubImage3D(
+					this.gl.TEXTURE_2D_ARRAY,
+					0,
+					0,
+					0,
+					info.history.writeIndex,
+					width,
+					height,
+					1,
+					this.gl.RGBA,
+					this.gl.UNSIGNED_BYTE,
+					source
+				);
+			}
+			const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
+			this.updateUniforms({ [frameOffsetUniformName]: info.history.writeIndex });
+			info.history.writeIndex = (info.history.writeIndex + 1) % info.history.depth;
+		} else {
 			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
 			this.gl.bindTexture(this.gl.TEXTURE_2D, info.texture);
 			this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, source);
-		});
+		}
 	}
 
 	step(time: number) {
@@ -441,8 +601,10 @@ class ShaderPad {
 		gl.clear(gl.COLOR_BUFFER_BIT);
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
+		if (this.textures.get(HISTORY_TEXTURE_KEY)) {
+			this.updateTexture(HISTORY_TEXTURE_KEY, this.canvas);
+		}
 		this.hooks.get('step')?.forEach(hook => hook.call(this, time, this.frame));
-
 		++this.frame;
 	}
 
@@ -467,6 +629,12 @@ class ShaderPad {
 	reset() {
 		this.frame = 0;
 		this.startTime = performance.now();
+		this.textures.forEach(texture => {
+			if (texture.history) {
+				texture.history.writeIndex = 0;
+				this.clearHistoryTextureLayers(texture);
+			}
+		});
 		this.hooks.get('reset')?.forEach(hook => hook.call(this));
 	}
 
@@ -490,7 +658,7 @@ class ShaderPad {
 			this.gl.deleteTexture(texture.texture);
 		});
 		this.textureUnitPool.free = [];
-		this.textureUnitPool.next = 1;
+		this.textureUnitPool.next = 0;
 
 		if (this.buffer) {
 			this.gl.deleteBuffer(this.buffer);

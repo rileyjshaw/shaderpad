@@ -1,8 +1,3 @@
-type WithHistory<T extends ShaderPad> = T & {
-    initializeTexture(name: string, source: TextureSource, historyDepth?: number): void;
-};
-declare function history(framebufferDepth?: number): (shaderPad: ShaderPad, context: PluginContext) => void;
-
 declare module '../index' {
     interface ShaderPad {
         save(filename: string): Promise<void>;
@@ -28,6 +23,8 @@ declare function face(config: {
 }): (shaderPad: ShaderPad, context: PluginContext) => void;
 type WithFace<T extends ShaderPad> = T;
 
+declare function helpers(): (_shader: ShaderPad, context: PluginContext) => void;
+
 interface Uniform {
     type: 'float' | 'int';
     length: 1 | 2 | 3 | 4;
@@ -36,28 +33,35 @@ interface Uniform {
 interface Texture {
     texture: WebGLTexture;
     unitIndex: number;
+    width: number;
+    height: number;
+    history?: {
+        depth: number;
+        writeIndex: number;
+    };
 }
 type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
 interface PluginContext {
     gl: WebGL2RenderingContext;
     uniforms: Map<string, Uniform>;
-    textures: Map<string, Texture>;
+    textures: Map<string | symbol, Texture>;
     get program(): WebGLProgram | null;
     canvas: HTMLCanvasElement;
-    reserveTextureUnit: (name: string) => number;
-    releaseTextureUnit: (name: string) => void;
+    reserveTextureUnit: (name: string | symbol) => number;
+    releaseTextureUnit: (name: string | symbol) => void;
+    injectGLSL: (code: string) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset' | 'initializeTexture' | 'updateTextures' | 'initializeUniform' | 'updateUniforms';
 interface Options {
     canvas?: HTMLCanvasElement | null;
     plugins?: Plugin[];
+    history?: number;
 }
 declare class ShaderPad {
     private isInternalCanvas;
     private isTouchDevice;
     private gl;
-    private downloadLink;
     private fragmentShaderSrc;
     private uniforms;
     private textures;
@@ -78,6 +82,7 @@ declare class ShaderPad {
     canvas: HTMLCanvasElement;
     onResize?: (width: number, height: number) => void;
     private hooks;
+    private historyDepth;
     constructor(fragmentShaderSrc: string, options?: Options);
     registerHook(name: LifecycleMethod, fn: Function): void;
     private init;
@@ -89,10 +94,16 @@ declare class ShaderPad {
     private updateResolution;
     private reserveTextureUnit;
     private releaseTextureUnit;
+    private clearHistoryTextureLayers;
     initializeUniform(name: string, type: 'float' | 'int', value: number | number[]): void;
     updateUniforms(updates: Record<string, number | number[]>): void;
-    initializeTexture(name: string, source: TextureSource): void;
+    private createTexture;
+    private _initializeTexture;
+    initializeTexture(name: string, source: TextureSource, options?: {
+        history?: number;
+    }): void;
     updateTextures(updates: Record<string, TextureSource>): void;
+    private updateTexture;
     step(time: number): void;
     play(callback?: (time: number, frame: number) => void): void;
     pause(): void;
@@ -100,4 +111,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { type FacePluginOptions, type PluginContext, type TextureSource, type WithFace, type WithHistory, type WithSave, ShaderPad as default, face, history, save };
+export { type FacePluginOptions, type Options, type PluginContext, type TextureSource, type WithFace, type WithSave, ShaderPad as default, face, helpers, save };
