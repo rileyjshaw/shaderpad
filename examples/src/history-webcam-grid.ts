@@ -1,4 +1,5 @@
-import ShaderPad, { helpers } from 'shaderpad';
+import ShaderPad from 'shaderpad';
+import { helpers } from 'shaderpad/plugins/helpers';
 
 const FRAME_RATE = 24;
 const GRID_LENGTH = 5;

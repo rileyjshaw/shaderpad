@@ -716,5 +716,4 @@ class ShaderPad {
 	}
 }
 
-export * from './plugins';
 export default ShaderPad;

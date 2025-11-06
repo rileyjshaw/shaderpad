@@ -269,5 +269,3 @@ float getEye(vec2 pos) { return texture(u_faceMask, pos).b; }
 float getMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`);
 	};
 }
-
-export type WithFace<T extends ShaderPad> = T;

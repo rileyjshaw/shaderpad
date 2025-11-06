@@ -32,7 +32,7 @@ uniform sampler2D u_webcam;
 
 void main() {
 	vec4 frameColor = texture(u_pictureFrame, v_uv);
-	vec4 webcamColor = texture(u_webcam, v_uv);
+	vec4 webcamColor = texture(u_webcam, vec2(1.0 - v_uv.x, v_uv.y));
 	outColor = mix(webcamColor, frameColor, frameColor.a);
 }`;
 
@@ -42,7 +42,7 @@ void main() {
 		pictureFrame.onload = resolve;
 		pictureFrame.onerror = reject;
 	});
-	
+
 	video = await getWebcamStream();
 
 	outputCanvas = document.createElement('canvas');
@@ -64,13 +64,13 @@ export function destroy() {
 		shader.destroy();
 		shader = null;
 	}
-	
+
 	if (video) {
 		video.srcObject = null;
 		video.remove();
 		video = null;
 	}
-	
+
 	if (outputCanvas) {
 		outputCanvas.remove();
 		outputCanvas = null;

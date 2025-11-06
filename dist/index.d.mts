@@ -1,30 +1,3 @@
-declare module '../index' {
-    interface ShaderPad {
-        save(filename: string): Promise<void>;
-    }
-}
-declare function save(): (shaderPad: ShaderPad, context: PluginContext) => void;
-type WithSave<T extends ShaderPad> = T & {
-    save(filename: string): Promise<void>;
-};
-
-interface FacePluginOptions {
-    modelPath?: string;
-    maxFaces?: number;
-    minFaceDetectionConfidence?: number;
-    minFacePresenceConfidence?: number;
-    minTrackingConfidence?: number;
-    outputFaceBlendshapes?: boolean;
-    outputFacialTransformationMatrixes?: boolean;
-}
-declare function face(config: {
-    textureName: string;
-    options?: FacePluginOptions;
-}): (shaderPad: ShaderPad, context: PluginContext) => void;
-type WithFace<T extends ShaderPad> = T;
-
-declare function helpers(): (_shader: ShaderPad, context: PluginContext) => void;
-
 interface Uniform {
     type: 'float' | 'int';
     length: 1 | 2 | 3 | 4;
@@ -116,4 +89,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { type FacePluginOptions, type Options, type PluginContext, type TextureSource, type WithFace, type WithSave, ShaderPad as default, face, helpers, save };
+export { type Options, type PluginContext, type TextureSource, ShaderPad as default };

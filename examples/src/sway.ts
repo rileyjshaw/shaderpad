@@ -1,4 +1,4 @@
-import ShaderPad, { save, WithSave } from 'shaderpad';
+import ShaderPad from 'shaderpad';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
@@ -155,13 +155,13 @@ const variants = [
 	},
 ];
 
-let shader: WithSave<ShaderPad> | null = null;
+let shader: ShaderPad | null = null;
 let isPlaying = true;
 let variantIdx = 0;
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
 export async function init() {
-	shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
+	shader = new ShaderPad(fragmentShaderSrc);
 
 	Object.entries(variants[0]).forEach(([key, value]) => {
 		shader!.initializeUniform(key, 'float', value);
@@ -183,12 +183,8 @@ export async function init() {
 				variantIdx = (variantIdx - 1 + variants.length) % variants.length;
 				shader!.updateUniforms(variants[variantIdx]);
 				break;
-			case 's':
-				shader!.save('sway');
-				break;
 		}
 	};
-	
 	document.addEventListener('keydown', keydownHandler);
 }
 
@@ -197,12 +193,12 @@ export function destroy() {
 		shader.destroy();
 		shader = null;
 	}
-	
+
 	if (keydownHandler) {
 		document.removeEventListener('keydown', keydownHandler);
 		keydownHandler = null;
 	}
-	
+
 	isPlaying = true;
 	variantIdx = 0;
 }

@@ -1,4 +1,5 @@
-import ShaderPad, { helpers } from 'shaderpad';
+import ShaderPad from 'shaderpad';
+import { helpers } from 'shaderpad/plugins/helpers';
 
 const FRAME_DELAY_PER_CHANNEL = 15;
 
