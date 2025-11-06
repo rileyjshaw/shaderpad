@@ -10,7 +10,7 @@ type WithSave<T extends ShaderPad> = T & {
 
 interface FacePluginOptions {
     modelPath?: string;
-    numFaces?: number;
+    maxFaces?: number;
     minFaceDetectionConfidence?: number;
     minFacePresenceConfidence?: number;
     minTrackingConfidence?: number;
@@ -29,6 +29,7 @@ interface Uniform {
     type: 'float' | 'int';
     length: 1 | 2 | 3 | 4;
     location: WebGLUniformLocation;
+    arrayLength?: number;
 }
 interface Texture {
     texture: WebGLTexture;
@@ -95,8 +96,12 @@ declare class ShaderPad {
     private reserveTextureUnit;
     private releaseTextureUnit;
     private clearHistoryTextureLayers;
-    initializeUniform(name: string, type: 'float' | 'int', value: number | number[]): void;
-    updateUniforms(updates: Record<string, number | number[]>): void;
+    initializeUniform(name: string, type: 'float' | 'int', value: number | number[] | (number | number[])[], options?: {
+        arrayLength?: number;
+    }): void;
+    updateUniforms(updates: Record<string, number | number[] | (number | number[])[]>, options?: {
+        startIndex?: number;
+    }): void;
     private createTexture;
     private _initializeTexture;
     initializeTexture(name: string, source: TextureSource, options?: {

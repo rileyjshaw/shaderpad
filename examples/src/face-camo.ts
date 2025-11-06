@@ -37,20 +37,26 @@ void main() {
 	vec2 pixel = vec2(1.0) / vec2(textureSize(u_webcam, 0));
 	vec3 color = texture(u_webcam, uv).rgb;
 
-	vec2 dir = uv - u_faceCenter;
-	float lenDir = length(dir);
-	if (lenDir < 1e-5) {
-		dir = vec2(0.0, 1.0); // Avoid divide-by-zero at exact center.
-	} else {
-		dir /= lenDir; // It looks cool if you comment this out!
-	}
+	float closestCenter = 2.0;
+	for (int i = 0; i < u_nFaces; ++i) {
+		vec2 dir = uv - u_faceCenter[i];
+		float lenDir = length(dir);
+		if (lenDir >= closestCenter) continue;
 
-	vec2 uvNearerFaceCenter = uv - dir * 100.0 * pixel;
-	float face = getFace(uv) + getFace(uvNearerFaceCenter);
-	if (face > 0.0) {
-		vec2 target = uv + dir * (20.0 * pixel); // Grab the color 20px away from your face center.
-		float z = historyZ(u_history, u_historyFrameOffset, 1);
-		color = texture(u_history, vec3(target, z)).rgb;
+		closestCenter = lenDir;
+		if (lenDir < 1e-5) {
+			dir = vec2(0.0, 1.0); // Avoid divide-by-zero at exact center.
+		} else {
+			dir /= lenDir; // It looks cool if you comment this out!
+		}
+
+		vec2 uvNearerFaceCenter = uv - dir * 80.0 * pixel;
+		float face = getFace(uv) + getFace(uvNearerFaceCenter);
+		if (face > 0.0) {
+			vec2 target = uv + dir * (20.0 * pixel); // Grab the color 20px away from your face center.
+			float z = historyZ(u_history, u_historyFrameOffset, 1);
+			color = texture(u_history, vec3(target, z)).rgb;
+		}
 	}
 
 	outColor = vec4(color.x, color.y * 1.0, color.z, 1.0);
@@ -75,6 +81,7 @@ void main() {
 			helpers(),
 			face({
 				textureName: 'u_webcam',
+				options: { maxFaces: 3 },
 			}),
 		],
 	});

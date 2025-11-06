@@ -12,6 +12,7 @@ interface Uniform {
 	type: 'float' | 'int';
 	length: 1 | 2 | 3 | 4;
 	location: WebGLUniformLocation;
+	arrayLength?: number;
 }
 
 interface Texture {
@@ -73,7 +74,7 @@ function combineShaderCode(shader: string, injections: string[]): string {
 			const trimmed = line.trimStart();
 			return trimmed.startsWith('precision ') || trimmed.startsWith('#version ');
 		}) + 1;
-	lines.splice(insertAt, 0, '', ...injections);
+	lines.splice(insertAt, 0, ...injections);
 	return lines.join('\n');
 }
 
@@ -398,52 +399,94 @@ class ShaderPad {
 		}
 	}
 
-	initializeUniform(name: string, type: 'float' | 'int', value: number | number[]) {
+	initializeUniform(
+		name: string,
+		type: 'float' | 'int',
+		value: number | number[] | (number | number[])[],
+		options?: { arrayLength?: number }
+	) {
+		const arrayLength = options?.arrayLength;
 		if (this.uniforms.has(name)) {
-			throw new Error(`Uniform '${name}' is already initialized.`);
+			throw new Error(`${name} is already initialized.`);
 		}
-
 		if (type !== 'float' && type !== 'int') {
 			throw new Error(`Invalid uniform type: ${type}. Expected 'float' or 'int'.`);
 		}
+		if (arrayLength && !(Array.isArray(value) && value.length === arrayLength)) {
+			throw new Error(`${name} array length mismatch: must initialize with ${arrayLength} elements.`);
+		}
 
-		const location = this.gl.getUniformLocation(this.program!, name);
+		let location = this.gl.getUniformLocation(this.program!, name);
+		if (!location && arrayLength) {
+			location = this.gl.getUniformLocation(this.program!, `${name}[0]`);
+		}
 		if (!location) {
-			console.debug(`Uniform ${name} not found in fragment shader. Skipping initialization.`);
+			console.debug(`${name} not found in fragment shader. Skipping initialization.`);
 			return;
 		}
 
-		if (!Array.isArray(value)) {
-			value = [value];
-		}
-		if (value.length < 1 || value.length > 4) {
-			throw new Error(`Invalid uniform value length: ${value.length}. Expected a length between 1 and 4.`);
-		}
+		const probeValue = arrayLength ? (value as number[] | number[][])[0] : value;
+		const length = Array.isArray(probeValue) ? (probeValue.length as 1 | 2 | 3 | 4) : 1;
+		this.uniforms.set(name, { type, length, location, arrayLength });
 
-		const length = value.length as 1 | 2 | 3 | 4;
-		this.uniforms.set(name, { type, length, location });
+		try {
+			this.updateUniforms({ [name]: value });
+		} catch (error) {
+			this.uniforms.delete(name);
+			throw error;
+		}
 		this.hooks.get('initializeUniform')?.forEach(hook => hook.call(this, ...arguments));
-		this.updateUniforms({ [name]: value });
 	}
 
-	updateUniforms(updates: Record<string, number | number[]>) {
-		this.hooks.get('updateUniforms')?.forEach(hook => hook.call(this, ...arguments));
-
-		Object.entries(updates).forEach(([name, value]: [string, number | number[]]) => {
-			const uniform = this.uniforms.get(name)!;
+	updateUniforms(
+		updates: Record<string, number | number[] | (number | number[])[]>,
+		options?: { startIndex?: number }
+	) {
+		Object.entries(updates).forEach(([name, value]) => {
+			const uniform = this.uniforms.get(name);
 			if (!uniform) {
-				console.debug(`Uniform ${name} not found in fragment shader. Skipping update.`);
+				console.debug(`${name} not found in fragment shader. Skipping update.`);
 				return;
 			}
 
-			if (!Array.isArray(value)) {
-				value = [value];
+			let glFunctionName = `uniform${uniform.length}${uniform.type.charAt(0)}`; // e.g. uniform1f, uniform3i…
+			if (uniform.arrayLength) {
+				if (!Array.isArray(value)) {
+					throw new Error(`${name} is an array, but the value passed to updateUniforms is not an array.`);
+				}
+				const nValues = value.length;
+				if (!nValues) return;
+				if (nValues > uniform.arrayLength) {
+					throw new Error(
+						`${name} received ${nValues} values, but maximum length is ${uniform.arrayLength}.`
+					);
+				}
+				if (value.some(item => (Array.isArray(item) ? item.length : 1) !== uniform.length)) {
+					throw new Error(
+						`Tried to update ${name} with some elements that are not length ${uniform.length}.`
+					);
+				}
+				const typedArray = new (uniform.type === 'float' ? Float32Array : Int32Array)(value.flat());
+				let location = uniform.location;
+				if (options?.startIndex) {
+					const newLocation = this.gl.getUniformLocation(this.program!, `${name}[${options.startIndex}]`);
+					if (!newLocation) {
+						throw new Error(
+							`${name}[${options.startIndex}] not found in fragment shader. Did you pass an invalid startIndex?`
+						);
+					}
+					location = newLocation;
+				}
+				(this.gl as any)[glFunctionName + 'v'](uniform.location, typedArray);
+			} else {
+				if (!Array.isArray(value)) value = [value];
+				if (value.length !== uniform.length) {
+					throw new Error(`Invalid uniform value length: ${value.length}. Expected ${uniform.length}.`);
+				}
+				(this.gl as any)[glFunctionName](uniform.location, ...value);
 			}
-			if (value.length !== uniform.length) {
-				throw new Error(`Invalid uniform value length: ${value.length}. Expected ${uniform.length}.`);
-			}
-			(this.gl as any)[`uniform${uniform.length}${uniform.type.charAt(0)}`](uniform.location, ...value);
 		});
+		this.hooks.get('updateUniforms')?.forEach(hook => hook.call(this, ...arguments));
 	}
 
 	private createTexture(
