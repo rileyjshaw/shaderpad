@@ -21,7 +21,7 @@ precision highp float;
 in vec2 v_uv;
 uniform float u_time;
 uniform vec2 u_resolution;
-uniform vec4 u_cursor; // [cursorX, cursorY, scrollX, scrollY]
+uniform vec2 u_cursor;
 
 // Custom variables.
 uniform vec3 u_cursorColor;
@@ -34,7 +34,7 @@ void main() {
   float dotDist = length(dotGrid);
   float dot = step(dotDist, 5.);
 
-  float cursorDist = distance(uv, u_cursor.xy * u_resolution);
+  float cursorDist = distance(uv, u_cursor * u_resolution);
   float cursor = step(cursorDist, 25. + sin(u_time * 5.) * 5.);
 
   vec3 color = mix(vec3(0., 0., 1.), vec3(1.), dot);
@@ -71,6 +71,173 @@ shader.play(time => {
 
 See the [`examples/` directory](./examples/) for more.
 
+## Usage
+
+### Uniforms
+
+#### `initializeUniform(name, type, value, options?)`
+
+Initialize a uniform variable. The uniform must be declared in your fragment shader.
+
+```typescript
+// Initialize a float uniform.
+shader.initializeUniform('u_speed', 'float', 1.5);
+
+// Initialize a vec3 uniform.
+shader.initializeUniform('u_color', 'float', [1.0, 0.5, 0.0]);
+```
+
+**Parameters:**
+
+-   `name` (string): The name of the uniform as declared in your shader
+-   `type` ('float' | 'int'): The uniform type
+-   `value` (number | number[] | (number | number[])[]): Initial value(s)
+-   `options` (optional): `{ arrayLength?: number }` - Required for uniform arrays
+
+#### `updateUniforms(updates, options?)`
+
+Update one or more uniform values.
+
+```typescript
+shader.updateUniforms({
+	u_speed: 2.0,
+	u_color: [1.0, 0.0, 0.0],
+});
+```
+
+**Parameters:**
+
+-   `updates` (Record<string, number | number[] | (number | number[])[]>): Object mapping uniform names to their new values
+-   `options` (optional): `{ startIndex?: number }` - Starting index for partial array updates
+
+#### Uniform arrays
+
+ShaderPad supports uniform arrays. Initialize them by passing an `arrayLength` option:
+
+```typescript
+// Initialize a vec2 array with 5 elements.
+shader.initializeUniform(
+	'u_positions',
+	'float',
+	[
+		[0, 0],
+		[1, 1],
+		[2, 2],
+		[3, 3],
+		[4, 4],
+	],
+	{
+		arrayLength: 5,
+	}
+);
+
+// Update all elements.
+shader.updateUniforms({
+	u_positions: [
+		[0.1, 0.2],
+		[1.1, 1.2],
+		[2.1, 2.2],
+		[3.1, 3.2],
+		[4.1, 4.2],
+	],
+});
+
+// Update a subset starting at index 2.
+shader.updateUniforms(
+	{
+		u_positions: [
+			[2.5, 2.5],
+			[3.5, 3.5],
+		],
+	},
+	{ startIndex: 2 }
+);
+```
+
+#### Included uniforms
+
+| Uniform                | Type           | Description                                                                       |
+| ---------------------- | -------------- | --------------------------------------------------------------------------------- |
+| `u_time`               | float          | The current time in seconds.                                                      |
+| `u_frame`              | int            | The current frame number.                                                         |
+| `u_resolution`         | float[2]       | The canvas element's dimensions.                                                  |
+| `u_cursor`             | float[2]       | Cursor position (x, y).                                                           |
+| `u_click`              | float[3]       | Click position (x, y) and left click state (z).                                   |
+| `u_history`            | sampler2DArray | Buffer texture of prior frames. Available if `history` option is set.             |
+| `u_historyFrameOffset` | int            | Frame offset for accessing history texture. Available if `history` option is set. |
+
+#### Included varyings
+
+| Varying | Type     | Description                         |
+| ------- | -------- | ----------------------------------- |
+| `v_uv`  | float[2] | The UV coordinates of the fragment. |
+
+### Textures
+
+#### `initializeTexture(name, source, options?)`
+
+Initialize a texture from an image, video, or canvas element.
+
+```typescript
+// Initialize a texture from an image.
+const img = new Image();
+img.src = 'texture.png';
+img.onload = () => {
+	shader.initializeTexture('u_texture', img);
+};
+
+// Initialize a texture with history (stores previous frames).
+shader.initializeTexture('u_webcam', videoElement, { history: 30 });
+```
+
+**Parameters:**
+
+-   `name` (string): The name of the texture uniform as declared in your shader
+-   `source` (HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): The texture source
+-   `options` (optional): `{ history?: number }` - Number of previous frames to store
+
+#### `updateTextures(updates)`
+
+Update one or more textures. Useful for updating video textures each frame.
+
+```typescript
+shader.updateTextures({
+	u_webcam: videoElement,
+	u_overlay: overlayCanvas,
+});
+```
+
+**Parameters:**
+
+-   `updates` (Record<string, TextureSource>): Object mapping texture names to their new sources
+
+### Lifecycle methods
+
+#### `play(callback?)`
+
+Start the render loop. The callback is invoked each frame with the current time and frame number.
+
+```typescript
+shader.play();
+// Can optionally take a callback to invoke each frame.
+shader.play((time, frame) => {
+	shader.updateTextures({ u_webcam: videoElement });
+});
+```
+
+#### `pause()`, `reset()`, `destroy()`
+
+```typescript
+shader.pause(); // Pause the render loop.
+shader.reset(); // Reset frame counter and clear history buffers.
+shader.destroy(); // Clean up resources.
+```
+
+### Properties
+
+-   `canvas` (HTMLCanvasElement): The canvas element used for rendering
+-   `onResize?: (width: number, height: number) => void`: Callback fired when the canvas is resized
+
 ## Options
 
 ShaderPad’s constructor accepts an optional `options` object.
@@ -88,51 +255,100 @@ shader.onResize = (width, height) => {
 };
 ```
 
-### plugins
+### history
 
-ShaderPad supports plugins to add additional functionality.
-
-#### history
-
-The `history` plugin can capture both the framebuffer output and texture history. The plugin argument controls how many frames to keep for the framebuffer (defaults to `1`).
+The `history` option enables framebuffer history, allowing you to access previous frames in your shader. Pass a number to specify how many frames to keep.
 
 ```typescript
-import ShaderPad, { history, WithHistory } from 'shaderpad';
-
 // Store the last 10 frames of shader output.
-const shaderWithOutputHistory = new ShaderPad(fragmentShaderSrc, { plugins: [history(10)] });
+const shader = new ShaderPad(fragmentShaderSrc, { history: 10 });
 
+// In your shader, access history using the u_history uniform:
+// uniform highp sampler2DArray u_history;
+// It’s stored as a ringbuffer, so you can access specific frames with the provided offset uniform:
+// uniform int u_historyFrameOffset;
+```
+
+You can also enable history for individual textures:
+
+```typescript
 // Store the last 30 webcam frames.
-const shader = new ShaderPad(fragmentShaderSrc, { plugins: [history()] }) as WithHistory<ShaderPad>;
-shader.initializeTexture('u_webcam', videoElement, 30);
+shader.initializeTexture('u_webcam', videoElement, { history: 30 });
+// In your shader, access history using the u_webcam and u_webcamFrameOffset uniforms:
+// uniform highp sampler2DArray u_webcam;
+// uniform int u_webcamFrameOffset;
+```
+
+It’s recommended to use the `helpers` plugin to simplify access to history textures:
+
+```glsl
+int nFramesAgo = 2; // Get the color 2 frames ago.
+float zIndex = historyZ(u_webcam, u_webcamFrameOffset, nFramesAgo);
+vec4 historyColor = texture(u_webcam, vec3(v_uv, zIndex));
+```
+
+### plugins
+
+ShaderPad supports plugins to add additional functionality. Plugins are imported from separate paths to keep bundle sizes small.
+
+#### helpers
+
+The `helpers` plugin provides convenience functions and constants. See [helpers.glsl](./src/plugins/helpers.glsl) for the implementation.
+
+```typescript
+import ShaderPad from 'shaderpad';
+import { helpers } from 'shaderpad/plugins/helpers';
+
+const shader = new ShaderPad(fragmentShaderSrc, {
+	plugins: [helpers()],
+});
 ```
 
 #### save
 
-The `save` plugin adds a `.save()` method to the shader that saves the current frame to a PNG file.
+The `save` plugin adds a `.save()` method to the shader that saves the current frame to a PNG file. It works on desktop and mobile.
 
 ```typescript
-import ShaderPad, { save, WithSave } from 'shaderpad';
+import ShaderPad from 'shaderpad';
+import { save, WithSave } from 'shaderpad/plugins/save';
+
 const shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
 shader.save('my-frame');
 ```
 
-## Included uniforms
+#### face
 
-| Uniform        | Type           | Description                                                                     |
-| -------------- | -------------- | ------------------------------------------------------------------------------- |
-| `u_time`       | float          | The current time in seconds.                                                    |
-| `u_frame`      | int            | The current frame number.                                                       |
-| `u_resolution` | float[2]       | The canvas element's dimensions.                                                |
-| `u_cursor`     | float[2]       | Cursor position (x, y).                                                         |
-| `u_click`      | float[3]       | Click position (x, y) and left click state (z).                                 |
-| `u_history`    | sampler2DArray | Buffer texture of prior frames. Only available if the `history` plugin is used. |
+The `face` plugin uses [MediaPipe](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) to detect faces in video or image textures.
 
-## Included varyings
+```typescript
+import ShaderPad from 'shaderpad';
+import { face } from 'shaderpad/plugins/face';
 
-| Varying | Type     | Description                         |
-| ------- | -------- | ----------------------------------- |
-| `v_uv`  | float[2] | The UV coordinates of the fragment. |
+const shader = new ShaderPad(fragmentShaderSrc, {
+	plugins: [
+		face({
+			textureName: 'u_webcam',
+			options: { maxFaces: 3 },
+		}),
+	],
+});
+```
+
+**Uniforms:**
+
+| Uniform        | Type           | Description                                    |
+| -------------- | -------------- | ---------------------------------------------- |
+| `u_maxFaces`   | int            | Maximum number of faces to detect              |
+| `u_nFaces`     | int            | Current number of detected faces               |
+| `u_faceCenter` | vec2[maxFaces] | Face center positions                          |
+| `u_leftEye`    | vec2[maxFaces] | Left eye positions                             |
+| `u_rightEye`   | vec2[maxFaces] | Right eye positions                            |
+| `u_noseTip`    | vec2[maxFaces] | Nose tip positions                             |
+| `u_faceMask`   | sampler2D      | Face mask texture (R: mouth, G: face, B: eyes) |
+
+**Helper functions:** `getFace(vec2 pos)`, `getEye(vec2 pos)`, `getMouth(vec2 pos)`
+
+**Note:** The face plugin requires `@mediapipe/tasks-vision` as a peer dependency.
 
 ## Contributing
 
@@ -149,7 +365,7 @@ npm install
 npm run dev
 ```
 
-This will launch a local server. Open the provided URL (usually `http://localhost:5173`) in your browser to view and interact with the examples. Use the select box to view a different example.
+This will launch a local server. Open the provided URL (usually `http://localhost:5173`) in your browser to view and interact with the examples. Use the select box to view different examples.
 
 ### Adding an example
 

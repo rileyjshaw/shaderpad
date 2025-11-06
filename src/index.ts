@@ -108,7 +108,7 @@ class ShaderPad {
 	private animationFrameId: number | null;
 	private resolutionObserver: MutationObserver;
 	private resizeObserver: ResizeObserver;
-	private resizeTimeout: NodeJS.Timeout = null as unknown as NodeJS.Timeout;
+	private resizeTimeout: ReturnType<typeof setTimeout> = null as unknown as ReturnType<typeof setTimeout>;
 	private lastResizeTime = 0;
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;

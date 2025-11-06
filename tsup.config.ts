@@ -8,4 +8,10 @@ export default defineConfig({
 	clean: true,
 	dts: true,
 	minify: true,
+	esbuildOptions(options) {
+		options.loader = {
+			...options.loader,
+			'.glsl': 'text',
+		};
+	},
 });
