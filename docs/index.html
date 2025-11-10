@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="icon" type="image/svg+xml" href="/logo.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link href="/src/style.css" rel="stylesheet" />
+		<title>ShaderPad</title>
+	</head>
+	<body class="flex flex-col px-1 sm:px-2 font-sans min-h-screen bg-black text-white">
+		<header class="grid grid-rows-[auto_auto] grid-cols-[auto_1fr] gap-x-2 py-3">
+			<div class="row-span-2 aspect-square h-full flex">
+				<svg
+					clip-rule="evenodd"
+					fill-rule="evenodd"
+					stroke-linejoin="round"
+					stroke-miterlimit="2"
+					viewBox="0 0 1024 1024"
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-22/24 w-auto my-auto"
+					fill="currentColor"
+					aria-label="ShaderPad"
+				>
+					<path d="m0 0h1024v1024h-1024z" fill="none" />
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 -.492608 .492608 0 -182.973 319.39)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 -.492608 .492608 0 73.0271 1087.39)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 .492608 -.492608 0 438.973 192.61)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 -.492608 .492608 0 -182.973 831.39)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 .492608 -.492608 0 438.973 704.61)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 .492608 -.492608 0 694.973 -63.3896)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 -.492608 .492608 0 73.0271 575.39)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 .492608 -.492608 0 694.973 448.61)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 -.492608 .492608 0 585.027 1087.39)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 .492608 -.492608 0 1206.97 -63.3896)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 -.492608 .492608 0 585.027 575.39)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 .492608 -.492608 0 1206.97 448.61)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 -.492608 .492608 0 329.027 319.39)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 .492608 -.492608 0 950.973 192.61)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 -.492608 .492608 0 329.027 831.39)"
+					/>
+					<path
+						d="m583.404 728.719h-389.762c0-107.63 87.251-194.881 194.881-194.881s194.881 87.251 194.881 194.881z"
+						transform="matrix(0 .492608 -.492608 0 950.973 704.61)"
+					/>
+				</svg>
+			</div>
+			<span>
+				<h1 class="text-3xl font-display font-black inline-block">ShaderPad</h1>
+				<span class="text-sm align-baseline">v1β</span>
+			</span>
+			<p class="uppercase font-thin text-lg leading-none">Minimal setup. Tiny footprint.</p>
+		</header>
+		<main class="mt-13 text-3xl md:text-5xl/13 grid xl:gap-13 grid-cols-[minmax(0,1600px)_auto] *:col-start-1">
+			<p>
+				<span class="font-display font-black">ShaderPad</span> is a lightweight, dependency-free library that
+				reduces boilerplate when working with fragment shaders. It provides a simple interface for
+				initialization, texture and uniform management, and user interactions such as mouse movements and
+				resizing. It comes “batteries included” for common situations, and has optional plugins — from PNG
+				export to face/pose tracking — for more advanced requirements. Simple, performant, and portable,
+				<span class="font-display font-black">ShaderPad</span> lets you focus on writing GLSL.
+			</p>
+			<div class="flex flex-col h-full xl:col-start-2 xl:row-[1/span_2]">
+				<div class="m-auto flex flex-col items-center">
+					<canvas height="512" width="512" class="w-[512px] max-w-full"></canvas>
+					<figcaption class="relative -top-10 text-xs opacity-30">
+						Fragmentum by
+						<a
+							href="https://www.shadertoy.com/view/t3SyzV"
+							class="underline"
+							target="_blank"
+							rel="noopener noreferrer"
+							>Jaenam</a
+						>
+					</figcaption>
+				</div>
+			</div>
+			<p>
+				Read the docs and view examples on
+				<a href="https://github.com/rileyjshaw/shaderpad" class="underline">Github.</a>
+			</p>
+		</main>
+		<footer class="uppercase font-bold flex items-center gap-13 leading-none mt-auto pt-13 pb-2">
+			<div class="flex items-center">
+				<span class="-scale-x-100 inline-block font-black text-xl mr-1">©</span>
+				<span><a href="https://misery.co">Misery & Company</a> 2025</span>
+			</div>
+			<div><a href="https://github.com/rileyjshaw/shaderpad">Github</a></div>
+		</footer>
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+</html>

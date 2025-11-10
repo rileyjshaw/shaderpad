@@ -1,2 +1,2 @@
-import{a}from"../chunk-3YCMCDTR.mjs";export{a as save};
+function c(){return function(i,s){let{gl:a,canvas:o}=s,t=document.createElement("a");i.save=async function(e){if(a.clear(a.COLOR_BUFFER_BIT),a.drawArrays(a.TRIANGLES,0,6),e&&!`${e}`.toLowerCase().endsWith(".png")&&(e=`${e}.png`),e=e||"export.png","ongesturechange"in window)try{let n=await new Promise(d=>o.toBlob(d,"image/png")),r=new File([n],e,{type:n.type});if(navigator.canShare?.({files:[r]})){await navigator.share({files:[r]});return}}catch(n){console.warn("Web Share API failed:",n)}else t.download=e,t.href=o.toDataURL(),t.click()}}}export{c as save};
 //# sourceMappingURL=save.mjs.map

@@ -109,7 +109,7 @@ class ShaderPad {
 	private resolutionObserver: MutationObserver;
 	private resizeObserver: ResizeObserver;
 	private resizeTimeout: ReturnType<typeof setTimeout> = null as unknown as ReturnType<typeof setTimeout>;
-	private lastResizeTime = 0;
+	private lastResizeTime = -Infinity;
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;
 	private startTime = 0;
@@ -125,11 +125,11 @@ class ShaderPad {
 		this.canvas = options.canvas || document.createElement('canvas');
 		if (!options.canvas) {
 			this.isInternalCanvas = true;
-			document.body.appendChild(this.canvas);
 			this.canvas.style.position = 'fixed';
 			this.canvas.style.inset = '0';
 			this.canvas.style.height = '100dvh';
 			this.canvas.style.width = '100dvw';
+			document.body.appendChild(this.canvas);
 		}
 
 		this.gl = this.canvas.getContext('webgl2', { antialias: false }) as WebGL2RenderingContext;

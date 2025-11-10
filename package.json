@@ -27,6 +27,14 @@
 		"./plugins/save": {
 			"import": "./dist/plugins/save.mjs",
 			"require": "./dist/plugins/save.js"
+		},
+		"./plugins/pose": {
+			"import": "./dist/plugins/pose.mjs",
+			"require": "./dist/plugins/pose.js"
+		},
+		"./plugins/hands": {
+			"import": "./dist/plugins/hands.mjs",
+			"require": "./dist/plugins/hands.js"
 		}
 	},
 	"typesVersions": {
@@ -39,6 +47,12 @@
 			],
 			"plugins/save": [
 				"dist/plugins/save.d.ts"
+			],
+			"plugins/pose": [
+				"dist/plugins/pose.d.ts"
+			],
+			"plugins/hands": [
+				"dist/plugins/hands.d.ts"
 			]
 		}
 	},

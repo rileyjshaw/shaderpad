@@ -11,7 +11,11 @@ const demos = [
 	{ path: './history-webcam-grid', name: 'History - webcam grid' },
 	{ path: './face', name: 'Face Detection' },
 	{ path: './face-camo', name: 'Face Camo' },
+	{ path: './pose', name: 'Pose Detection' },
+	{ path: './hands', name: 'Hands Detection' },
 	{ path: './resize-test', name: 'Resize Test' },
+	{ path: './god-rays', name: 'God rays' },
+	{ path: './fragmentum', name: 'Fragmentum' },
 ] as const;
 
 async function loadDemo(demoPath: string) {

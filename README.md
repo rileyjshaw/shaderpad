@@ -1,6 +1,8 @@
-# ShaderPad
+![ShaderPad logo](./ShaderPad.png)
 
-ShaderPad is a lightweight, dependency-free library to reduce boilerplate when writing fragment shaders. It provides a simple interface to initialize shaders, manage uniforms, maintain an animation loop, and handle user interactions such as mouse movements and window resizing.
+**Minimal setup. Tiny footprint.**
+
+ShaderPad is a lightweight, dependency-free library that reduces boilerplate when working with fragment shaders. It provides a simple interface for setup, texture and uniform management, and user interactions such as mouse movements and window resizing. It comes “batteries included” for common needs, with optional plugins — from PNG export to face/pose tracking — for more advanced use cases. Simple, performant, and portable, ShaderPad lets you focus on the fun part: writing GLSL.
 
 ## Installation
 
@@ -349,6 +351,125 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 **Helper functions:** `getFace(vec2 pos)`, `getEye(vec2 pos)`, `getMouth(vec2 pos)`
 
 **Note:** The face plugin requires `@mediapipe/tasks-vision` as a peer dependency.
+
+#### pose
+
+The `pose` plugin uses [MediaPipe Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) to expose a flat array of 2D landmarks. Each pose contributes 33 landmarks, enumerated below.
+
+```typescript
+import ShaderPad from 'shaderpad';
+import { pose } from 'shaderpad/plugins/pose';
+
+const shader = new ShaderPad(fragmentShaderSrc, {
+	plugins: [pose({ textureName: 'u_video', options: { maxPoses: 3 } })],
+});
+```
+
+**Uniforms:**
+
+| Uniform           | Type                | Description                              |
+| ----------------- | ------------------- | ---------------------------------------- |
+| `u_maxPoses`      | int                 | Maximum number of poses to track         |
+| `u_nPoses`        | int                 | Current number of detected poses         |
+| `u_poseLandmarks` | vec2[maxPoses * 33] | Landmark positions in UV space           |
+| `u_poseMask`      | sampler2D           | Pose mask texture (G: body, B: skeleton) |
+
+**Helper functions:** `poseLandmark(int poseIndex, int landmarkIndex)`, `getBody(vec2 pos)`, `getSkeleton(vec2 pos)`
+
+Use `poseLandmark(int poseIndex, int landmarkIndex)` in GLSL to retrieve a specific point. Landmark indices are:
+
+| Index | Landmark          | Index | Landmark         |
+| ----- | ----------------- | ----- | ---------------- |
+| 0     | nose              | 17    | left pinky       |
+| 1     | left eye (inner)  | 18    | right pinky      |
+| 2     | left eye          | 19    | left index       |
+| 3     | left eye (outer)  | 20    | right index      |
+| 4     | right eye (inner) | 21    | left thumb       |
+| 5     | right eye         | 22    | right thumb      |
+| 6     | right eye (outer) | 23    | left hip         |
+| 7     | left ear          | 24    | right hip        |
+| 8     | right ear         | 25    | left knee        |
+| 9     | mouth (left)      | 26    | right knee       |
+| 10    | mouth (right)     | 27    | left ankle       |
+| 11    | left shoulder     | 28    | right ankle      |
+| 12    | right shoulder    | 29    | left heel        |
+| 13    | left elbow        | 30    | right heel       |
+| 14    | right elbow       | 31    | left foot index  |
+| 15    | left wrist        | 32    | right foot index |
+| 16    | right wrist       |       |                  |
+
+[Source](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model)
+
+A minimal fragment shader loop looks like:
+
+```glsl
+int POSE_LANDMARK_LEFT_HIP = 23;
+int POSE_LANDMARK_RIGHT_HIP = 24;
+for (int i = 0; i < u_maxPoses; ++i) {
+	if (i >= u_nPoses) break;
+	vec2 leftHip = poseLandmark(i, POSE_LANDMARK_LEFT_HIP);
+	vec2 rightHip = poseLandmark(i, POSE_LANDMARK_RIGHT_HIP);
+	// …
+}
+```
+
+#### hands
+
+The `hands` plugin uses [MediaPipe Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) to expose a flat array of 2D landmarks. Each hand contributes 22 landmarks, enumerated below.
+
+```typescript
+import ShaderPad from 'shaderpad';
+import { hands } from 'shaderpad/plugins/hands';
+
+const shader = new ShaderPad(fragmentShaderSrc, {
+	plugins: [hands({ textureName: 'u_video', options: { maxHands: 2 } })],
+});
+```
+
+**Uniforms:**
+
+| Uniform           | Type                | Description                      |
+| ----------------- | ------------------- | -------------------------------- |
+| `u_maxHands`      | int                 | Maximum number of hands to track |
+| `u_nHands`        | int                 | Current number of detected hands |
+| `u_handLandmarks` | vec2[maxHands * 22] | Landmark positions in UV space   |
+
+**Helper functions:** `handLandmark(int handIndex, int landmarkIndex)`
+
+Use `handLandmark(int handIndex, int landmarkIndex)` in GLSL to retrieve a specific point. Landmark indices are:
+
+| Index | Landmark          | Index | Landmark          |
+| ----- | ----------------- | ----- | ----------------- |
+| 0     | WRIST             | 11    | MIDDLE_FINGER_DIP |
+| 1     | THUMB_CMC         | 12    | MIDDLE_FINGER_TIP |
+| 2     | THUMB_MCP         | 13    | RING_FINGER_MCP   |
+| 3     | THUMB_IP          | 14    | RING_FINGER_PIP   |
+| 4     | THUMB_TIP         | 15    | RING_FINGER_DIP   |
+| 5     | INDEX_FINGER_MCP  | 16    | RING_FINGER_TIP   |
+| 6     | INDEX_FINGER_PIP  | 17    | PINKY_MCP         |
+| 7     | INDEX_FINGER_DIP  | 18    | PINKY_PIP         |
+| 8     | INDEX_FINGER_TIP  | 19    | PINKY_DIP         |
+| 9     | MIDDLE_FINGER_MCP | 20    | PINKY_TIP         |
+| 10    | MIDDLE_FINGER_PIP | 21    | HAND_CENTER       |
+
+[Source](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models)
+
+A minimal fragment shader loop looks like:
+
+```glsl
+int HAND_LANDMARK_WRIST = 0;
+int HAND_LANDMARK_THUMB_TIP = 4;
+int HAND_LANDMARK_INDEX_TIP = 8;
+for (int i = 0; i < u_maxHands; ++i) {
+	if (i >= u_nHands) break;
+	vec2 wrist = handLandmark(i, HAND_LANDMARK_WRIST);
+	vec2 thumbTip = handLandmark(i, HAND_LANDMARK_THUMB_TIP);
+	vec2 indexTip = handLandmark(i, HAND_LANDMARK_INDEX_TIP);
+	// …
+}
+```
+
+**Note:** The hands plugin requires `@mediapipe/tasks-vision` as a peer dependency.
 
 ## Contributing
 

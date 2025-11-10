@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+@font-face {
+	font-family: 'Ufficio Display';
+	src: url('./fonts/UfficioDisplayVF.woff2') format('woff2');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Ufficio';
+	src: url('./fonts/UfficioVF.woff2') format('woff2');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@theme {
+	--font-display: 'Ufficio Display', system-ui, sans-serif;
+	--font-sans: 'Ufficio', system-ui, sans-serif;
+}
+
+@layer components {
+	p {
+		@apply text-pretty;
+	}
+}
