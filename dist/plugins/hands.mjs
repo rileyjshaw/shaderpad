@@ -4,5 +4,5 @@ uniform int u_nHands;
 uniform vec2 u_handLandmarks[${s*m}];
 vec2 handLandmark(int handIndex, int landmarkIndex) {
 	return u_handLandmarks[handIndex * ${m} + landmarkIndex];
-}`)}}export{T as hands};
+}`)}}var _=T;export{_ as default};
 //# sourceMappingURL=hands.mjs.map

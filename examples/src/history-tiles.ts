@@ -1,5 +1,5 @@
 import ShaderPad from 'shaderpad';
-import { helpers } from 'shaderpad/plugins/helpers';
+import helpers from 'shaderpad/plugins/helpers';
 
 const COLORS = [
 	[1, 0, 0],

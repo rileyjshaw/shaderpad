@@ -1,6 +1,6 @@
 import ShaderPad from 'shaderpad';
-import { hands } from 'shaderpad/plugins/hands';
-import { face } from 'shaderpad/plugins/face';
+import hands from 'shaderpad/plugins/hands';
+import face from 'shaderpad/plugins/face';
 
 async function getWebcamStream(): Promise<HTMLVideoElement> {
 	const video = document.createElement('video');

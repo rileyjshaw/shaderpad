@@ -1,5 +1,5 @@
 import ShaderPad from 'shaderpad';
-import { helpers } from 'shaderpad/plugins/helpers';
+import helpers from 'shaderpad/plugins/helpers';
 
 let shader: ShaderPad | null = null;
 let inputCanvasSmall: HTMLCanvasElement | null = null;

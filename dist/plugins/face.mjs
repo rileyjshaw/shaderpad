@@ -8,5 +8,5 @@ uniform vec2 u_noseTip[${c}];
 uniform sampler2D u_faceMask;
 float getFace(vec2 pos) { return texture(u_faceMask, pos).g; }
 float getEye(vec2 pos) { return texture(u_faceMask, pos).b; }
-float getMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`)}}export{S as face};
+float getMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`)}}var Y=S;export{Y as default};
 //# sourceMappingURL=face.mjs.map

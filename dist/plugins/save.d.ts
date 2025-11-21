@@ -10,4 +10,4 @@ type WithSave<T extends ShaderPad> = T & {
     save(filename: string): Promise<void>;
 };
 
-export { type WithSave, save };
+export { type WithSave, save as default };

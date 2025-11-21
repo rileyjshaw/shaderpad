@@ -13,4 +13,4 @@ declare function pose(config: {
     options?: PosePluginOptions;
 }): (shaderPad: ShaderPad, context: PluginContext) => void;
 
-export { type PosePluginOptions, pose };
+export { type PosePluginOptions, pose as default };

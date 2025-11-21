@@ -12,4 +12,4 @@ declare function hands(config: {
     options?: HandsPluginOptions;
 }): (shaderPad: ShaderPad, context: PluginContext) => void;
 
-export { type HandsPluginOptions, hands };
+export { type HandsPluginOptions, hands as default };

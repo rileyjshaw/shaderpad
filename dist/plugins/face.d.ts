@@ -14,4 +14,4 @@ declare function face(config: {
     options?: FacePluginOptions;
 }): (shaderPad: ShaderPad, context: PluginContext) => void;
 
-export { type FacePluginOptions, face };
+export { type FacePluginOptions, face as default };

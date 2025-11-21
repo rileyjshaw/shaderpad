@@ -1,5 +1,13 @@
 # shaderpad
 
+## 1.0.0-beta.21
+
+### Minor Changes
+
+-   Export all plugins as default exports
+
+    Also resolve deprecation warning for non-DOM textures
+
 ## 1.0.0-beta.20
 
 ### Minor Changes

@@ -1,5 +1,5 @@
 import ShaderPad from 'shaderpad';
-import { helpers } from 'shaderpad/plugins/helpers';
+import helpers from 'shaderpad/plugins/helpers';
 
 const gridLength = 5;
 const gridSize = gridLength * gridLength;

@@ -299,7 +299,7 @@ The `helpers` plugin provides convenience functions and constants. See [helpers.
 
 ```typescript
 import ShaderPad from 'shaderpad';
-import { helpers } from 'shaderpad/plugins/helpers';
+import helpers from 'shaderpad/plugins/helpers';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [helpers()],
@@ -312,7 +312,7 @@ The `save` plugin adds a `.save()` method to the shader that saves the current f
 
 ```typescript
 import ShaderPad from 'shaderpad';
-import { save, WithSave } from 'shaderpad/plugins/save';
+import save, { WithSave } from 'shaderpad/plugins/save';
 
 const shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
 shader.save('my-frame');
@@ -324,7 +324,7 @@ The `face` plugin uses [MediaPipe](https://ai.google.dev/edge/mediapipe/solution
 
 ```typescript
 import ShaderPad from 'shaderpad';
-import { face } from 'shaderpad/plugins/face';
+import face from 'shaderpad/plugins/face';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [
@@ -358,7 +358,7 @@ The `pose` plugin uses [MediaPipe Pose Landmarker](https://ai.google.dev/edge/me
 
 ```typescript
 import ShaderPad from 'shaderpad';
-import { pose } from 'shaderpad/plugins/pose';
+import pose from 'shaderpad/plugins/pose';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [pose({ textureName: 'u_video', options: { maxPoses: 3 } })],
@@ -419,7 +419,7 @@ The `hands` plugin uses [MediaPipe Hand Landmarker](https://ai.google.dev/edge/m
 
 ```typescript
 import ShaderPad from 'shaderpad';
-import { hands } from 'shaderpad/plugins/hands';
+import hands from 'shaderpad/plugins/hands';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [hands({ textureName: 'u_video', options: { maxHands: 2 } })],

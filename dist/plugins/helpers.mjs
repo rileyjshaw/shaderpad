@@ -3,5 +3,5 @@ var t=`float historyZ(highp sampler2DArray tex, int frameOffset, int framesAgo) 
 	int z = (historyDepth + frameOffset - framesAgo) % historyDepth;
 	return float(z);
 }
-`;function f(){return function(i,e){e.injectGLSL(t)}}export{f as helpers};
+`;function i(){return function(o,e){e.injectGLSL(t)}}var a=i;export{a as default};
 //# sourceMappingURL=helpers.mjs.map

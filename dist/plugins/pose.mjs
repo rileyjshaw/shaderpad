@@ -7,5 +7,5 @@ vec2 poseLandmark(int poseIndex, int landmarkIndex) {
 	return u_poseLandmarks[poseIndex * ${p} + landmarkIndex];
 }
 float getBody(vec2 pos) { return texture(u_poseMask, pos).g; }
-float getSkeleton(vec2 pos) { return texture(u_poseMask, pos).b; }`)}}export{S as pose};
+float getSkeleton(vec2 pos) { return texture(u_poseMask, pos).b; }`)}}var E=S;export{E as default};
 //# sourceMappingURL=pose.mjs.map

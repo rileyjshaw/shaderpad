@@ -1,5 +1,5 @@
 import ShaderPad from 'shaderpad';
-import { pose } from 'shaderpad/plugins/pose';
+import pose from 'shaderpad/plugins/pose';
 
 async function getWebcamStream(): Promise<HTMLVideoElement> {
 	const video = document.createElement('video');

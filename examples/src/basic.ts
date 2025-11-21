@@ -1,5 +1,5 @@
 import ShaderPad from 'shaderpad';
-import { save, WithSave } from 'shaderpad/plugins/save';
+import save, { WithSave } from 'shaderpad/plugins/save';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
