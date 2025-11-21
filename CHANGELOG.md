@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.20
+
+### Minor Changes
+
+-   Add draw() method
+
 ## 1.0.0-beta.19
 
 ### Minor Changes
