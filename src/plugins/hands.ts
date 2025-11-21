@@ -12,7 +12,7 @@ export interface HandsPluginOptions {
 const LANDMARK_COUNT = 21 + 1; // See https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models, plus the hand center.
 const HAND_CENTER_LANDMARKS = [0, 0, 5, 9, 13, 17]; // Wrist + MCP joints of all fingers, weighted toward the wrist.
 
-export function hands(config: { textureName: string; options?: HandsPluginOptions }) {
+function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 	const { textureName, options } = config;
 	const defaultModelPath =
 		'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
@@ -132,3 +132,5 @@ vec2 handLandmark(int handIndex, int landmarkIndex) {
 }`);
 	};
 }
+
+export default hands;

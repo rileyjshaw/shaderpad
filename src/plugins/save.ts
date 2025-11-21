@@ -6,7 +6,7 @@ declare module '../index' {
 	}
 }
 
-export function save() {
+function save() {
 	return function (shaderPad: ShaderPad, context: PluginContext) {
 		const { gl, canvas } = context;
 		const downloadLink = document.createElement('a');
@@ -48,3 +48,5 @@ export function save() {
 export type WithSave<T extends ShaderPad> = T & {
 	save(filename: string): Promise<void>;
 };
+
+export default save;

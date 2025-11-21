@@ -23,7 +23,7 @@ const LANDMARK_INDICES = {
 	INNER_LIP: [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95],
 };
 
-export function face(config: { textureName: string; options?: FacePluginOptions }) {
+function face(config: { textureName: string; options?: FacePluginOptions }) {
 	const { textureName, options } = config;
 	const defaultModelPath =
 		'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
@@ -269,3 +269,5 @@ float getEye(vec2 pos) { return texture(u_faceMask, pos).b; }
 float getMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`);
 	};
 }
+
+export default face;

@@ -12,7 +12,7 @@ export interface PosePluginOptions {
 
 const LANDMARK_COUNT = 33; // See https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model.
 
-export function pose(config: { textureName: string; options?: PosePluginOptions }) {
+function pose(config: { textureName: string; options?: PosePluginOptions }) {
 	const { textureName, options } = config;
 	const defaultModelPath =
 		'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
@@ -188,3 +188,5 @@ float getBody(vec2 pos) { return texture(u_poseMask, pos).g; }
 float getSkeleton(vec2 pos) { return texture(u_poseMask, pos).b; }`);
 	};
 }
+
+export default pose;
