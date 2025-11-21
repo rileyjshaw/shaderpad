@@ -382,6 +382,7 @@ class ShaderPad {
 		const transparent = new Uint8Array(textureInfo.width * textureInfo.height * 4);
 		this.gl.activeTexture(this.gl.TEXTURE0 + textureInfo.unitIndex);
 		this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, textureInfo.texture);
+		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
 		for (let layer = 0; layer < textureInfo.history.depth; ++layer) {
 			this.gl.texSubImage3D(
 				this.gl.TEXTURE_2D_ARRAY,
@@ -397,6 +398,7 @@ class ShaderPad {
 				transparent
 			);
 		}
+		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
 	}
 
 	initializeUniform(
@@ -595,6 +597,7 @@ class ShaderPad {
 			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
 			this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
 			if (isFramebufferHistory) {
+				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
 				this.gl.copyTexSubImage3D(
 					this.gl.TEXTURE_2D_ARRAY,
 					0,
@@ -606,6 +609,7 @@ class ShaderPad {
 					width,
 					height
 				);
+				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
 			} else {
 				this.gl.texSubImage3D(
 					this.gl.TEXTURE_2D_ARRAY,
