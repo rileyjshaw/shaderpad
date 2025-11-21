@@ -82,6 +82,7 @@ declare class ShaderPad {
     }): void;
     updateTextures(updates: Record<string, TextureSource>): void;
     private updateTexture;
+    draw(): void;
     step(time: number): void;
     play(callback?: (time: number, frame: number) => void): void;
     pause(): void;

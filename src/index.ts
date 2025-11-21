@@ -631,9 +631,13 @@ class ShaderPad {
 		}
 	}
 
-	step(time: number) {
+	draw() {
 		const gl = this.gl;
+		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.drawArrays(gl.TRIANGLES, 0, 6);
+	}
 
+	step(time: number) {
 		if (this.uniforms.has('u_time')) {
 			this.updateUniforms({ u_time: time });
 		}
@@ -641,8 +645,7 @@ class ShaderPad {
 			this.updateUniforms({ u_frame: this.frame });
 		}
 
-		gl.clear(gl.COLOR_BUFFER_BIT);
-		gl.drawArrays(gl.TRIANGLES, 0, 6);
+		this.draw();
 
 		if (this.textures.get(HISTORY_TEXTURE_KEY)) {
 			this.updateTexture(HISTORY_TEXTURE_KEY, this.canvas);

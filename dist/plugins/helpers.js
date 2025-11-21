@@ -2,5 +2,6 @@
 	int historyDepth = textureSize(tex, 0).z;
 	int z = (historyDepth + frameOffset - framesAgo) % historyDepth;
 	return float(z);
-}`;function x(){return function(e,t){t.injectGLSL(f)}}0&&(module.exports={helpers});
+}
+`;function x(){return function(e,t){t.injectGLSL(f)}}0&&(module.exports={helpers});
 //# sourceMappingURL=helpers.js.map
