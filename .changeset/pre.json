@@ -5,6 +5,7 @@
     "shaderpad": "1.0.0-alpha.16"
   },
   "changesets": [
+    "bright-knives-promise",
     "cool-melons-cheer",
     "dull-deers-guess",
     "flat-pears-greet",

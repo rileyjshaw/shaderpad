@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.23
+
+### Patch Changes
+
+-   Include u_resolution definition in helpers plugin
+
 ## 1.0.0-beta.22
 
 ### Minor Changes
