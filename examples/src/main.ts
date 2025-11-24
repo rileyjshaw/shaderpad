@@ -15,6 +15,7 @@ const demos = [
 	{ path: './face', name: 'Face Detection' },
 	{ path: './face-camo', name: 'Face Camo' },
 	{ path: './pose', name: 'Pose Detection' },
+	{ path: './body-camo', name: 'Body Camo' },
 	{ path: './hands', name: 'Hands Detection' },
 	{ path: './resize-test', name: 'Resize Test' },
 	{ path: './god-rays', name: 'God rays' },

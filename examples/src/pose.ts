@@ -61,21 +61,22 @@ out vec4 outColor;
 uniform sampler2D u_video;
 
 void main() {
-    vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
+	vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
 	vec4 videoColor = texture(u_video, uv);
 	vec3 color = videoColor.rgb;
 
 	float bodyMask = getBody(uv);
 	color = mix(color, vec3(0.0, 1.0, 0.0), bodyMask * 0.3);
-    float skeletonMask = getSkeleton(uv);
+	float skeletonMask = getSkeleton(uv);
 	color = mix(color, vec3(0.0, 0.0, 1.0), skeletonMask * 0.3);
 
 	for (int i = 0; i < u_maxPoses; ++i) {
 		if (i >= u_nPoses) break;
-        for (int j = 0; j < 33; ++j) {
-            vec2 landmark = poseLandmark(i, j);
-            color = mix(color, vec3(1.0, 0.0, 0.0), step(distance(uv, landmark), .008));
-        }
+		for (int j = 0; j < 33; ++j) {
+			if (j == 0) continue;
+			vec2 landmark = poseLandmark(i, j);
+			color = mix(color, vec3(1.0, 0.0, 0.0), step(distance(uv, landmark), .008) * bodyMask);
+		}
 	}
 
 	// Display mask in bottom corner as debug overlay.

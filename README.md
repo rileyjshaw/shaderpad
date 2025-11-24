@@ -297,13 +297,14 @@ ShaderPad supports plugins to add additional functionality. Plugins are imported
 
 The `helpers` plugin provides convenience functions and constants. See [helpers.glsl](./src/plugins/helpers.glsl) for the implementation.
 
-````typescript
+```typescript
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [helpers()],
 });
+```
 
 **Note:** The `helpers` plugin automatically injects the `u_resolution` uniform into your shader. Do not declare it yourself.
 
@@ -339,15 +340,15 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform        | Type           | Description                                    |
-| -------------- | -------------- | ---------------------------------------------- |
-| `u_maxFaces`   | int            | Maximum number of faces to detect              |
-| `u_nFaces`     | int            | Current number of detected faces               |
-| `u_faceCenter` | vec2[maxFaces] | Face center positions                          |
-| `u_leftEye`    | vec2[maxFaces] | Left eye positions                             |
-| `u_rightEye`   | vec2[maxFaces] | Right eye positions                            |
-| `u_noseTip`    | vec2[maxFaces] | Nose tip positions                             |
-| `u_faceMask`   | sampler2D      | Face mask texture (R: mouth, G: face, B: eyes) |
+| Uniform        | Type           | Description                                      |
+| -------------- | -------------- | ------------------------------------------------ |
+| `u_maxFaces`   | int            | Maximum number of faces to detect                |
+| `u_nFaces`     | int            | Current number of detected faces                 |
+| `u_leftEye`    | vec2[maxFaces] | Left eye positions                               |
+| `u_rightEye`   | vec2[maxFaces] | Right eye positions                              |
+| `u_noseTip`    | vec2[maxFaces] | Nose tip positions                               |
+| `u_faceMask`   | sampler2D      | Face mask texture (R: mouth, G: face, B: eyes)   |
+| `u_faceCenter` | vec2[maxFaces] | Center positions of the face mask bounding boxes |
 
 **Helper functions:** `getFace(vec2 pos)`, `getEye(vec2 pos)`, `getMouth(vec2 pos)`
 
@@ -368,12 +369,13 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform           | Type                | Description                              |
-| ----------------- | ------------------- | ---------------------------------------- |
-| `u_maxPoses`      | int                 | Maximum number of poses to track         |
-| `u_nPoses`        | int                 | Current number of detected poses         |
-| `u_poseLandmarks` | vec2[maxPoses * 33] | Landmark positions in UV space           |
-| `u_poseMask`      | sampler2D           | Pose mask texture (G: body, B: skeleton) |
+| Uniform           | Type                | Description                                      |
+| ----------------- | ------------------- | ------------------------------------------------ |
+| `u_maxPoses`      | int                 | Maximum number of poses to track                 |
+| `u_nPoses`        | int                 | Current number of detected poses                 |
+| `u_poseLandmarks` | vec2[maxPoses * 33] | Landmark positions in UV space                   |
+| `u_poseMask`      | sampler2D           | Pose mask texture (G: body, B: skeleton)         |
+| `u_poseCenter`    | vec2[maxPoses]      | Center positions of the pose mask bounding boxes |
 
 **Helper functions:** `poseLandmark(int poseIndex, int landmarkIndex)`, `getBody(vec2 pos)`, `getSkeleton(vec2 pos)`
 

@@ -31,7 +31,9 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		poseMaskCanvas.width = maskWidth;
 		poseMaskCanvas.height = maskHeight;
 		const poseMaskCtx = poseMaskCanvas.getContext('2d')!;
-		poseMaskCtx.globalCompositeOperation = 'lighten'; // Keep the highest value of each channel.
+		const segmentationCanvas = document.createElement('canvas');
+		const segmentationCtx = segmentationCanvas.getContext('2d')!;
+		poseMaskCtx.globalCompositeOperation = segmentationCtx.globalCompositeOperation = 'lighten'; // Keep the highest value of each channel.
 		const poseConnections: { start: number; end: number }[] = [];
 
 		async function initializePoseLandmarker() {
@@ -50,7 +52,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					minPoseDetectionConfidence: options?.minPoseDetectionConfidence ?? 0.5,
 					minPosePresenceConfidence: options?.minPosePresenceConfidence ?? 0.5,
 					minTrackingConfidence: options?.minTrackingConfidence ?? 0.5,
-					outputSegmentationMasks: options?.outputSegmentationMasks ?? false,
+					outputSegmentationMasks: options?.outputSegmentationMasks ?? true,
 				});
 			} catch (error) {
 				console.error('[Pose Plugin] Failed to initialize Pose Landmarker:', error);
@@ -58,7 +60,26 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			}
 		}
 
-		async function updateMaskTexture(poses: NormalizedLandmark[][], segmentationMasks?: ImageData[]) {
+		function calculatePoseCenter(landmarks: NormalizedLandmark[]): [number, number] {
+			let minX = Infinity,
+				maxX = -Infinity,
+				minY = Infinity,
+				maxY = -Infinity;
+
+			// Calculate bounding box center from all landmarks.
+			for (const landmark of landmarks) {
+				minX = Math.min(minX, landmark.x);
+				maxX = Math.max(maxX, landmark.x);
+				minY = Math.min(minY, landmark.y);
+				maxY = Math.max(maxY, landmark.y);
+			}
+
+			const centerX = (minX + maxX) / 2;
+			const centerY = (minY + maxY) / 2;
+			return [centerX, centerY];
+		}
+
+		async function updateMaskTexture(poses: NormalizedLandmark[][], segmentationMasks?: any[]) {
 			if (!poseLandmarker) {
 				console.warn('[Pose Plugin] Cannot update mask: poseLandmarker missing');
 				return;
@@ -69,18 +90,35 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 
 				// Draw the segmentation masks.
 				if (segmentationMasks && segmentationMasks.length > 0) {
-					// Combine all segmentation masks (for multiple poses).
 					segmentationMasks.forEach(mask => {
+						if (!mask) return;
+
+						const { width, height } = mask;
+						const maskData = mask.getAsUint8Array();
+						const pixelCount = width * height;
+						const outputData = new Uint8ClampedArray(pixelCount * 4);
+
+						for (let i = 0; i < pixelCount; i++) {
+							outputData[i * 4 + 1] = maskData[i]; // G (body mask)
+							outputData[i * 4 + 3] = 255; // A (required for compositing)
+						}
+
+						const rgbaMask = new ImageData(outputData, width, height);
+
 						// Resize mask to canvas size if needed.
-						if (mask.width !== poseMaskCanvas.width || mask.height !== poseMaskCanvas.height) {
-							const tempCanvas = document.createElement('canvas');
-							tempCanvas.width = mask.width;
-							tempCanvas.height = mask.height;
-							const tempCtx = tempCanvas.getContext('2d')!;
-							tempCtx.putImageData(mask, 0, 0);
-							poseMaskCtx.drawImage(tempCanvas, 0, 0, poseMaskCanvas.width, poseMaskCanvas.height);
+						if (width === poseMaskCanvas.width && height === poseMaskCanvas.height) {
+							poseMaskCtx.putImageData(rgbaMask, 0, 0);
 						} else {
-							poseMaskCtx.putImageData(mask, 0, 0);
+							if (segmentationCanvas.width !== width) segmentationCanvas.width = width;
+							if (segmentationCanvas.height !== height) segmentationCanvas.height = height;
+							segmentationCtx.putImageData(rgbaMask, 0, 0);
+							poseMaskCtx.drawImage(
+								segmentationCanvas,
+								0,
+								0,
+								poseMaskCanvas.width,
+								poseMaskCanvas.height
+							);
 						}
 					});
 				}
@@ -125,6 +163,14 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				updates.u_poseLandmarks = result.landmarks.flatMap((landmarks: NormalizedLandmark[]) =>
 					landmarks.map(landmark => [landmark.x, 1.0 - landmark.y])
 				);
+
+				const poseCenters: [number, number][] = [];
+				for (const landmarks of result.landmarks) {
+					const poseCenter = calculatePoseCenter(landmarks);
+					// Invert Y-axis to match WebGL coordinate system.
+					poseCenters.push([poseCenter[0], 1.0 - poseCenter[1]]);
+				}
+				updates.u_poseCenter = poseCenters;
 			}
 			shaderPad.updateUniforms(updates);
 		}
@@ -138,6 +184,10 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			]);
 			shaderPad.initializeUniform('u_poseLandmarks', 'float', defaultPoseData, {
 				arrayLength: maxPoses * LANDMARK_COUNT,
+			});
+			const defaultPoseCenterData: [number, number][] = Array.from({ length: maxPoses }, () => [0.5, 0.5]);
+			shaderPad.initializeUniform('u_poseCenter', 'float', defaultPoseCenterData, {
+				arrayLength: maxPoses,
 			});
 
 			await initializePoseLandmarker();
@@ -175,12 +225,13 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			textureSources.clear();
 			poseMaskCanvas.remove();
 		});
-
+		// TODO: getBody and getSkeleton shouldn't rely on alpha. Do they? Seems so in the example...
 		injectGLSL(`
 uniform int u_maxPoses;
 uniform int u_nPoses;
 uniform vec2 u_poseLandmarks[${maxPoses * LANDMARK_COUNT}];
 uniform sampler2D u_poseMask;
+uniform vec2 u_poseCenter[${maxPoses}];
 vec2 poseLandmark(int poseIndex, int landmarkIndex) {
 	return u_poseLandmarks[poseIndex * ${LANDMARK_COUNT} + landmarkIndex];
 }
