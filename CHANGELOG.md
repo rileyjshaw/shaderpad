@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.22
+
+### Minor Changes
+
+-   Add fitContain and fitCover helper functions
+
 ## 1.0.0-beta.21
 
 ### Minor Changes
