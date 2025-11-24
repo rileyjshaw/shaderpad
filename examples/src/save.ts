@@ -1,4 +1,5 @@
 import ShaderPad from 'shaderpad';
+import helpers from 'shaderpad/plugins/helpers';
 import save, { WithSave } from 'shaderpad/plugins/save';
 
 async function getWebcamStream(): Promise<HTMLVideoElement> {
@@ -31,12 +32,12 @@ out vec4 outColor;
 uniform sampler2D u_webcam;
 
 void main() {
-    vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
+	vec2 uv = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
 	outColor = texture(u_webcam, uv);
 }`;
 
 	video = await getWebcamStream();
-	shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
+	shader = new ShaderPad(fragmentShaderSrc, { plugins: [helpers(), save()] }) as WithSave<ShaderPad>;
 	shader.canvas.width = video.videoWidth;
 	shader.canvas.height = video.videoHeight;
 
