@@ -1,3 +1,5 @@
+uniform vec2 u_resolution;
+
 // Apply aspect ratio correction (object-fit: contain)
 vec2 fitContain(vec2 uv, vec2 textureSize) {
 	vec2 scale = u_resolution.xy * textureSize.yx / (u_resolution.yx * textureSize.xy);

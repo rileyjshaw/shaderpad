@@ -297,14 +297,15 @@ ShaderPad supports plugins to add additional functionality. Plugins are imported
 
 The `helpers` plugin provides convenience functions and constants. See [helpers.glsl](./src/plugins/helpers.glsl) for the implementation.
 
-```typescript
+````typescript
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [helpers()],
 });
-```
+
+**Note:** The `helpers` plugin automatically injects the `u_resolution` uniform into your shader. Do not declare it yourself.
 
 #### save
 
