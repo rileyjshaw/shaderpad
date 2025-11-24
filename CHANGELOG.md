@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.24
+
+### Patch Changes
+
+-   Fix fitCover/fitContain function name swap
+
 ## 1.0.0-beta.23
 
 ### Patch Changes
