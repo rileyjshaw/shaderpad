@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.25
+
+### Minor Changes
+
+-   Improve pose segmentation
+
 ## 1.0.0-beta.24
 
 ### Patch Changes
