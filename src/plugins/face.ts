@@ -70,7 +70,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			}
 		}
 
-		function calculateFaceCenter(landmarks: NormalizedLandmark[]): [number, number] {
+		function calculateBoundingBoxCenter(landmarks: NormalizedLandmark[]): [number, number] {
 			let minX = Infinity,
 				maxX = -Infinity,
 				minY = Infinity,
@@ -183,17 +183,21 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			const leftEyes: [number, number][] = [];
 			const rightEyes: [number, number][] = [];
 			const noseTips: [number, number][] = [];
+			const mouths: [number, number][] = [];
 			for (const landmarks of result.faceLandmarks) {
-				const faceCenter = calculateFaceCenter(landmarks);
+				const faceCenter = calculateBoundingBoxCenter(landmarks);
 				const leftEye = landmarks[LANDMARK_INDICES.LEFT_EYE_CENTER];
 				const rightEye = landmarks[LANDMARK_INDICES.RIGHT_EYE_CENTER];
 				const noseTip = landmarks[LANDMARK_INDICES.NOSE_TIP];
+				const innerLipLandmarks = LANDMARK_INDICES.INNER_LIP.map((idx: number) => landmarks[idx]);
+				const mouthCenter = calculateBoundingBoxCenter(innerLipLandmarks);
 
 				// Invert Y-axis to match WebGL coordinate system.
 				faceCenters.push([faceCenter[0], 1.0 - faceCenter[1]]);
 				leftEyes.push([leftEye.x, 1.0 - leftEye.y]);
 				rightEyes.push([rightEye.x, 1.0 - rightEye.y]);
 				noseTips.push([noseTip.x, 1.0 - noseTip.y]);
+				mouths.push([mouthCenter[0], 1.0 - mouthCenter[1]]);
 			}
 
 			updateMaskTexture(result.faceLandmarks).catch(error => {
@@ -206,6 +210,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				if (uniforms.has('u_leftEye')) updates.u_leftEye = leftEyes;
 				if (uniforms.has('u_rightEye')) updates.u_rightEye = rightEyes;
 				if (uniforms.has('u_noseTip')) updates.u_noseTip = noseTips;
+				if (uniforms.has('u_mouth')) updates.u_mouth = mouths;
 			}
 			shaderPad.updateUniforms(updates);
 		}
@@ -219,6 +224,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			shaderPad.initializeUniform('u_leftEye', 'float', defaultFaceData, { arrayLength: maxFaces });
 			shaderPad.initializeUniform('u_rightEye', 'float', defaultFaceData, { arrayLength: maxFaces });
 			shaderPad.initializeUniform('u_noseTip', 'float', defaultFaceData, { arrayLength: maxFaces });
+			shaderPad.initializeUniform('u_mouth', 'float', defaultFaceData, { arrayLength: maxFaces });
 
 			await initializeFaceLandmarker();
 		});
@@ -274,6 +280,7 @@ uniform vec2 u_faceCenter[${maxFaces}];
 uniform vec2 u_leftEye[${maxFaces}];
 uniform vec2 u_rightEye[${maxFaces}];
 uniform vec2 u_noseTip[${maxFaces}];
+uniform vec2 u_mouth[${maxFaces}];
 uniform sampler2D u_faceMask;
 float getFace(vec2 pos) { return texture(u_faceMask, pos).g; }
 float getEye(vec2 pos) { return texture(u_faceMask, pos).b; }

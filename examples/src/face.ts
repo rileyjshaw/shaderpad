@@ -88,6 +88,11 @@ void main() {
 		float rightEyeCenterDot = 1.0 - smoothstep(0.0, 0.01, rightEyeCenterDist);
 		color = mix(color, vec3(0.0, 0.0, 1.0), leftEyeCenterDot);
 		color = mix(color, vec3(1.0, 0.0, 0.0), rightEyeCenterDot);
+
+		// Draw mouth center dot.
+		float mouthCenterDist = distance(v_uv, u_mouth[i]);
+		float mouthCenterDot = 1.0 - smoothstep(0.0, 0.01, mouthCenterDist);
+		color = mix(color, vec3(1.0, 1.0, 0.0), mouthCenterDot);
 	}
 
 	// Display mask in bottom-right corner as debug overlay.

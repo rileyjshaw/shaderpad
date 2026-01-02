@@ -347,6 +347,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 | `u_leftEye`    | vec2[maxFaces] | Left eye positions                               |
 | `u_rightEye`   | vec2[maxFaces] | Right eye positions                              |
 | `u_noseTip`    | vec2[maxFaces] | Nose tip positions                               |
+| `u_mouth`      | vec2[maxFaces] | Mouth center positions                           |
 | `u_faceMask`   | sampler2D      | Face mask texture (R: mouth, G: face, B: eyes)   |
 | `u_faceCenter` | vec2[maxFaces] | Center positions of the face mask bounding boxes |
 
