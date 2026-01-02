@@ -1,6 +1,6 @@
 import ShaderPad from 'shaderpad';
 
-async function getWebcamStream(): Promise<HTMLVideoElement> {
+async function getWebcamStream(container: HTMLDivElement): Promise<HTMLVideoElement> {
 	const video = document.createElement('video');
 	video.autoplay = video.playsInline = true;
 
@@ -8,7 +8,7 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 		const stream = await navigator.mediaDevices.getUserMedia({ video: true });
 		video.srcObject = stream;
 		await new Promise(resolve => (video.onloadedmetadata = resolve));
-		document.body.appendChild(video);
+		container.appendChild(video);
 	} catch (error) {
 		console.error('Error accessing webcam:', error);
 		throw error;
@@ -20,6 +20,7 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 let shader: ShaderPad | null = null;
 let video: HTMLVideoElement | null = null;
 let outputCanvas: HTMLCanvasElement | null = null;
+let container: HTMLDivElement | null = null;
 
 export async function init() {
 	const fragmentShaderSrc = `#version 300 es
@@ -43,12 +44,16 @@ void main() {
 		pictureFrame.onerror = reject;
 	});
 
-	video = await getWebcamStream();
+	container = document.createElement('div');
+	container.className = 'canvas-container';
+	document.body.appendChild(container);
+
+	video = await getWebcamStream(container);
 
 	outputCanvas = document.createElement('canvas');
 	outputCanvas.width = video.videoWidth;
 	outputCanvas.height = video.videoHeight;
-	document.body.appendChild(outputCanvas);
+	container.appendChild(outputCanvas);
 
 	shader = new ShaderPad(fragmentShaderSrc, { canvas: outputCanvas });
 	shader.initializeTexture('u_pictureFrame', pictureFrame);
@@ -71,8 +76,9 @@ export function destroy() {
 		video = null;
 	}
 
-	if (outputCanvas) {
-		outputCanvas.remove();
+	if (container) {
+		container.remove();
+		container = null;
 		outputCanvas = null;
 	}
 }

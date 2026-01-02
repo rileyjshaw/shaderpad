@@ -6,6 +6,25 @@ body {
 	font-family: system-ui, sans-serif;
 }
 
+.canvas-container {
+	width: 100dvw;
+	height: 100dvh;
+	display: flex;
+	justify-content: center;
+	align-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.canvas-container canvas,
+.canvas-container video {
+	min-width: 0;
+	min-height: 0;
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+}
+
 canvas {
 	display: block;
 }

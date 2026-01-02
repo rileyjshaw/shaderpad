@@ -1,7 +1,7 @@
 import ShaderPad from 'shaderpad';
 import pose from 'shaderpad/plugins/pose';
 
-async function getWebcamStream(): Promise<HTMLVideoElement> {
+async function getWebcamStream(container: HTMLDivElement): Promise<HTMLVideoElement> {
 	const video = document.createElement('video');
 	video.autoplay = video.playsInline = true;
 
@@ -9,7 +9,7 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 		const stream = await navigator.mediaDevices.getUserMedia({ video: true });
 		video.srcObject = stream;
 		await new Promise(resolve => (video.onloadedmetadata = resolve));
-		document.body.appendChild(video);
+		container.appendChild(video);
 	} catch (error) {
 		console.error('Error accessing webcam:', error);
 		throw error;
@@ -18,7 +18,7 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 	return video;
 }
 
-function loadVideoFile(file: File): Promise<HTMLVideoElement> {
+function loadVideoFile(file: File, container: HTMLDivElement): Promise<HTMLVideoElement> {
 	return new Promise((resolve, reject) => {
 		if (!file.type.startsWith('video/')) {
 			reject(new Error('File must be a video'));
@@ -32,7 +32,7 @@ function loadVideoFile(file: File): Promise<HTMLVideoElement> {
 		video.muted = true;
 
 		video.onloadedmetadata = () => {
-			document.body.appendChild(video);
+			container.appendChild(video);
 			resolve(video);
 		};
 
@@ -47,6 +47,7 @@ function loadVideoFile(file: File): Promise<HTMLVideoElement> {
 let shader: ShaderPad | null = null;
 let video: HTMLVideoElement | null = null;
 let outputCanvas: HTMLCanvasElement | null = null;
+let container: HTMLDivElement | null = null;
 let dropZone: HTMLElement | null = null;
 let handleDragOver: ((e: DragEvent) => void) | null = null;
 let handleDragLeave: ((e: DragEvent) => void) | null = null;
@@ -97,15 +98,20 @@ void main() {
 		shader = null;
 	}
 
-	if (outputCanvas) {
-		outputCanvas.remove();
+	if (container) {
+		container.remove();
+		container = null;
 		outputCanvas = null;
 	}
+
+	container = document.createElement('div');
+	container.className = 'canvas-container';
+	document.body.appendChild(container);
 
 	outputCanvas = document.createElement('canvas');
 	outputCanvas.width = videoElement.videoWidth;
 	outputCanvas.height = videoElement.videoHeight;
-	document.body.appendChild(outputCanvas);
+	container.appendChild(outputCanvas);
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
@@ -124,9 +130,14 @@ void main() {
 }
 
 export async function init() {
+	// Create container first
+	container = document.createElement('div');
+	container.className = 'canvas-container';
+	document.body.appendChild(container);
+
 	// Try to get webcam first, but don't fail if it's not available
 	try {
-		video = await getWebcamStream();
+		video = await getWebcamStream(container);
 		await setupShader(video);
 	} catch (error) {
 		console.warn('Webcam not available, waiting for video file drop:', error);
@@ -195,7 +206,7 @@ export async function init() {
 					video = null;
 				}
 
-				video = await loadVideoFile(file);
+				video = await loadVideoFile(file, container);
 				await setupShader(video);
 			} catch (error) {
 				console.error('Error loading video file:', error);
@@ -226,8 +237,9 @@ export function destroy() {
 		video = null;
 	}
 
-	if (outputCanvas) {
-		outputCanvas.remove();
+	if (container) {
+		container.remove();
+		container = null;
 		outputCanvas = null;
 	}
 

@@ -1,15 +1,17 @@
 import ShaderPad from 'shaderpad';
 import face from 'shaderpad/plugins/face';
 
-async function getWebcamStream(): Promise<HTMLVideoElement> {
+async function getWebcamStream(facingMode: string, container: HTMLDivElement): Promise<HTMLVideoElement> {
 	const video = document.createElement('video');
 	video.autoplay = video.playsInline = true;
 
 	try {
-		const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+		const stream = await navigator.mediaDevices.getUserMedia({
+			video: { facingMode },
+		});
 		video.srcObject = stream;
 		await new Promise(resolve => (video.onloadedmetadata = resolve));
-		document.body.appendChild(video);
+		container.appendChild(video);
 	} catch (error) {
 		console.error('Error accessing webcam:', error);
 		throw error;
@@ -21,6 +23,8 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 let shader: ShaderPad | null = null;
 let video: HTMLVideoElement | null = null;
 let outputCanvas: HTMLCanvasElement | null = null;
+let container: HTMLDivElement | null = null;
+let currentFacingMode = 'user';
 
 export async function init() {
 	const fragmentShaderSrc = `#version 300 es
@@ -101,12 +105,16 @@ void main() {
 	outColor = vec4(color, 1.0);
 }`;
 
-	video = await getWebcamStream();
+	container = document.createElement('div');
+	container.className = 'canvas-container';
+	document.body.appendChild(container);
+
+	video = await getWebcamStream(currentFacingMode, container);
 
 	outputCanvas = document.createElement('canvas');
 	outputCanvas.width = video.videoWidth;
 	outputCanvas.height = video.videoHeight;
-	document.body.appendChild(outputCanvas);
+	container.appendChild(outputCanvas);
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
@@ -122,6 +130,75 @@ void main() {
 	shader.play(() => {
 		shader!.updateTextures({ u_webcam: video! });
 	});
+
+	// Double-tap to switch camera
+	let lastTapTime = 0;
+	let tapCount = 0;
+	let touchStartTime = 0;
+
+	const handleTouchStart = (e: TouchEvent) => {
+		if (e.touches.length === 1) {
+			const now = Date.now();
+			touchStartTime = now;
+		}
+	};
+
+	const handleTouchEnd = (e: TouchEvent) => {
+		// Only handle if it's a single touch that ended quickly (tap, not drag)
+		if (e.changedTouches.length === 1 && e.touches.length === 0) {
+			const now = Date.now();
+			const touchDuration = now - touchStartTime;
+
+			// Only count as tap if it was quick (< 300ms)
+			if (touchDuration < 300) {
+				// Reset if too much time passed since last tap
+				if (now - lastTapTime > 300) {
+					tapCount = 1;
+				} else {
+					tapCount++;
+				}
+
+				lastTapTime = now;
+
+				if (tapCount === 2) {
+					tapCount = 0;
+					switchCamera();
+				}
+			}
+		}
+	};
+
+	document.body.addEventListener('touchstart', handleTouchStart, { passive: true });
+	document.body.addEventListener('touchend', handleTouchEnd, { passive: true });
+}
+
+async function switchCamera() {
+	if (!video || !shader) return;
+
+	// Stop old stream
+	if (video.srcObject) {
+		(video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+	}
+
+	const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+	try {
+		const stream = await navigator.mediaDevices.getUserMedia({
+			video: { facingMode: newFacingMode },
+		});
+		video.srcObject = stream;
+		await new Promise(resolve => {
+			if (video) {
+				video.onloadedmetadata = resolve;
+			}
+		});
+		if (video.parentElement !== container) {
+			container!.appendChild(video);
+		}
+		shader.updateTextures({ u_webcam: video });
+		currentFacingMode = newFacingMode;
+	} catch (error) {
+		console.error('Failed to switch camera:', error);
+	}
 }
 
 export function destroy() {
@@ -131,13 +208,17 @@ export function destroy() {
 	}
 
 	if (video) {
+		if (video.srcObject) {
+			(video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+		}
 		video.srcObject = null;
 		video.remove();
 		video = null;
 	}
 
-	if (outputCanvas) {
-		outputCanvas.remove();
+	if (container) {
+		container.remove();
+		container = null;
 		outputCanvas = null;
 	}
 }
