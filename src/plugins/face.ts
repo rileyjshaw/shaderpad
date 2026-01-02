@@ -224,26 +224,37 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		});
 
 		shaderPad.registerHook('updateTextures', (updates: Record<string, TextureSource>) => {
-			Object.entries(updates).forEach(([name, source]) => {
-				if (name !== textureName) return;
-				textureSources.set(name, source);
-				if (!faceLandmarker) return;
-				try {
-					if (source instanceof HTMLVideoElement) {
-						if (source.currentTime !== lastVideoTime) {
-							lastVideoTime = source.currentTime;
-							const timestamp = performance.now();
-							const result = faceLandmarker.detectForVideo(source, timestamp);
-							processFaceResults(result);
-						}
-					} else if (source instanceof HTMLImageElement) {
-						const result = faceLandmarker.detect(source);
+			const source = updates[textureName];
+			if (!source) return;
+
+			const previousSource = textureSources.get(textureName);
+			if (previousSource !== source) {
+				lastVideoTime = -1;
+			}
+
+			textureSources.set(textureName, source);
+			if (!faceLandmarker) return;
+			try {
+				if (source instanceof HTMLVideoElement) {
+					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) {
+						return;
+					}
+					if (source.currentTime !== lastVideoTime) {
+						lastVideoTime = source.currentTime;
+						const timestamp = performance.now();
+						const result = faceLandmarker.detectForVideo(source, timestamp);
 						processFaceResults(result);
 					}
-				} catch (error) {
-					console.warn('Face detection error:', error);
+				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
+					if (source.width === 0 || source.height === 0) {
+						return;
+					}
+					const result = faceLandmarker.detect(source);
+					processFaceResults(result);
 				}
-			});
+			} catch (error) {
+				console.warn('Face detection error:', error);
+			}
 		});
 
 		shaderPad.registerHook('destroy', () => {

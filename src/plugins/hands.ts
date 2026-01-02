@@ -92,26 +92,37 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		});
 
 		shaderPad.registerHook('updateTextures', (updates: Record<string, TextureSource>) => {
-			Object.entries(updates).forEach(([name, source]) => {
-				if (name !== textureName) return;
-				textureSources.set(name, source);
-				if (!handLandmarker) return;
-				try {
-					if (source instanceof HTMLVideoElement) {
-						if (source.currentTime !== lastVideoTime) {
-							lastVideoTime = source.currentTime;
-							const timestamp = performance.now();
-							const result = handLandmarker.detectForVideo(source, timestamp);
-							processHandResults(result);
-						}
-					} else if (source instanceof HTMLImageElement) {
-						const result = handLandmarker.detect(source);
+			const source = updates[textureName];
+			if (!source) return;
+
+			const previousSource = textureSources.get(textureName);
+			if (previousSource !== source) {
+				lastVideoTime = -1;
+			}
+
+			textureSources.set(textureName, source);
+			if (!handLandmarker) return;
+			try {
+				if (source instanceof HTMLVideoElement) {
+					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) {
+						return;
+					}
+					if (source.currentTime !== lastVideoTime) {
+						lastVideoTime = source.currentTime;
+						const timestamp = performance.now();
+						const result = handLandmarker.detectForVideo(source, timestamp);
 						processHandResults(result);
 					}
-				} catch (error) {
-					console.warn('Hand detection error:', error);
+				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
+					if (source.width === 0 || source.height === 0) {
+						return;
+					}
+					const result = handLandmarker.detect(source);
+					processHandResults(result);
 				}
-			});
+			} catch (error) {
+				console.warn('Hand detection error:', error);
+			}
 		});
 
 		shaderPad.registerHook('destroy', () => {
