@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
--   Add u_mouths to face plugin
+-   Add u_mouth to face plugin
 
 ## 1.0.0-beta.26
 

@@ -44,7 +44,7 @@ void main() {
 	saveButton = document.createElement('button');
 	saveButton.textContent = 'Save';
 	saveButton.addEventListener('click', () => {
-		shader!.save('selfie');
+		shader!.save('selfie', 'Took this selfie with ShaderPad.');
 	});
 	saveButton.style.position = 'fixed';
 	saveButton.style.bottom = '32px';

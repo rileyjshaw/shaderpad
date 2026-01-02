@@ -2,4 +2,4 @@
 'shaderpad': minor
 ---
 
-Add u_mouths to face plugin
+Add u_mouth to face plugin
