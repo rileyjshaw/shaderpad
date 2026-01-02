@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.28
+
+### Minor Changes
+
+-   Add share text as optional second argument to save()
+
 ## 1.0.0-beta.27
 
 ### Minor Changes
