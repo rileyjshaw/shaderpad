@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.27
+
+### Minor Changes
+
+-   Add u_mouths to face plugin
+
 ## 1.0.0-beta.26
 
 ### Minor Changes
