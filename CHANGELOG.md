@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.26
+
+### Minor Changes
+
+-   Improve MediaPipe media handling
+
 ## 1.0.0-beta.25
 
 ### Minor Changes
