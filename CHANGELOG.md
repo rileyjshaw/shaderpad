@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.29
+
+### Minor Changes
+
+-   Expose individual face landmarks in face plugin
+
 ## 1.0.0-beta.28
 
 ### Minor Changes
