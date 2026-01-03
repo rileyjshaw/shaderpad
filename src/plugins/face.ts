@@ -11,6 +11,7 @@ export interface FacePluginOptions {
 	outputFacialTransformationMatrixes?: boolean;
 }
 
+const LANDMARK_COUNT = 478;
 const LANDMARK_INDICES = {
 	LEFT_EYEBROW: [336, 296, 334, 293, 300, 276, 283, 282, 295, 285],
 	LEFT_EYE: [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382],
@@ -179,33 +180,33 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		function processFaceResults(result: any) {
 			if (!result.faceLandmarks) return;
 
+			const faceLandmarks: [number, number][] = [];
 			const faceCenters: [number, number][] = [];
 			const leftEyes: [number, number][] = [];
 			const rightEyes: [number, number][] = [];
 			const noseTips: [number, number][] = [];
 			const mouths: [number, number][] = [];
 			for (const landmarks of result.faceLandmarks) {
-				const faceCenter = calculateBoundingBoxCenter(landmarks);
-				const leftEye = landmarks[LANDMARK_INDICES.LEFT_EYE_CENTER];
-				const rightEye = landmarks[LANDMARK_INDICES.RIGHT_EYE_CENTER];
-				const noseTip = landmarks[LANDMARK_INDICES.NOSE_TIP];
-				const innerLipLandmarks = LANDMARK_INDICES.INNER_LIP.map((idx: number) => landmarks[idx]);
-				const mouthCenter = calculateBoundingBoxCenter(innerLipLandmarks);
-
 				// Invert Y-axis to match WebGL coordinate system.
-				faceCenters.push([faceCenter[0], 1.0 - faceCenter[1]]);
-				leftEyes.push([leftEye.x, 1.0 - leftEye.y]);
-				rightEyes.push([rightEye.x, 1.0 - rightEye.y]);
-				noseTips.push([noseTip.x, 1.0 - noseTip.y]);
-				mouths.push([mouthCenter[0], 1.0 - mouthCenter[1]]);
+				const flippedLandmarks = landmarks.map((landmark: NormalizedLandmark) => [landmark.x, 1 - landmark.y]);
+				faceLandmarks.push(flippedLandmarks);
+				faceCenters.push(calculateBoundingBoxCenter(flippedLandmarks));
+				leftEyes.push(flippedLandmarks[LANDMARK_INDICES.LEFT_EYE_CENTER]);
+				rightEyes.push(flippedLandmarks[LANDMARK_INDICES.RIGHT_EYE_CENTER]);
+				noseTips.push(flippedLandmarks[LANDMARK_INDICES.NOSE_TIP]);
+				mouths.push(
+					calculateBoundingBoxCenter(LANDMARK_INDICES.INNER_LIP.map((idx: number) => flippedLandmarks[idx]))
+				);
 			}
 
 			updateMaskTexture(result.faceLandmarks).catch(error => {
 				console.warn('Mask texture update error:', error);
 			});
 
-			const updates: Parameters<typeof shaderPad.updateUniforms>[0] = { u_nFaces: result.faceLandmarks.length };
-			if (result.faceLandmarks.length) {
+			const nFaces = result.faceLandmarks.length;
+			const updates: Parameters<typeof shaderPad.updateUniforms>[0] = { u_nFaces: nFaces };
+			if (nFaces) {
+				if (uniforms.has('u_faceLandmarks')) updates.u_faceLandmarks = faceLandmarks;
 				if (uniforms.has('u_faceCenter')) updates.u_faceCenter = faceCenters;
 				if (uniforms.has('u_leftEye')) updates.u_leftEye = leftEyes;
 				if (uniforms.has('u_rightEye')) updates.u_rightEye = rightEyes;
@@ -219,7 +220,13 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			shaderPad.initializeTexture('u_faceMask', faceMaskCanvas);
 			shaderPad.initializeUniform('u_maxFaces', 'int', maxFaces);
 			shaderPad.initializeUniform('u_nFaces', 'int', 0);
+			const defaultFaceLandmarks: [number, number][] = Array.from({ length: maxFaces * LANDMARK_COUNT }, () => [
+				0.5, 0.5,
+			]);
 			const defaultFaceData: [number, number][] = Array.from({ length: maxFaces }, () => [0.5, 0.5]);
+			shaderPad.initializeUniform('u_faceLandmarks', 'float', defaultFaceLandmarks, {
+				arrayLength: maxFaces * LANDMARK_COUNT,
+			});
 			shaderPad.initializeUniform('u_faceCenter', 'float', defaultFaceData, { arrayLength: maxFaces });
 			shaderPad.initializeUniform('u_leftEye', 'float', defaultFaceData, { arrayLength: maxFaces });
 			shaderPad.initializeUniform('u_rightEye', 'float', defaultFaceData, { arrayLength: maxFaces });
@@ -276,12 +283,16 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		injectGLSL(`
 uniform int u_maxFaces;
 uniform int u_nFaces;
+uniform vec2 u_faceLandmarks[${maxFaces * LANDMARK_COUNT}];
 uniform vec2 u_faceCenter[${maxFaces}];
 uniform vec2 u_leftEye[${maxFaces}];
 uniform vec2 u_rightEye[${maxFaces}];
 uniform vec2 u_noseTip[${maxFaces}];
 uniform vec2 u_mouth[${maxFaces}];
 uniform sampler2D u_faceMask;
+vec2 faceLandmark(int faceIndex, int landmarkIndex) {
+	return u_faceLandmarks[faceIndex * ${LANDMARK_COUNT} + landmarkIndex];
+}
 float getFace(vec2 pos) { return texture(u_faceMask, pos).g; }
 float getEye(vec2 pos) { return texture(u_faceMask, pos).b; }
 float getMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`);

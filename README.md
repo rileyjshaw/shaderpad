@@ -340,18 +340,21 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform        | Type           | Description                                      |
-| -------------- | -------------- | ------------------------------------------------ |
-| `u_maxFaces`   | int            | Maximum number of faces to detect                |
-| `u_nFaces`     | int            | Current number of detected faces                 |
-| `u_leftEye`    | vec2[maxFaces] | Left eye positions                               |
-| `u_rightEye`   | vec2[maxFaces] | Right eye positions                              |
-| `u_noseTip`    | vec2[maxFaces] | Nose tip positions                               |
-| `u_mouth`      | vec2[maxFaces] | Mouth center positions                           |
-| `u_faceMask`   | sampler2D      | Face mask texture (R: mouth, G: face, B: eyes)   |
-| `u_faceCenter` | vec2[maxFaces] | Center positions of the face mask bounding boxes |
+| Uniform           | Type                 | Description                                      |
+| ----------------- | -------------------- | ------------------------------------------------ |
+| `u_maxFaces`      | int                  | Maximum number of faces to detect                |
+| `u_nFaces`        | int                  | Current number of detected faces                 |
+| `u_faceLandmarks` | vec2[maxFaces * 478] | Landmark positions in UV space                   |
+| `u_leftEye`       | vec2[maxFaces]       | Left eye positions                               |
+| `u_rightEye`      | vec2[maxFaces]       | Right eye positions                              |
+| `u_noseTip`       | vec2[maxFaces]       | Nose tip positions                               |
+| `u_mouth`         | vec2[maxFaces]       | Mouth center positions                           |
+| `u_faceMask`      | sampler2D            | Face mask texture (R: mouth, G: face, B: eyes)   |
+| `u_faceCenter`    | vec2[maxFaces]       | Center positions of the face mask bounding boxes |
 
-**Helper functions:** `getFace(vec2 pos)`, `getEye(vec2 pos)`, `getMouth(vec2 pos)`
+**Helper functions:** `faceLandmark(int faceIndex, int landmarkIndex)`, `getFace(vec2 pos)`, `getEye(vec2 pos)`, `getMouth(vec2 pos)`
+
+Use `faceLandmark(int faceIndex, int landmarkIndex)` in GLSL to retrieve a specific point. [Landmark indices are documented here.](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker#face_landmarker_model)
 
 **Note:** The face plugin requires `@mediapipe/tasks-vision` as a peer dependency.
 
