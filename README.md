@@ -178,7 +178,7 @@ shader.updateUniforms(
 
 #### `initializeTexture(name, source, options?)`
 
-Initialize a texture from an image, video, or canvas element.
+Initialize a texture from an image, video, canvas element, or typed array.
 
 ```typescript
 // Initialize a texture from an image.
@@ -188,15 +188,49 @@ img.onload = () => {
 	shader.initializeTexture('u_texture', img);
 };
 
+// Initialize a texture from a typed array (Float32Array, Uint8Array, etc.).
+const data = new Float32Array(width * height * 4); // RGBA data
+shader.initializeTexture(
+	'u_custom',
+	{
+		data,
+		width,
+		height,
+	},
+	{
+		internalFormat: gl.RGBA32F,
+		type: gl.FLOAT,
+		minFilter: gl.NEAREST,
+		magFilter: gl.NEAREST,
+	}
+);
+
 // Initialize a texture with history (stores previous frames).
 shader.initializeTexture('u_webcam', videoElement, { history: 30 });
+
+// Preserve Y orientation for DOM sources (don't flip vertically).
+shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 ```
 
 **Parameters:**
 
 -   `name` (string): The name of the texture uniform as declared in your shader
--   `source` (HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): The texture source
--   `options` (optional): `{ history?: number }` - Number of previous frames to store
+-   `source` (HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | CustomTexture): The texture source
+-   `options` (optional): Texture options (see below)
+
+**Texture Options:**
+
+-   `history?: number` - Number of previous frames to store (creates a `sampler2DArray`)
+-   `preserveY?: boolean` - For DOM sources only: if `true`, don't flip vertically (default: `false`, flips to match WebGL's bottom-up convention)
+-   `internalFormat?: number` - WebGL internal format (e.g., `gl.RGBA8`, `gl.RGBA32F`)
+-   `format?: number` - WebGL format (default: `gl.RGBA`)
+-   `type?: number` - WebGL data type (default: `gl.UNSIGNED_BYTE` for DOM sources, must be specified for typed arrays)
+-   `minFilter?: number` - Minification filter (default: `gl.LINEAR`)
+-   `magFilter?: number` - Magnification filter (default: `gl.LINEAR`)
+-   `wrapS?: number` - Wrap mode for S coordinate (default: `gl.CLAMP_TO_EDGE`)
+-   `wrapT?: number` - Wrap mode for T coordinate (default: `gl.CLAMP_TO_EDGE`)
+
+**Note:** For typed array sources (`CustomTexture`), you must provide data in bottom-up orientation (WebGL convention). The `preserveY` option is ignored for typed arrays.
 
 #### `updateTextures(updates)`
 
@@ -206,12 +240,29 @@ Update one or more textures. Useful for updating video textures each frame.
 shader.updateTextures({
 	u_webcam: videoElement,
 	u_overlay: overlayCanvas,
+	u_custom: {
+		data: typedArray,
+		width,
+		height,
+	},
+});
+
+// Typed arrays can be partially updated.
+shader.updateTextures({
+	u_custom: {
+		data: partialData,
+		width: regionWidth,
+		height: regionHeight,
+		isPartial: true,
+		x: offsetX,
+		y: offsetY,
+	},
 });
 ```
 
 **Parameters:**
 
--   `updates` (Record<string, TextureSource>): Object mapping texture names to their new sources
+-   `updates` (Record<string, TextureSource | PartialCustomTexture>): Object mapping texture names to their new sources
 
 ### Lifecycle methods
 
@@ -289,6 +340,14 @@ float zIndex = historyZ(u_webcam, u_webcamFrameOffset, nFramesAgo);
 vec4 historyColor = texture(u_webcam, vec3(v_uv, zIndex));
 ```
 
+### debug
+
+The `debug` option controls whether debug logging is enabled. When enabled, ShaderPad will log warnings when uniforms or textures are not found in the shader. Defaults to `true` in development (when `process.env.NODE_ENV !== 'production'`) and `false` in production builds.
+
+```typescript
+const shader = new ShaderPad(fragmentShaderSrc, { debug: true }); // Explicitly enable debug logging.
+```
+
 ### plugins
 
 ShaderPad supports plugins to add additional functionality. Plugins are imported from separate paths to keep bundle sizes small.
@@ -317,7 +376,7 @@ import ShaderPad from 'shaderpad';
 import save, { WithSave } from 'shaderpad/plugins/save';
 
 const shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
-shader.save('my-frame');
+shader.save('filename', 'Optional mobile share text');
 ```
 
 #### face
@@ -340,27 +399,53 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform           | Type                 | Description                                      |
-| ----------------- | -------------------- | ------------------------------------------------ |
-| `u_maxFaces`      | int                  | Maximum number of faces to detect                |
-| `u_nFaces`        | int                  | Current number of detected faces                 |
-| `u_faceLandmarks` | vec2[maxFaces * 478] | Landmark positions in UV space                   |
-| `u_leftEye`       | vec2[maxFaces]       | Left eye positions                               |
-| `u_rightEye`      | vec2[maxFaces]       | Right eye positions                              |
-| `u_noseTip`       | vec2[maxFaces]       | Nose tip positions                               |
-| `u_mouth`         | vec2[maxFaces]       | Mouth center positions                           |
-| `u_faceMask`      | sampler2D            | Face mask texture (R: mouth, G: face, B: eyes)   |
-| `u_faceCenter`    | vec2[maxFaces]       | Center positions of the face mask bounding boxes |
+| Uniform              | Type      | Description                                                |
+| -------------------- | --------- | ---------------------------------------------------------- |
+| `u_maxFaces`         | int       | Maximum number of faces to detect                          |
+| `u_nFaces`           | int       | Current number of detected faces                           |
+| `u_faceLandmarksTex` | sampler2D | Raw landmark data texture (use `faceLandmark()` to access) |
+| `u_faceMask`         | sampler2D | Face mask texture (R: mouth, G: face, B: eyes)             |
 
-**Helper functions:** `faceLandmark(int faceIndex, int landmarkIndex)`, `getFace(vec2 pos)`, `getEye(vec2 pos)`, `getMouth(vec2 pos)`
+**Helper functions:**
 
-Use `faceLandmark(int faceIndex, int landmarkIndex)` in GLSL to retrieve a specific point. [Landmark indices are documented here.](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker#face_landmarker_model)
+-   `faceLandmark(int faceIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(faceLandmark(...))` to get just the screen position.
+-   `inFace(vec2 pos) -> float` - Returns face mask value at position (green channel)
+-   `inEye(vec2 pos) -> float` - Returns eye mask value at position (blue channel)
+-   `inMouth(vec2 pos) -> float` - Returns mouth mask value at position (red channel)
+
+**Constants:**
+
+-   `FACE_LANDMARK_L_EYE_CENTER` - Left eye center landmark index
+-   `FACE_LANDMARK_R_EYE_CENTER` - Right eye center landmark index
+-   `FACE_LANDMARK_NOSE_TIP` - Nose tip landmark index
+-   `FACE_LANDMARK_FACE_CENTER` - Face center landmark index (custom, calculated from all landmarks)
+-   `FACE_LANDMARK_MOUTH_CENTER` - Mouth center landmark index (custom, calculated from inner lip landmarks)
+
+**Example usage:**
+
+```glsl
+// Get a specific landmark position.
+vec2 nosePos = vec2(faceLandmark(0, FACE_LANDMARK_NOSE_TIP));
+
+if (inMouth(v_uv) > 0.0) {
+	// Position is inside a mouth.
+}
+
+// Iterate through all faces and landmarks.
+for (int i = 0; i < u_nFaces; ++i) {
+    vec4 leftEye = faceLandmark(i, FACE_LANDMARK_L_EYE_CENTER);
+    vec4 rightEye = faceLandmark(i, FACE_LANDMARK_R_EYE_CENTER);
+    // ...
+}
+```
+
+[Landmark indices are documented here.](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker#face_landmarker_model) This library adds two custom landmarks: `FACE_CENTER` and `MOUTH_CENTER`. This brings the total landmark count to 480.
 
 **Note:** The face plugin requires `@mediapipe/tasks-vision` as a peer dependency.
 
 #### pose
 
-The `pose` plugin uses [MediaPipe Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) to expose a flat array of 2D landmarks. Each pose contributes 33 landmarks, enumerated below.
+The `pose` plugin uses [MediaPipe Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) to expose a flat array of 2D landmarks. Each pose contributes 39 landmarks (33 standard + 6 custom), enumerated below.
 
 ```typescript
 import ShaderPad from 'shaderpad';
@@ -373,49 +458,75 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform           | Type                | Description                                      |
-| ----------------- | ------------------- | ------------------------------------------------ |
-| `u_maxPoses`      | int                 | Maximum number of poses to track                 |
-| `u_nPoses`        | int                 | Current number of detected poses                 |
-| `u_poseLandmarks` | vec2[maxPoses * 33] | Landmark positions in UV space                   |
-| `u_poseMask`      | sampler2D           | Pose mask texture (G: body, B: skeleton)         |
-| `u_poseCenter`    | vec2[maxPoses]      | Center positions of the pose mask bounding boxes |
+| Uniform              | Type      | Description                                           |
+| -------------------- | --------- | ----------------------------------------------------- |
+| `u_maxPoses`         | int       | Maximum number of poses to track                      |
+| `u_nPoses`           | int       | Current number of detected poses                      |
+| `u_poseLandmarksTex` | sampler2D | Raw landmark data texture (RGBA: x, y, z, visibility) |
+| `u_poseMask`         | sampler2D | Pose mask texture (G: body)                           |
 
-**Helper functions:** `poseLandmark(int poseIndex, int landmarkIndex)`, `getBody(vec2 pos)`, `getSkeleton(vec2 pos)`
+**Helper functions:**
+
+-   `poseLandmark(int poseIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(poseLandmark(...))` to get just the screen position.
+-   `inBody(vec2 pos) -> float` - Returns body mask value at position (green channel)
+
+**Constants:**
+
+-   `POSE_LANDMARK_LEFT_EYE` - Left eye landmark index (2)
+-   `POSE_LANDMARK_RIGHT_EYE` - Right eye landmark index (5)
+-   `POSE_LANDMARK_LEFT_SHOULDER` - Left shoulder landmark index (11)
+-   `POSE_LANDMARK_RIGHT_SHOULDER` - Right shoulder landmark index (12)
+-   `POSE_LANDMARK_LEFT_ELBOW` - Left elbow landmark index (13)
+-   `POSE_LANDMARK_RIGHT_ELBOW` - Right elbow landmark index (14)
+-   `POSE_LANDMARK_LEFT_HIP` - Left hip landmark index (23)
+-   `POSE_LANDMARK_RIGHT_HIP` - Right hip landmark index (24)
+-   `POSE_LANDMARK_LEFT_KNEE` - Left knee landmark index (25)
+-   `POSE_LANDMARK_RIGHT_KNEE` - Right knee landmark index (26)
+-   `POSE_LANDMARK_BODY_CENTER` - Body center landmark index (33, custom, calculated from all landmarks)
+-   `POSE_LANDMARK_LEFT_HAND_CENTER` - Left hand center landmark index (34, custom, calculated from pinky, thumb, wrist, index)
+-   `POSE_LANDMARK_RIGHT_HAND_CENTER` - Right hand center landmark index (35, custom, calculated from pinky, thumb, wrist, index)
+-   `POSE_LANDMARK_LEFT_FOOT_CENTER` - Left foot center landmark index (36, custom, calculated from ankle, heel, foot index)
+-   `POSE_LANDMARK_RIGHT_FOOT_CENTER` - Right foot center landmark index (37, custom, calculated from ankle, heel, foot index)
+-   `POSE_LANDMARK_TORSO_CENTER` - Torso center landmark index (38, custom, calculated from shoulders and hips)
+
+**Note:** For connecting pose landmarks (e.g., drawing skeleton lines), `PoseLandmarker.POSE_CONNECTIONS` from `@mediapipe/tasks-vision` provides an array of `{ start, end }` pairs that define which landmarks should be connected.
 
 Use `poseLandmark(int poseIndex, int landmarkIndex)` in GLSL to retrieve a specific point. Landmark indices are:
 
-| Index | Landmark          | Index | Landmark         |
-| ----- | ----------------- | ----- | ---------------- |
-| 0     | nose              | 17    | left pinky       |
-| 1     | left eye (inner)  | 18    | right pinky      |
-| 2     | left eye          | 19    | left index       |
-| 3     | left eye (outer)  | 20    | right index      |
-| 4     | right eye (inner) | 21    | left thumb       |
-| 5     | right eye         | 22    | right thumb      |
-| 6     | right eye (outer) | 23    | left hip         |
-| 7     | left ear          | 24    | right hip        |
-| 8     | right ear         | 25    | left knee        |
-| 9     | mouth (left)      | 26    | right knee       |
-| 10    | mouth (right)     | 27    | left ankle       |
-| 11    | left shoulder     | 28    | right ankle      |
-| 12    | right shoulder    | 29    | left heel        |
-| 13    | left elbow        | 30    | right heel       |
-| 14    | right elbow       | 31    | left foot index  |
-| 15    | left wrist        | 32    | right foot index |
-| 16    | right wrist       |       |                  |
+| Index | Landmark          | Index | Landmark                   |
+| ----- | ----------------- | ----- | -------------------------- |
+| 0     | nose              | 20    | right index                |
+| 1     | left eye (inner)  | 21    | left thumb                 |
+| 2     | left eye          | 22    | right thumb                |
+| 3     | left eye (outer)  | 23    | left hip                   |
+| 4     | right eye (inner) | 24    | right hip                  |
+| 5     | right eye         | 25    | left knee                  |
+| 6     | right eye (outer) | 26    | right knee                 |
+| 7     | left ear          | 27    | left ankle                 |
+| 8     | right ear         | 28    | right ankle                |
+| 9     | mouth (left)      | 29    | left heel                  |
+| 10    | mouth (right)     | 30    | right heel                 |
+| 11    | left shoulder     | 31    | left foot index            |
+| 12    | right shoulder    | 32    | right foot index           |
+| 13    | left elbow        | 33    | body center (custom)       |
+| 14    | right elbow       | 34    | left hand center (custom)  |
+| 15    | left wrist        | 35    | right hand center (custom) |
+| 16    | right wrist       | 36    | left foot center (custom)  |
+| 17    | left pinky        | 37    | right foot center (custom) |
+| 18    | right pinky       | 38    | torso center (custom)      |
+| 19    | left index        |       |                            |
 
 [Source](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model)
+
+[Landmark indices are documented here.](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model) This library adds six custom landmarks: `BODY_CENTER`, `LEFT_HAND_CENTER`, `RIGHT_HAND_CENTER`, `LEFT_FOOT_CENTER`, `RIGHT_FOOT_CENTER`, and `TORSO_CENTER`. This brings the total landmark count to 39.
 
 A minimal fragment shader loop looks like:
 
 ```glsl
-int POSE_LANDMARK_LEFT_HIP = 23;
-int POSE_LANDMARK_RIGHT_HIP = 24;
 for (int i = 0; i < u_maxPoses; ++i) {
 	if (i >= u_nPoses) break;
-	vec2 leftHip = poseLandmark(i, POSE_LANDMARK_LEFT_HIP);
-	vec2 rightHip = poseLandmark(i, POSE_LANDMARK_RIGHT_HIP);
+	vec2 leftHip = vec2(poseLandmark(i, POSE_LANDMARK_LEFT_HIP));
+	vec2 rightHip = vec2(poseLandmark(i, POSE_LANDMARK_RIGHT_HIP));
 	// …
 }
 ```
@@ -435,13 +546,15 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform           | Type                | Description                      |
-| ----------------- | ------------------- | -------------------------------- |
-| `u_maxHands`      | int                 | Maximum number of hands to track |
-| `u_nHands`        | int                 | Current number of detected hands |
-| `u_handLandmarks` | vec2[maxHands * 22] | Landmark positions in UV space   |
+| Uniform              | Type      | Description                                           |
+| -------------------- | --------- | ----------------------------------------------------- |
+| `u_maxHands`         | int       | Maximum number of hands to track                      |
+| `u_nHands`           | int       | Current number of detected hands                      |
+| `u_handLandmarksTex` | sampler2D | Raw landmark data texture (RGBA: x, y, z, visibility) |
 
-**Helper functions:** `handLandmark(int handIndex, int landmarkIndex)`
+**Helper functions:**
+
+-   `handLandmark(int handIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(handLandmark(...))` to get just the screen position.
 
 Use `handLandmark(int handIndex, int landmarkIndex)` in GLSL to retrieve a specific point. Landmark indices are:
 
@@ -464,14 +577,16 @@ Use `handLandmark(int handIndex, int landmarkIndex)` in GLSL to retrieve a speci
 A minimal fragment shader loop looks like:
 
 ```glsl
-int HAND_LANDMARK_WRIST = 0;
-int HAND_LANDMARK_THUMB_TIP = 4;
-int HAND_LANDMARK_INDEX_TIP = 8;
+#define HAND_LANDMARK_WRIST 0
+#define HAND_LANDMARK_THUMB_TIP 4
+#define HAND_LANDMARK_INDEX_TIP 8
+#define HAND_LANDMARK_HAND_CENTER 21
 for (int i = 0; i < u_maxHands; ++i) {
 	if (i >= u_nHands) break;
-	vec2 wrist = handLandmark(i, HAND_LANDMARK_WRIST);
-	vec2 thumbTip = handLandmark(i, HAND_LANDMARK_THUMB_TIP);
-	vec2 indexTip = handLandmark(i, HAND_LANDMARK_INDEX_TIP);
+	vec2 wrist = vec2(handLandmark(i, HAND_LANDMARK_WRIST));
+	vec2 thumbTip = vec2(handLandmark(i, HAND_LANDMARK_THUMB_TIP));
+	vec2 indexTip = vec2(handLandmark(i, HAND_LANDMARK_INDEX_TIP));
+	vec2 handCenter = vec2(handLandmark(i, HAND_LANDMARK_HAND_CENTER));
 	// …
 }
 ```

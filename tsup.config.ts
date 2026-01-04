@@ -8,6 +8,9 @@ export default defineConfig({
 	clean: true,
 	dts: true,
 	minify: true,
+	define: {
+		'process.env.NODE_ENV': '"production"',
+	},
 	esbuildOptions(options) {
 		options.loader = {
 			...options.loader,

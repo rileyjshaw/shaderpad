@@ -31,12 +31,12 @@ in vec2 v_uv;
 out vec4 outColor;
 uniform sampler2D u_webcam;
 
-int THUMB_TIP = 4;
-int INDEX_TIP = 8;
-int MIDDLE_TIP = 12;
-int RING_TIP = 16;
-int PINKY_TIP = 20;
-int HAND_CENTER = 21;
+#define THUMB_TIP 4
+#define INDEX_TIP 8
+#define MIDDLE_TIP 12
+#define RING_TIP 16
+#define PINKY_TIP 20
+#define HAND_CENTER 21
 
 void main() {
 	vec4 webcamColor = texture(u_webcam, v_uv);
@@ -44,32 +44,32 @@ void main() {
 
 	for (int i = 0; i < u_nHands; ++i) {
 		// Draw hand center dot (white).
-		float handCenterDist = distance(v_uv, handLandmark(i, HAND_CENTER));
+		float handCenterDist = distance(v_uv, vec2(handLandmark(i, HAND_CENTER)));
 		float handCenterDot = 1.0 - smoothstep(0.0, 0.01, handCenterDist);
 		color = mix(color, vec3(1.0, 1.0, 1.0), handCenterDot);
 
 		// Draw thumb tip (yellow).
-		float thumbTipDist = distance(v_uv, handLandmark(i, THUMB_TIP));
+		float thumbTipDist = distance(v_uv, vec2(handLandmark(i, THUMB_TIP)));
 		float thumbTipDot = 1.0 - smoothstep(0.0, 0.01, thumbTipDist);
 		color = mix(color, vec3(1.0, 1.0, 0.0), thumbTipDot);
 
 		// Draw index finger tip (red).
-		float indexTipDist = distance(v_uv, handLandmark(i, INDEX_TIP));
+		float indexTipDist = distance(v_uv, vec2(handLandmark(i, INDEX_TIP)));
 		float indexTipDot = 1.0 - smoothstep(0.0, 0.01, indexTipDist);
 		color = mix(color, vec3(1.0, 0.0, 0.0), indexTipDot);
 
 		// Draw middle finger tip (green).
-		float middleTipDist = distance(v_uv, handLandmark(i, MIDDLE_TIP));
+		float middleTipDist = distance(v_uv, vec2(handLandmark(i, MIDDLE_TIP)));
 		float middleTipDot = 1.0 - smoothstep(0.0, 0.01, middleTipDist);
 		color = mix(color, vec3(0.0, 1.0, 0.0), middleTipDot);
 
 		// Draw ring finger tip (blue).
-		float ringTipDist = distance(v_uv, handLandmark(i, RING_TIP));
+		float ringTipDist = distance(v_uv, vec2(handLandmark(i, RING_TIP)));
 		float ringTipDot = 1.0 - smoothstep(0.0, 0.01, ringTipDist);
 		color = mix(color, vec3(0.0, 0.0, 1.0), ringTipDot);
 
 		// Draw pinky tip (magenta).
-		float pinkyTipDist = distance(v_uv, handLandmark(i, PINKY_TIP));
+		float pinkyTipDist = distance(v_uv, vec2(handLandmark(i, PINKY_TIP)));
 		float pinkyTipDot = 1.0 - smoothstep(0.0, 0.01, pinkyTipDist);
 		color = mix(color, vec3(1.0, 0.0, 1.0), pinkyTipDot);
 	}

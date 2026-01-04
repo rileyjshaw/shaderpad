@@ -9,7 +9,9 @@ export interface HandsPluginOptions {
 	minTrackingConfidence?: number;
 }
 
-const LANDMARK_COUNT = 21 + 1; // See https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models, plus the hand center.
+const STANDARD_LANDMARK_COUNT = 21; // See https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models.
+const CUSTOM_LANDMARK_COUNT = 1;
+const LANDMARK_COUNT = STANDARD_LANDMARK_COUNT + CUSTOM_LANDMARK_COUNT;
 const HAND_CENTER_LANDMARKS = [0, 0, 5, 9, 13, 17]; // Wrist + MCP joints of all fingers, weighted toward the wrist.
 
 function hands(config: { textureName: string; options?: HandsPluginOptions }) {
@@ -18,13 +20,17 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL } = context;
+		const { injectGLSL, gl } = context;
 
 		let handLandmarker: HandLandmarker | null = null;
 		let vision: any = null;
 		let lastVideoTime = -1;
 		const textureSources = new Map<string, TextureSource>();
 		const maxHands = options?.maxHands ?? 2;
+
+		const LANDMARKS_TEXTURE_WIDTH = 512;
+		let landmarksTextureHeight = 0;
+		let landmarksDataArray: Float32Array | null = null;
 
 		async function initializeHandLandmarker() {
 			try {
@@ -49,45 +55,106 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			}
 		}
 
-		function calculateHandCenter(landmarks: NormalizedLandmark[]): [number, number] {
-			const visibleLandmarks = HAND_CENTER_LANDMARKS.map(index => landmarks[index]).filter(
-				landmark => landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number'
-			);
-			if (visibleLandmarks.length === 0) return [0, 0];
+		function calculateBoundingBoxCenter(
+			landmarksDataArray: Float32Array,
+			handIdx: number,
+			landmarkIndices: number[]
+		): [number, number, number, number] {
+			let minX = Infinity,
+				maxX = -Infinity,
+				minY = Infinity,
+				maxY = -Infinity,
+				avgZ = 0,
+				avgVisibility = 0;
 
-			let sumX = 0,
-				sumY = 0;
-			for (const landmark of visibleLandmarks) {
-				sumX += landmark.x;
-				sumY += landmark.y;
+			for (const idx of landmarkIndices) {
+				const dataIdx = (handIdx * LANDMARK_COUNT + idx) * 4;
+				const x = landmarksDataArray[dataIdx];
+				const y = landmarksDataArray[dataIdx + 1];
+				minX = Math.min(minX, x);
+				maxX = Math.max(maxX, x);
+				minY = Math.min(minY, y);
+				maxY = Math.max(maxY, y);
+				avgZ += landmarksDataArray[dataIdx + 2];
+				avgVisibility += landmarksDataArray[dataIdx + 3];
 			}
-			return [sumX / visibleLandmarks.length, sumY / visibleLandmarks.length];
+
+			const centerX = (minX + maxX) / 2;
+			const centerY = (minY + maxY) / 2;
+			const centerZ = avgZ / landmarkIndices.length;
+			const centerVisibility = avgVisibility / landmarkIndices.length;
+			return [centerX, centerY, centerZ, centerVisibility];
+		}
+
+		function updateLandmarksTexture(hands: NormalizedLandmark[][]) {
+			if (!landmarksDataArray) return;
+
+			const nHands = hands.length;
+			const totalLandmarks = nHands * LANDMARK_COUNT;
+
+			for (let handIdx = 0; handIdx < nHands; ++handIdx) {
+				const landmarks = hands[handIdx];
+				// Store standard 21 landmarks
+				for (let lmIdx = 0; lmIdx < 21; ++lmIdx) {
+					const landmark = landmarks[lmIdx];
+					const dataIdx = (handIdx * LANDMARK_COUNT + lmIdx) * 4;
+					landmarksDataArray[dataIdx] = landmark.x; // R (X)
+					landmarksDataArray[dataIdx + 1] = 1 - landmark.y; // G (Inverted Y)
+					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0; // B (Z)
+					landmarksDataArray[dataIdx + 3] = landmark.visibility ?? 1; // A (Visibility)
+				}
+
+				// Calculate and store hand center (landmark 21)
+				const handCenter = calculateBoundingBoxCenter(landmarksDataArray, handIdx, HAND_CENTER_LANDMARKS);
+				const handCenterIdx = (handIdx * LANDMARK_COUNT + 21) * 4;
+				landmarksDataArray[handCenterIdx] = handCenter[0];
+				landmarksDataArray[handCenterIdx + 1] = handCenter[1];
+				landmarksDataArray[handCenterIdx + 2] = handCenter[2];
+				landmarksDataArray[handCenterIdx + 3] = handCenter[3];
+			}
+
+			const rowsToUpdate = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
+			shaderPad.updateTextures({
+				u_handLandmarksTex: {
+					data: landmarksDataArray,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: rowsToUpdate,
+				},
+			});
 		}
 
 		function processHandResults(result: any) {
-			if (!result.landmarks) return;
+			if (!result.landmarks || !landmarksDataArray) return;
 
 			const nHands = result.landmarks.length;
-			const updates: Parameters<typeof shaderPad.updateUniforms>[0] = { u_nHands: nHands };
-			if (nHands) {
-				updates.u_handLandmarks = result.landmarks.flatMap((landmarks: NormalizedLandmark[]) => {
-					const handCenter = calculateHandCenter(landmarks);
-					handCenter[1] = 1.0 - handCenter[1];
-					return landmarks.map(landmark => [landmark.x, 1.0 - landmark.y]).concat([handCenter]);
-				});
-			}
-			shaderPad.updateUniforms(updates);
+			updateLandmarksTexture(result.landmarks);
+			shaderPad.updateUniforms({ u_nHands: nHands });
 		}
 
 		shaderPad.registerHook('init', async () => {
 			shaderPad.initializeUniform('u_maxHands', 'int', maxHands);
 			shaderPad.initializeUniform('u_nHands', 'int', 0);
-			const defaultHandLandmarks: [number, number][] = Array.from({ length: maxHands * LANDMARK_COUNT }, () => [
-				0.5, 0.5,
-			]);
-			shaderPad.initializeUniform('u_handLandmarks', 'float', defaultHandLandmarks, {
-				arrayLength: maxHands * LANDMARK_COUNT,
-			});
+
+			const totalLandmarks = maxHands * LANDMARK_COUNT;
+			landmarksTextureHeight = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
+			const textureSize = LANDMARKS_TEXTURE_WIDTH * landmarksTextureHeight * 4;
+			landmarksDataArray = new Float32Array(textureSize);
+
+			shaderPad.initializeTexture(
+				'u_handLandmarksTex',
+				{
+					data: landmarksDataArray,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: landmarksTextureHeight,
+				},
+				{
+					internalFormat: gl.RGBA32F,
+					type: gl.FLOAT,
+					minFilter: gl.NEAREST,
+					magFilter: gl.NEAREST,
+				}
+			);
+
 			await initializeHandLandmarker();
 		});
 
@@ -132,14 +199,18 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			}
 			vision = null;
 			textureSources.clear();
+			landmarksDataArray = null;
 		});
 
 		injectGLSL(`
 uniform int u_maxHands;
 uniform int u_nHands;
-uniform vec2 u_handLandmarks[${maxHands * LANDMARK_COUNT}];
-vec2 handLandmark(int handIndex, int landmarkIndex) {
-	return u_handLandmarks[handIndex * ${LANDMARK_COUNT} + landmarkIndex];
+uniform sampler2D u_handLandmarksTex;
+vec4 handLandmark(int handIndex, int landmarkIndex) {
+	int i = handIndex * ${LANDMARK_COUNT} + landmarkIndex;
+	int x = i % ${LANDMARKS_TEXTURE_WIDTH};
+	int y = i / ${LANDMARKS_TEXTURE_WIDTH};
+	return texelFetch(u_handLandmarksTex, ivec2(x, y), 0);
 }`);
 	};
 }

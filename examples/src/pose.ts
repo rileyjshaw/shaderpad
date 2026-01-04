@@ -18,65 +18,34 @@ async function getWebcamStream(container: HTMLDivElement): Promise<HTMLVideoElem
 	return video;
 }
 
-function loadVideoFile(file: File, container: HTMLDivElement): Promise<HTMLVideoElement> {
-	return new Promise((resolve, reject) => {
-		if (!file.type.startsWith('video/')) {
-			reject(new Error('File must be a video'));
-			return;
-		}
-
-		const video = document.createElement('video');
-		video.autoplay = true;
-		video.playsInline = true;
-		video.loop = true;
-		video.muted = true;
-
-		video.onloadedmetadata = () => {
-			container.appendChild(video);
-			resolve(video);
-		};
-
-		video.onerror = e => {
-			reject(new Error('Failed to load video file: ' + (e as ErrorEvent).message));
-		};
-
-		video.src = URL.createObjectURL(file);
-	});
-}
-
 let shader: ShaderPad | null = null;
 let video: HTMLVideoElement | null = null;
 let outputCanvas: HTMLCanvasElement | null = null;
 let container: HTMLDivElement | null = null;
-let dropZone: HTMLElement | null = null;
-let handleDragOver: ((e: DragEvent) => void) | null = null;
-let handleDragLeave: ((e: DragEvent) => void) | null = null;
-let handleDrop: ((e: DragEvent) => void) | null = null;
 
-async function setupShader(videoElement: HTMLVideoElement) {
+export async function init() {
 	const fragmentShaderSrc = `#version 300 es
 precision mediump float;
 
 in vec2 v_uv;
 out vec4 outColor;
-uniform sampler2D u_video;
+uniform sampler2D u_webcam;
 
 void main() {
 	vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
-	vec4 videoColor = texture(u_video, uv);
-	vec3 color = videoColor.rgb;
+	vec4 webcamColor = texture(u_webcam, uv);
+	vec3 color = webcamColor.rgb;
 
-	float bodyMask = getBody(uv);
+	float bodyMask = inBody(uv);
 	color = mix(color, vec3(0.0, 1.0, 0.0), bodyMask * 0.3);
-	float skeletonMask = getSkeleton(uv);
-	color = mix(color, vec3(0.0, 0.0, 1.0), skeletonMask * 0.3);
 
-	for (int i = 0; i < u_maxPoses; ++i) {
-		if (i >= u_nPoses) break;
-		for (int j = 0; j < 33; ++j) {
-			if (j == 0) continue;
-			vec2 landmark = poseLandmark(i, j);
-			color = mix(color, vec3(1.0, 0.0, 0.0), step(distance(uv, landmark), .008) * bodyMask);
+	for (int i = 0; i < u_nPoses; ++i) {
+		// Draw tiny red dots on all pose landmarks.
+		for (int j = 0; j < 39; ++j) {
+			vec2 landmarkPos = vec2(poseLandmark(i, j));
+			float landmarkDist = distance(uv, landmarkPos);
+			float landmarkDot = (1.0 - smoothstep(0.0, 0.005, landmarkDist));
+			color = mix(color, vec3(1.0, 0.0, 0.0), landmarkDot);
 		}
 	}
 
@@ -93,131 +62,31 @@ void main() {
 	outColor = vec4(color, 1.0);
 }`;
 
-	if (shader) {
-		shader.destroy();
-		shader = null;
-	}
-
-	if (container) {
-		container.remove();
-		container = null;
-		outputCanvas = null;
-	}
-
 	container = document.createElement('div');
 	container.className = 'canvas-container';
 	document.body.appendChild(container);
 
+	video = await getWebcamStream(container);
+
 	outputCanvas = document.createElement('canvas');
-	outputCanvas.width = videoElement.videoWidth;
-	outputCanvas.height = videoElement.videoHeight;
+	outputCanvas.width = video.videoWidth;
+	outputCanvas.height = video.videoHeight;
 	container.appendChild(outputCanvas);
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
 		plugins: [
 			pose({
-				textureName: 'u_video',
+				textureName: 'u_webcam',
 				options: { maxPoses: 2 },
 			}),
 		],
 	});
 
-	shader.initializeTexture('u_video', videoElement);
+	shader.initializeTexture('u_webcam', video);
 	shader.play(() => {
-		shader!.updateTextures({ u_video: videoElement });
+		shader!.updateTextures({ u_webcam: video! });
 	});
-}
-
-export async function init() {
-	// Create container first
-	container = document.createElement('div');
-	container.className = 'canvas-container';
-	document.body.appendChild(container);
-
-	// Try to get webcam first, but don't fail if it's not available
-	try {
-		video = await getWebcamStream(container);
-		await setupShader(video);
-	} catch (error) {
-		console.warn('Webcam not available, waiting for video file drop:', error);
-	}
-
-	// Set up drag and drop
-	dropZone = document.createElement('div');
-	dropZone.style.position = 'fixed';
-	dropZone.style.top = '0';
-	dropZone.style.left = '0';
-	dropZone.style.width = '100%';
-	dropZone.style.height = '100%';
-	dropZone.style.pointerEvents = 'none';
-	dropZone.style.zIndex = '1000';
-	dropZone.style.display = 'flex';
-	dropZone.style.alignItems = 'center';
-	dropZone.style.justifyContent = 'center';
-	dropZone.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-	dropZone.style.opacity = '0';
-	dropZone.style.transition = 'opacity 0.2s';
-	dropZone.textContent = 'Drop video file here';
-	dropZone.style.color = 'white';
-	dropZone.style.fontSize = '24px';
-	dropZone.style.fontWeight = 'bold';
-	document.body.appendChild(dropZone);
-
-	handleDragOver = (e: DragEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		if (dropZone) {
-			dropZone.style.pointerEvents = 'auto';
-			dropZone.style.opacity = '1';
-		}
-	};
-
-	handleDragLeave = (e: DragEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		if (dropZone) {
-			dropZone.style.pointerEvents = 'none';
-			dropZone.style.opacity = '0';
-		}
-	};
-
-	handleDrop = async (e: DragEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		if (dropZone) {
-			dropZone.style.pointerEvents = 'none';
-			dropZone.style.opacity = '0';
-		}
-
-		const files = e.dataTransfer?.files;
-		if (files && files.length > 0) {
-			const file = files[0];
-			try {
-				// Clean up old video if it exists
-				if (video) {
-					if (video.srcObject) {
-						(video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-					}
-					if (video.src) {
-						URL.revokeObjectURL(video.src);
-					}
-					video.remove();
-					video = null;
-				}
-
-				video = await loadVideoFile(file, container);
-				await setupShader(video);
-			} catch (error) {
-				console.error('Error loading video file:', error);
-				alert('Error loading video file: ' + error);
-			}
-		}
-	};
-
-	document.addEventListener('dragover', handleDragOver);
-	document.addEventListener('dragleave', handleDragLeave);
-	document.addEventListener('drop', handleDrop);
 }
 
 export function destroy() {
@@ -230,9 +99,7 @@ export function destroy() {
 		if (video.srcObject) {
 			(video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
 		}
-		if (video.src) {
-			URL.revokeObjectURL(video.src);
-		}
+		video.srcObject = null;
 		video.remove();
 		video = null;
 	}
@@ -241,24 +108,5 @@ export function destroy() {
 		container.remove();
 		container = null;
 		outputCanvas = null;
-	}
-
-	if (dropZone) {
-		dropZone.remove();
-		dropZone = null;
-	}
-
-	// Remove event listeners
-	if (handleDragOver) {
-		document.removeEventListener('dragover', handleDragOver);
-		handleDragOver = null;
-	}
-	if (handleDragLeave) {
-		document.removeEventListener('dragleave', handleDragLeave);
-		handleDragLeave = null;
-	}
-	if (handleDrop) {
-		document.removeEventListener('drop', handleDrop);
-		handleDrop = null;
 	}
 }

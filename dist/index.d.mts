@@ -4,6 +4,16 @@ interface Uniform {
     location: WebGLUniformLocation;
     arrayLength?: number;
 }
+interface TextureOptions {
+    internalFormat?: number;
+    format?: number;
+    type?: number;
+    minFilter?: number;
+    magFilter?: number;
+    wrapS?: number;
+    wrapT?: number;
+    preserveY?: boolean;
+}
 interface Texture {
     texture: WebGLTexture;
     unitIndex: number;
@@ -13,8 +23,20 @@ interface Texture {
         depth: number;
         writeIndex: number;
     };
+    options?: TextureOptions;
 }
-type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
+interface CustomTexture {
+    data: ArrayBufferView | null;
+    width: number;
+    height: number;
+}
+interface PartialCustomTexture extends CustomTexture {
+    isPartial?: boolean;
+    x?: number;
+    y?: number;
+}
+type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | CustomTexture;
+type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 interface PluginContext {
     gl: WebGL2RenderingContext;
     uniforms: Map<string, Uniform>;
@@ -31,6 +53,7 @@ interface Options {
     canvas?: HTMLCanvasElement | null;
     plugins?: Plugin[];
     history?: number;
+    debug?: boolean;
 }
 declare class ShaderPad {
     private isInternalCanvas;
@@ -57,6 +80,7 @@ declare class ShaderPad {
     onResize?: (width: number, height: number) => void;
     private hooks;
     private historyDepth;
+    private debug;
     constructor(fragmentShaderSrc: string, options?: Options);
     registerHook(name: LifecycleMethod, fn: Function): void;
     private init;
@@ -72,15 +96,16 @@ declare class ShaderPad {
     initializeUniform(name: string, type: 'float' | 'int', value: number | number[] | (number | number[])[], options?: {
         arrayLength?: number;
     }): void;
+    private log;
     updateUniforms(updates: Record<string, number | number[] | (number | number[])[]>, options?: {
         startIndex?: number;
     }): void;
     private createTexture;
     private _initializeTexture;
-    initializeTexture(name: string, source: TextureSource, options?: {
+    initializeTexture(name: string, source: TextureSource, options?: TextureOptions & {
         history?: number;
     }): void;
-    updateTextures(updates: Record<string, TextureSource>): void;
+    updateTextures(updates: Record<string, UpdateTextureSource>): void;
     private updateTexture;
     draw(): void;
     step(time: number): void;
@@ -90,4 +115,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { type Options, type PluginContext, type TextureSource, ShaderPad as default };
+export { type CustomTexture, type Options, type PartialCustomTexture, type PluginContext, type TextureOptions, type TextureSource, ShaderPad as default };

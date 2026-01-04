@@ -41,7 +41,7 @@ void main() {
 
 	float closestCenter = 2.0;
 	for (int i = 0; i < u_nPoses; ++i) {
-		vec2 dir = uv - u_poseCenter[i];
+		vec2 dir = uv - vec2(poseLandmark(i, POSE_LANDMARK_BODY_CENTER));
 		float lenDir = length(dir);
 		if (lenDir >= closestCenter) continue;
 
@@ -53,7 +53,7 @@ void main() {
 		}
 
 		vec2 uvNearerPoseCenter = uv - dir * 80.0 * pixel;
-		float body = getBody(uv) + getBody(uvNearerPoseCenter);
+		float body = inBody(uv) + inBody(uvNearerPoseCenter);
 		if (body > 0.0) {
 			vec2 target = uv + dir * (20.0 * pixel); // Grab the color 20px away from your body center.
 			float z = historyZ(u_history, u_historyFrameOffset, 1);

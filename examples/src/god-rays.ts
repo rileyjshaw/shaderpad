@@ -32,16 +32,16 @@ in vec2 v_uv;
 out vec4 outColor;
 uniform sampler2D u_webcam;
 
-int THUMB_IP = 3;
-int THUMB_TIP = 4;
-int INDEX_DIP = 7;
-int INDEX_TIP = 8;
-int MIDDLE_DIP = 11;
-int MIDDLE_TIP = 12;
-int RING_DIP = 15;
-int RING_TIP = 16;
-int PINKY_DIP = 19;
-int PINKY_TIP = 20;
+#define THUMB_IP 3
+#define THUMB_TIP 4
+#define INDEX_DIP 7
+#define INDEX_TIP 8
+#define MIDDLE_DIP 11
+#define MIDDLE_TIP 12
+#define RING_DIP 15
+#define RING_TIP 16
+#define PINKY_DIP 19
+#define PINKY_TIP 20
 
 // Shout-outs:
 // Ricky Reusser @rreusser
@@ -92,7 +92,7 @@ vec3 faceRays(float density, float weight, float decay, float exposure,
 			break;
 		textCoo -= deltaTextCoord;
 
-		float brightness = min(1.0, step(0.5, getMouth(textCoo)) + step(0.5, getEye(textCoo)));
+		float brightness = min(1.0, step(0.5, inMouth(textCoo)) + step(0.5, inEye(textCoo)));
 		vec3 samp = vec3(brightness);
 		samp.xy -= vec2(0.5, 0.2);
 		samp.xy = max(samp.xy, 0.);
@@ -114,24 +114,24 @@ void main() {
 	vec3 color = webcamColor.rgb * 0.75;
 
 	for (int i = 0; i < u_nHands; ++i) {
-		vec2 thumbIP = handLandmark(i, THUMB_IP);
-		vec2 thumbTip = handLandmark(i, THUMB_TIP);
+		vec2 thumbIP = vec2(handLandmark(i, THUMB_IP));
+		vec2 thumbTip = vec2(handLandmark(i, THUMB_TIP));
 		color += fingerRays(1.0, 0.01, 1.0, 4.0, 200, thumbTip, thumbIP, uv);
 
-		vec2 indexDIP = handLandmark(i, INDEX_DIP);
-		vec2 indexTip = handLandmark(i, INDEX_TIP);
+		vec2 indexDIP = vec2(handLandmark(i, INDEX_DIP));
+		vec2 indexTip = vec2(handLandmark(i, INDEX_TIP));
 		color += fingerRays(1.0, 0.01, 1.0, 4.0, 200, indexTip, indexDIP, uv);
 
-		vec2 middleDIP = handLandmark(i, MIDDLE_DIP);
-		vec2 middleTip = handLandmark(i, MIDDLE_TIP);
+		vec2 middleDIP = vec2(handLandmark(i, MIDDLE_DIP));
+		vec2 middleTip = vec2(handLandmark(i, MIDDLE_TIP));
 		color += fingerRays(1.0, 0.01, 1.0, 4.0, 200, middleTip, middleDIP, uv);
 
-		vec2 ringDIP = handLandmark(i, RING_DIP);
-		vec2 ringTip = handLandmark(i, RING_TIP);
+		vec2 ringDIP = vec2(handLandmark(i, RING_DIP));
+		vec2 ringTip = vec2(handLandmark(i, RING_TIP));
 		color += fingerRays(1.0, 0.01, 1.0, 4.0, 200, ringTip, ringDIP, uv);
 
-		vec2 pinkyDIP = handLandmark(i, PINKY_DIP);
-		vec2 pinkyTip = handLandmark(i, PINKY_TIP);
+		vec2 pinkyDIP = vec2(handLandmark(i, PINKY_DIP));
+		vec2 pinkyTip = vec2(handLandmark(i, PINKY_TIP));
 		color += fingerRays(1.0, 0.01, 1.0, 4.0, 200, pinkyTip, pinkyDIP, uv);
 	}
 

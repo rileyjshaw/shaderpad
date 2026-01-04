@@ -11,7 +11,9 @@ export interface FacePluginOptions {
 	outputFacialTransformationMatrixes?: boolean;
 }
 
-const LANDMARK_COUNT = 478;
+const STANDARD_LANDMARK_COUNT = 478;
+const CUSTOM_LANDMARK_COUNT = 2;
+const LANDMARK_COUNT = STANDARD_LANDMARK_COUNT + CUSTOM_LANDMARK_COUNT;
 const LANDMARK_INDICES = {
 	LEFT_EYEBROW: [336, 296, 334, 293, 300, 276, 283, 282, 295, 285],
 	LEFT_EYE: [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382],
@@ -22,6 +24,9 @@ const LANDMARK_INDICES = {
 	NOSE_TIP: 4,
 	OUTER_LIP: [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146],
 	INNER_LIP: [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95],
+	// Custom landmarks.
+	FACE_CENTER: STANDARD_LANDMARK_COUNT,
+	MOUTH_CENTER: STANDARD_LANDMARK_COUNT + 1,
 };
 
 function face(config: { textureName: string; options?: FacePluginOptions }) {
@@ -30,13 +35,17 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { uniforms, injectGLSL } = context;
+		const { injectGLSL, gl } = context;
 
 		let faceLandmarker: FaceLandmarker | null = null;
 		let vision: any = null;
 		let lastVideoTime = -1;
 		const textureSources = new Map<string, TextureSource>();
 		const maxFaces = options?.maxFaces ?? 1;
+
+		const LANDMARKS_TEXTURE_WIDTH = 512;
+		let landmarksTextureHeight = 0;
+		let landmarksDataArray: Float32Array | null = null;
 
 		const maskWidth = 512;
 		const maskHeight = 512;
@@ -71,43 +80,61 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			}
 		}
 
-		function calculateBoundingBoxCenter(landmarks: NormalizedLandmark[]): [number, number] {
+		function calculateBoundingBoxCenter(
+			landmarksDataArray: Float32Array,
+			faceIdx: number,
+			landmarkIndices: number[]
+		): [number, number, number, number] {
 			let minX = Infinity,
 				maxX = -Infinity,
 				minY = Infinity,
-				maxY = -Infinity;
+				maxY = -Infinity,
+				avgZ = 0,
+				avgVisibility = 0;
 
-			// Calculate bounding box center.
-			for (const landmark of landmarks) {
-				minX = Math.min(minX, landmark.x);
-				maxX = Math.max(maxX, landmark.x);
-				minY = Math.min(minY, landmark.y);
-				maxY = Math.max(maxY, landmark.y);
+			for (const idx of landmarkIndices) {
+				const dataIdx = (faceIdx * LANDMARK_COUNT + idx) * 4;
+				const x = landmarksDataArray[dataIdx];
+				const y = landmarksDataArray[dataIdx + 1];
+				minX = Math.min(minX, x);
+				maxX = Math.max(maxX, x);
+				minY = Math.min(minY, y);
+				maxY = Math.max(maxY, y);
+				avgZ += landmarksDataArray[dataIdx + 2];
+				avgVisibility += landmarksDataArray[dataIdx + 3];
 			}
 
 			const centerX = (minX + maxX) / 2;
 			const centerY = (minY + maxY) / 2;
-			return [centerX, centerY];
+			const centerZ = avgZ / landmarkIndices.length;
+			const centerVisibility = avgVisibility / landmarkIndices.length;
+			return [centerX, centerY, centerZ, centerVisibility];
 		}
 
-		function fillRegion(landmarks: NormalizedLandmark[], color: { r: number; g: number; b: number }) {
+		function fillRegion(faceIdx: number, landmarkIndices: number[], color: { r: number; g: number; b: number }) {
+			if (!landmarksDataArray) return;
 			faceMaskCtx.fillStyle = `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(
 				color.b * 255
 			)})`;
-			const origin = landmarks[0];
 			faceMaskCtx.beginPath();
-			faceMaskCtx.moveTo(origin.x * faceMaskCanvas.width, origin.y * faceMaskCanvas.height);
-			for (let i = 1; i < landmarks.length; i++) {
-				const destination = landmarks[i];
-				faceMaskCtx.lineTo(destination.x * faceMaskCanvas.width, destination.y * faceMaskCanvas.height);
+			const originIdx = (faceIdx * LANDMARK_COUNT + landmarkIndices[0]) * 4;
+			const originX = landmarksDataArray[originIdx];
+			const originY = landmarksDataArray[originIdx + 1];
+			faceMaskCtx.moveTo(originX * faceMaskCanvas.width, originY * faceMaskCanvas.height);
+
+			for (let i = 1; i < landmarkIndices.length; ++i) {
+				const destIdx = (faceIdx * LANDMARK_COUNT + landmarkIndices[i]) * 4;
+				const destX = landmarksDataArray[destIdx];
+				const destY = landmarksDataArray[destIdx + 1];
+				faceMaskCtx.lineTo(destX * faceMaskCanvas.width, destY * faceMaskCanvas.height);
 			}
 			faceMaskCtx.closePath();
 			faceMaskCtx.fill();
 		}
 
-		async function updateMaskTexture(faces: NormalizedLandmark[][]) {
-			if (!faceLandmarker) {
-				console.warn('[Face Plugin] Cannot update mask: faceLandmarker missing');
+		async function updateMaskTexture(nFaces: number) {
+			if (!faceLandmarker || !landmarksDataArray) {
+				console.warn('[Face Plugin] Cannot update mask: faceLandmarker or landmarksDataArray missing');
 				return;
 			}
 
@@ -115,61 +142,45 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				const { FaceLandmarker } = await import('@mediapipe/tasks-vision');
 				faceMaskCtx.clearRect(0, 0, faceMaskCanvas.width, faceMaskCanvas.height);
 
-				faces.forEach((landmarks, i) => {
+				for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
 					// Build combined mask with RGBA channels
 					// R: Mouth | G: Face | B: Eyes
 					// Mouth (red channel).
 					// Lips.
-					fillRegion(
-						LANDMARK_INDICES.OUTER_LIP.map((idx: number) => landmarks[idx]),
-						{ r: 0.25, g: 0, b: 0 }
-					);
+					fillRegion(faceIdx, LANDMARK_INDICES.OUTER_LIP, { r: 0.25, g: 0, b: 0 });
 					// Inner mouth.
-					fillRegion(
-						LANDMARK_INDICES.INNER_LIP.map((idx: number) => landmarks[idx]),
-						{ r: 0.75, g: 0, b: 0 }
-					);
+					fillRegion(faceIdx, LANDMARK_INDICES.INNER_LIP, { r: 0.75, g: 0, b: 0 });
 
 					// Face (green channel).
 					// Entire face.
 					fillRegion(
-						FaceLandmarker.FACE_LANDMARKS_TESSELATION.map(({ start }) => landmarks[start]),
+						faceIdx,
+						FaceLandmarker.FACE_LANDMARKS_TESSELATION.map(({ start }) => start),
 						{ r: 0, g: 0.25, b: 0 }
 					);
 					// Face contour (excludes nose in profile view).
 					fillRegion(
-						FaceLandmarker.FACE_LANDMARKS_FACE_OVAL.map(({ start }) => landmarks[start]),
+						faceIdx,
+						FaceLandmarker.FACE_LANDMARKS_FACE_OVAL.map(({ start }) => start),
 						{ r: 0, g: 1, b: 0 }
 					);
 
 					// Eyes (blue channel).
 					// Eyebrows.
-					fillRegion(
-						LANDMARK_INDICES.LEFT_EYEBROW.map((idx: number) => landmarks[idx]),
-						{
-							r: 0,
-							g: 0,
-							b: 0.15,
-						}
-					);
-					fillRegion(
-						LANDMARK_INDICES.RIGHT_EYEBROW.map((idx: number) => landmarks[idx]),
-						{
-							r: 0,
-							g: 0,
-							b: 0.35,
-						}
-					);
+					fillRegion(faceIdx, LANDMARK_INDICES.LEFT_EYEBROW, {
+						r: 0,
+						g: 0,
+						b: 0.15,
+					});
+					fillRegion(faceIdx, LANDMARK_INDICES.RIGHT_EYEBROW, {
+						r: 0,
+						g: 0,
+						b: 0.35,
+					});
 					// Eyes.
-					fillRegion(
-						LANDMARK_INDICES.LEFT_EYE.map((idx: number) => landmarks[idx]),
-						{ r: 0, g: 0, b: 0.65 }
-					);
-					fillRegion(
-						LANDMARK_INDICES.RIGHT_EYE.map((idx: number) => landmarks[idx]),
-						{ r: 0, g: 0, b: 0.85 }
-					);
-				});
+					fillRegion(faceIdx, LANDMARK_INDICES.LEFT_EYE, { r: 0, g: 0, b: 0.65 });
+					fillRegion(faceIdx, LANDMARK_INDICES.RIGHT_EYE, { r: 0, g: 0, b: 0.85 });
+				}
 
 				shaderPad.updateTextures({ u_faceMask: faceMaskCanvas });
 			} catch (error) {
@@ -177,61 +188,89 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			}
 		}
 
-		function processFaceResults(result: any) {
-			if (!result.faceLandmarks) return;
+		function updateLandmarksTexture(faces: NormalizedLandmark[][]) {
+			if (!landmarksDataArray) return;
 
-			const faceLandmarks: [number, number][] = [];
-			const faceCenters: [number, number][] = [];
-			const leftEyes: [number, number][] = [];
-			const rightEyes: [number, number][] = [];
-			const noseTips: [number, number][] = [];
-			const mouths: [number, number][] = [];
-			for (const landmarks of result.faceLandmarks) {
-				// Invert Y-axis to match WebGL coordinate system.
-				const flippedLandmarks = landmarks.map((landmark: NormalizedLandmark) => [landmark.x, 1 - landmark.y]);
-				faceLandmarks.push(flippedLandmarks);
-				faceCenters.push(calculateBoundingBoxCenter(flippedLandmarks));
-				leftEyes.push(flippedLandmarks[LANDMARK_INDICES.LEFT_EYE_CENTER]);
-				rightEyes.push(flippedLandmarks[LANDMARK_INDICES.RIGHT_EYE_CENTER]);
-				noseTips.push(flippedLandmarks[LANDMARK_INDICES.NOSE_TIP]);
-				mouths.push(
-					calculateBoundingBoxCenter(LANDMARK_INDICES.INNER_LIP.map((idx: number) => flippedLandmarks[idx]))
+			const nFaces = faces.length;
+			const totalLandmarks = nFaces * LANDMARK_COUNT;
+
+			for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
+				const landmarks = faces[faceIdx];
+				for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
+					const landmark = landmarks[lmIdx];
+					const dataIdx = (faceIdx * LANDMARK_COUNT + lmIdx) * 4;
+					landmarksDataArray[dataIdx] = landmark.x; // R (X)
+					landmarksDataArray[dataIdx + 1] = 1 - landmark.y; // G (Inverted Y)
+					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0; // B (Z)
+					landmarksDataArray[dataIdx + 3] = landmark.visibility ?? 1; // A (Visibility)
+				}
+
+				const faceCenter = calculateBoundingBoxCenter(
+					landmarksDataArray,
+					faceIdx,
+					Array.from({ length: STANDARD_LANDMARK_COUNT }, (_, i) => i)
 				);
+				const faceCenterIdx = (faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.FACE_CENTER) * 4;
+				landmarksDataArray[faceCenterIdx] = faceCenter[0];
+				landmarksDataArray[faceCenterIdx + 1] = faceCenter[1];
+				landmarksDataArray[faceCenterIdx + 2] = 0; // Z
+				landmarksDataArray[faceCenterIdx + 3] = 1; // Visibility
+
+				// Mouth center (landmark 479) - uses INNER_LIP landmarks
+				const mouthCenter = calculateBoundingBoxCenter(landmarksDataArray, faceIdx, LANDMARK_INDICES.INNER_LIP);
+				const mouthCenterIdx = (faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.MOUTH_CENTER) * 4;
+				landmarksDataArray[mouthCenterIdx] = mouthCenter[0];
+				landmarksDataArray[mouthCenterIdx + 1] = mouthCenter[1];
+				landmarksDataArray[mouthCenterIdx + 2] = 0; // Z
+				landmarksDataArray[mouthCenterIdx + 3] = 1; // Visibility
 			}
 
-			updateMaskTexture(result.faceLandmarks).catch(error => {
+			const rowsToUpdate = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
+			shaderPad.updateTextures({
+				u_faceLandmarksTex: {
+					data: landmarksDataArray,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: rowsToUpdate,
+				},
+			});
+		}
+
+		function processFaceResults(result: any) {
+			if (!result.faceLandmarks || !landmarksDataArray) return;
+
+			const nFaces = result.faceLandmarks.length;
+			updateLandmarksTexture(result.faceLandmarks);
+			updateMaskTexture(nFaces).catch(error => {
 				console.warn('Mask texture update error:', error);
 			});
 
-			const nFaces = result.faceLandmarks.length;
-			const updates: Parameters<typeof shaderPad.updateUniforms>[0] = { u_nFaces: nFaces };
-			if (nFaces) {
-				if (uniforms.has('u_faceLandmarks')) updates.u_faceLandmarks = faceLandmarks;
-				if (uniforms.has('u_faceCenter')) updates.u_faceCenter = faceCenters;
-				if (uniforms.has('u_leftEye')) updates.u_leftEye = leftEyes;
-				if (uniforms.has('u_rightEye')) updates.u_rightEye = rightEyes;
-				if (uniforms.has('u_noseTip')) updates.u_noseTip = noseTips;
-				if (uniforms.has('u_mouth')) updates.u_mouth = mouths;
-			}
-			shaderPad.updateUniforms(updates);
+			shaderPad.updateUniforms({ u_nFaces: nFaces });
 		}
 
 		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_faceMask', faceMaskCanvas);
+			shaderPad.initializeTexture('u_faceMask', faceMaskCanvas, { preserveY: true });
 			shaderPad.initializeUniform('u_maxFaces', 'int', maxFaces);
 			shaderPad.initializeUniform('u_nFaces', 'int', 0);
-			const defaultFaceLandmarks: [number, number][] = Array.from({ length: maxFaces * LANDMARK_COUNT }, () => [
-				0.5, 0.5,
-			]);
-			const defaultFaceData: [number, number][] = Array.from({ length: maxFaces }, () => [0.5, 0.5]);
-			shaderPad.initializeUniform('u_faceLandmarks', 'float', defaultFaceLandmarks, {
-				arrayLength: maxFaces * LANDMARK_COUNT,
-			});
-			shaderPad.initializeUniform('u_faceCenter', 'float', defaultFaceData, { arrayLength: maxFaces });
-			shaderPad.initializeUniform('u_leftEye', 'float', defaultFaceData, { arrayLength: maxFaces });
-			shaderPad.initializeUniform('u_rightEye', 'float', defaultFaceData, { arrayLength: maxFaces });
-			shaderPad.initializeUniform('u_noseTip', 'float', defaultFaceData, { arrayLength: maxFaces });
-			shaderPad.initializeUniform('u_mouth', 'float', defaultFaceData, { arrayLength: maxFaces });
+
+			const totalLandmarks = maxFaces * LANDMARK_COUNT;
+			landmarksTextureHeight = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
+			const textureSize = LANDMARKS_TEXTURE_WIDTH * landmarksTextureHeight * 4;
+			landmarksDataArray = new Float32Array(textureSize);
+
+			shaderPad.initializeTexture(
+				'u_faceLandmarksTex',
+				{
+					data: landmarksDataArray,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: landmarksTextureHeight,
+				},
+				{
+					internalFormat: gl.RGBA32F,
+					type: gl.FLOAT,
+					minFilter: gl.NEAREST,
+					magFilter: gl.NEAREST,
+				}
+			);
 
 			await initializeFaceLandmarker();
 		});
@@ -278,24 +317,30 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			vision = null;
 			textureSources.clear();
 			faceMaskCanvas.remove();
+			landmarksDataArray = null;
 		});
 
 		injectGLSL(`
 uniform int u_maxFaces;
 uniform int u_nFaces;
-uniform vec2 u_faceLandmarks[${maxFaces * LANDMARK_COUNT}];
-uniform vec2 u_faceCenter[${maxFaces}];
-uniform vec2 u_leftEye[${maxFaces}];
-uniform vec2 u_rightEye[${maxFaces}];
-uniform vec2 u_noseTip[${maxFaces}];
-uniform vec2 u_mouth[${maxFaces}];
+uniform sampler2D u_faceLandmarksTex;
 uniform sampler2D u_faceMask;
-vec2 faceLandmark(int faceIndex, int landmarkIndex) {
-	return u_faceLandmarks[faceIndex * ${LANDMARK_COUNT} + landmarkIndex];
+
+#define FACE_LANDMARK_L_EYE_CENTER ${LANDMARK_INDICES.LEFT_EYE_CENTER}
+#define FACE_LANDMARK_R_EYE_CENTER ${LANDMARK_INDICES.RIGHT_EYE_CENTER}
+#define FACE_LANDMARK_NOSE_TIP ${LANDMARK_INDICES.NOSE_TIP}
+#define FACE_LANDMARK_FACE_CENTER ${LANDMARK_INDICES.FACE_CENTER}
+#define FACE_LANDMARK_MOUTH_CENTER ${LANDMARK_INDICES.MOUTH_CENTER}
+
+vec4 faceLandmark(int faceIndex, int landmarkIndex) {
+	int i = faceIndex * ${LANDMARK_COUNT} + landmarkIndex;
+	int x = i % ${LANDMARKS_TEXTURE_WIDTH};
+	int y = i / ${LANDMARKS_TEXTURE_WIDTH};
+	return texelFetch(u_faceLandmarksTex, ivec2(x, y), 0);
 }
-float getFace(vec2 pos) { return texture(u_faceMask, pos).g; }
-float getEye(vec2 pos) { return texture(u_faceMask, pos).b; }
-float getMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`);
+float inFace(vec2 pos) { return texture(u_faceMask, pos).g; }
+float inEye(vec2 pos) { return texture(u_faceMask, pos).b; }
+float inMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`);
 	};
 }
 

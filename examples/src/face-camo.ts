@@ -41,7 +41,8 @@ void main() {
 
 	float closestCenter = 2.0;
 	for (int i = 0; i < u_nFaces; ++i) {
-		vec2 dir = uv - u_faceCenter[i];
+		vec2 faceCenterPos = vec2(faceLandmark(i, FACE_LANDMARK_FACE_CENTER));
+		vec2 dir = uv - faceCenterPos;
 		float lenDir = length(dir);
 		if (lenDir >= closestCenter) continue;
 
@@ -53,7 +54,7 @@ void main() {
 		}
 
 		vec2 uvNearerFaceCenter = uv - dir * 80.0 * pixel;
-		float face = getFace(uv) + getFace(uvNearerFaceCenter);
+		float face = inFace(uv) + inFace(uvNearerFaceCenter);
 		if (face > 0.0) {
 			vec2 target = uv + dir * (20.0 * pixel); // Grab the color 20px away from your face center.
 			float z = historyZ(u_history, u_historyFrameOffset, 1);

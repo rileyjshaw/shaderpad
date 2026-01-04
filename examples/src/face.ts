@@ -71,26 +71,39 @@ void main() {
 	}
 
 	for (int i = 0; i < u_nFaces; ++i) {
+		// Draw tiny red dots on all face landmarks.
+		for (int j = 0; j < 478; ++j) {
+			vec2 landmarkPos = vec2(faceLandmark(i, j));
+			float landmarkDist = distance(v_uv, landmarkPos);
+			float landmarkDot = (1.0 - smoothstep(0.0, 0.005, landmarkDist));
+			color = mix(color, vec3(1.0, 0.0, 0.0), landmarkDot);
+		}
+
 		// Draw nose tip dot.
-		float noseTipDist = distance(v_uv, u_noseTip[i]);
+		vec2 noseTipPos = vec2(faceLandmark(i, FACE_LANDMARK_NOSE_TIP));
+		float noseTipDist = distance(v_uv, noseTipPos);
 		float noseTipDot = 1.0 - smoothstep(0.0, 0.01, noseTipDist);
 		color = mix(color, vec3(0.0, 1.0, 0.0), noseTipDot);
 
 		// Draw face center dot.
-		float faceCenterDist = distance(v_uv, u_faceCenter[i]);
+		vec2 faceCenterPos = vec2(faceLandmark(i, FACE_LANDMARK_FACE_CENTER));
+		float faceCenterDist = distance(v_uv, faceCenterPos);
 		float faceCenterDot = 1.0 - smoothstep(0.0, 0.01, faceCenterDist);
 		color = mix(color, vec3(1.0, 1.0, 1.0), faceCenterDot);
 
 		// Draw eye center dots.
-		float leftEyeCenterDist = distance(v_uv, u_leftEye[i]);
-		float rightEyeCenterDist = distance(v_uv, u_rightEye[i]);
+		vec2 leftEyePos = vec2(faceLandmark(i, FACE_LANDMARK_L_EYE_CENTER));
+		vec2 rightEyePos = vec2(faceLandmark(i, FACE_LANDMARK_R_EYE_CENTER));
+		float leftEyeCenterDist = distance(v_uv, leftEyePos);
+		float rightEyeCenterDist = distance(v_uv, rightEyePos);
 		float leftEyeCenterDot = 1.0 - smoothstep(0.0, 0.01, leftEyeCenterDist);
 		float rightEyeCenterDot = 1.0 - smoothstep(0.0, 0.01, rightEyeCenterDist);
 		color = mix(color, vec3(0.0, 0.0, 1.0), leftEyeCenterDot);
 		color = mix(color, vec3(1.0, 0.0, 0.0), rightEyeCenterDot);
 
 		// Draw mouth center dot.
-		float mouthCenterDist = distance(v_uv, u_mouth[i]);
+		vec2 mouthPos = vec2(faceLandmark(i, FACE_LANDMARK_MOUTH_CENTER));
+		float mouthCenterDist = distance(v_uv, mouthPos);
 		float mouthCenterDot = 1.0 - smoothstep(0.0, 0.01, mouthCenterDist);
 		color = mix(color, vec3(1.0, 1.0, 0.0), mouthCenterDot);
 	}
