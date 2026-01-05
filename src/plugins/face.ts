@@ -1,5 +1,5 @@
 import ShaderPad, { PluginContext, TextureSource } from '../index';
-import type { FaceLandmarker, NormalizedLandmark } from '@mediapipe/tasks-vision';
+import type { FaceLandmarker, FaceLandmarkerResult, NormalizedLandmark } from '@mediapipe/tasks-vision';
 
 export interface FacePluginOptions {
 	modelPath?: string;
@@ -9,6 +9,7 @@ export interface FacePluginOptions {
 	minTrackingConfidence?: number;
 	outputFaceBlendshapes?: boolean;
 	outputFacialTransformationMatrixes?: boolean;
+	onResults?: (results: FaceLandmarkerResult) => void;
 }
 
 const STANDARD_LANDMARK_COUNT = 478;
@@ -235,7 +236,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			});
 		}
 
-		function processFaceResults(result: any) {
+		function processFaceResults(result: FaceLandmarkerResult) {
 			if (!result.faceLandmarks || !landmarksDataArray) return;
 
 			const nFaces = result.faceLandmarks.length;
@@ -243,8 +244,9 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			updateMaskTexture(nFaces).catch(error => {
 				console.warn('Mask texture update error:', error);
 			});
-
 			shaderPad.updateUniforms({ u_nFaces: nFaces });
+
+			options?.onResults?.(result);
 		}
 
 		shaderPad.registerHook('init', async () => {

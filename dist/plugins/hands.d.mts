@@ -1,4 +1,5 @@
 import ShaderPad, { PluginContext } from '../index.mjs';
+import { HandLandmarkerResult } from '@mediapipe/tasks-vision';
 
 interface HandsPluginOptions {
     modelPath?: string;
@@ -6,6 +7,7 @@ interface HandsPluginOptions {
     minHandDetectionConfidence?: number;
     minHandPresenceConfidence?: number;
     minTrackingConfidence?: number;
+    onResults?: (results: HandLandmarkerResult) => void;
 }
 declare function hands(config: {
     textureName: string;

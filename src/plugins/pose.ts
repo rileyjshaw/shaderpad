@@ -1,5 +1,5 @@
 import ShaderPad, { PluginContext, TextureSource } from '../index';
-import type { PoseLandmarker, NormalizedLandmark } from '@mediapipe/tasks-vision';
+import type { PoseLandmarker, PoseLandmarkerResult, NormalizedLandmark } from '@mediapipe/tasks-vision';
 
 export interface PosePluginOptions {
 	modelPath?: string;
@@ -8,6 +8,7 @@ export interface PosePluginOptions {
 	minPosePresenceConfidence?: number;
 	minTrackingConfidence?: number;
 	outputSegmentationMasks?: boolean;
+	onResults?: (results: PoseLandmarkerResult) => void;
 }
 
 const STANDARD_LANDMARK_COUNT = 33; // See https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model.
@@ -283,7 +284,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			});
 		}
 
-		function processPoseResults(result: any) {
+		function processPoseResults(result: PoseLandmarkerResult) {
 			if (!result.landmarks || !landmarksDataArray) return;
 
 			const nPoses = result.landmarks.length;
@@ -291,8 +292,9 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			updateMaskTexture(result.segmentationMasks).catch(error => {
 				console.warn('[Pose Plugin] Mask texture update error:', error);
 			});
-
 			shaderPad.updateUniforms({ u_nPoses: nPoses });
+
+			options?.onResults?.(result);
 		}
 
 		shaderPad.registerHook('init', async () => {

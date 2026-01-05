@@ -1,5 +1,5 @@
 import ShaderPad, { PluginContext, TextureSource } from '../index';
-import type { HandLandmarker, NormalizedLandmark } from '@mediapipe/tasks-vision';
+import type { HandLandmarker, HandLandmarkerResult, NormalizedLandmark } from '@mediapipe/tasks-vision';
 
 export interface HandsPluginOptions {
 	modelPath?: string;
@@ -7,6 +7,7 @@ export interface HandsPluginOptions {
 	minHandDetectionConfidence?: number;
 	minHandPresenceConfidence?: number;
 	minTrackingConfidence?: number;
+	onResults?: (results: HandLandmarkerResult) => void;
 }
 
 const STANDARD_LANDMARK_COUNT = 21; // See https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models.
@@ -123,12 +124,14 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			});
 		}
 
-		function processHandResults(result: any) {
+		function processHandResults(result: HandLandmarkerResult) {
 			if (!result.landmarks || !landmarksDataArray) return;
 
 			const nHands = result.landmarks.length;
 			updateLandmarksTexture(result.landmarks);
 			shaderPad.updateUniforms({ u_nHands: nHands });
+
+			options?.onResults?.(result);
 		}
 
 		shaderPad.registerHook('init', async () => {
