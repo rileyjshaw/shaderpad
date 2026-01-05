@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.31
+
+### Minor Changes
+
+-   Add onResults callbacks to MediaPipe plugins
+
 ## 1.0.0-beta.30
 
 ### Minor Changes
