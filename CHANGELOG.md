@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.32
+
+### Minor Changes
+
+-   Add segmenter plugin
+
 ## 1.0.0-beta.31
 
 ### Minor Changes
