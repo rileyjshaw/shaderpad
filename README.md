@@ -641,7 +641,7 @@ color = mix(color, vec3(1.0, 0.0, 1.0), isForeground);
 
 ```bash
 # Clone the repository.
-git clone https://github.com/your-username/shaderpad.git
+git clone https://github.com/rileyjshaw/shaderpad.git
 cd shaderpad
 
 # Install dependencies and start the development server.
