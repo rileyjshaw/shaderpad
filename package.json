@@ -35,6 +35,10 @@
 		"./plugins/hands": {
 			"import": "./dist/plugins/hands.mjs",
 			"require": "./dist/plugins/hands.js"
+		},
+		"./plugins/segmenter": {
+			"import": "./dist/plugins/segmenter.mjs",
+			"require": "./dist/plugins/segmenter.js"
 		}
 	},
 	"typesVersions": {
@@ -53,6 +57,9 @@
 			],
 			"plugins/hands": [
 				"dist/plugins/hands.d.ts"
+			],
+			"plugins/segmenter": [
+				"dist/plugins/segmenter.d.ts"
 			]
 		}
 	},

@@ -593,6 +593,48 @@ for (int i = 0; i < u_maxHands; ++i) {
 
 **Note:** The hands plugin requires `@mediapipe/tasks-vision` as a peer dependency.
 
+#### segmenter
+
+The `segmenter` plugin uses [MediaPipe Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) to segment objects in video or image textures. It supports models with multiple categories (e.g., background, hair, chair, dog…). By default, it uses the [hair segmentation model](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter#hair-model).
+
+```typescript
+import ShaderPad from 'shaderpad';
+import segmenter from 'shaderpad/plugins/segmenter';
+
+const shader = new ShaderPad(fragmentShaderSrc, {
+	plugins: [
+		segmenter({
+			textureName: 'u_webcam',
+			options: {
+				modelPath:
+					'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
+				outputCategoryMask: true,
+				outputConfidenceMasks: false,
+			},
+		}),
+	],
+});
+```
+
+**Uniforms:**
+
+| Uniform         | Type      | Description                                                                                                              |
+| --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `u_segmentMask` | sampler2D | Segment mask texture (R: normalized category value, 0.0 for background, >0.0 for segments, spread evenly over 0-1 range) |
+
+**Helper functions:**
+
+-   `inSegment(vec2 pos) -> float` - Returns segment mask value at position (red channel). Returns 0.0 for background, >0.0 for segments. The value is normalized based on the number of categories, with segments spread evenly over the 0-1 range. For instance, with 3 categories: 0→0.0 (background), 1→0.5 (segment 1), 2→1.0 (segment 2).
+
+**Example usage:**
+
+```glsl
+bool isForeground = inSegment(v_uv) > 0.0;
+color = mix(color, vec3(1.0, 0.0, 1.0), isForeground);
+```
+
+**Note:** The segmenter plugin requires `@mediapipe/tasks-vision` as a peer dependency.
+
 ## Contributing
 
 ### Running an example

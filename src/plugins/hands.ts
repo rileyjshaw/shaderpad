@@ -26,6 +26,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		let handLandmarker: HandLandmarker | null = null;
 		let vision: any = null;
 		let lastVideoTime = -1;
+		let runningMode: 'IMAGE' | 'VIDEO' = 'VIDEO';
 		const textureSources = new Map<string, TextureSource>();
 		const maxHands = options?.maxHands ?? 2;
 
@@ -44,7 +45,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					baseOptions: {
 						modelAssetPath: options?.modelPath || defaultModelPath,
 					},
-					runningMode: 'VIDEO',
+					runningMode: runningMode,
 					numHands: options?.maxHands ?? 2,
 					minHandDetectionConfidence: options?.minHandDetectionConfidence ?? 0.5,
 					minHandPresenceConfidence: options?.minHandPresenceConfidence ?? 0.5,
@@ -161,7 +162,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			await initializeHandLandmarker();
 		});
 
-		shaderPad.registerHook('updateTextures', (updates: Record<string, TextureSource>) => {
+		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
 			if (!source) return;
 
@@ -173,6 +174,12 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			textureSources.set(textureName, source);
 			if (!handLandmarker) return;
 			try {
+				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
+				if (runningMode !== requiredMode) {
+					runningMode = requiredMode;
+					await handLandmarker.setOptions({ runningMode: runningMode });
+				}
+
 				if (source instanceof HTMLVideoElement) {
 					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) {
 						return;

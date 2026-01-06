@@ -60,6 +60,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		let poseLandmarker: PoseLandmarker | null = null;
 		let vision: any = null;
 		let lastVideoTime = -1;
+		let runningMode: 'IMAGE' | 'VIDEO' = 'VIDEO';
 		const textureSources = new Map<string, TextureSource>();
 		const maxPoses = options?.maxPoses ?? 1;
 
@@ -87,7 +88,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					baseOptions: {
 						modelAssetPath: options?.modelPath || defaultModelPath,
 					},
-					runningMode: 'VIDEO',
+					runningMode,
 					numPoses: options?.maxPoses ?? 1,
 					minPoseDetectionConfidence: options?.minPoseDetectionConfidence ?? 0.5,
 					minPosePresenceConfidence: options?.minPosePresenceConfidence ?? 0.5,
@@ -325,7 +326,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			await initializePoseLandmarker();
 		});
 
-		shaderPad.registerHook('updateTextures', (updates: Record<string, TextureSource>) => {
+		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
 			if (!source) return;
 
@@ -337,6 +338,12 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			textureSources.set(textureName, source);
 			if (!poseLandmarker) return;
 			try {
+				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
+				if (runningMode !== requiredMode) {
+					runningMode = requiredMode;
+					await poseLandmarker.setOptions({ runningMode: runningMode });
+				}
+
 				if (source instanceof HTMLVideoElement) {
 					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) {
 						return;

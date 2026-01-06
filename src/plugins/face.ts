@@ -41,6 +41,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		let faceLandmarker: FaceLandmarker | null = null;
 		let vision: any = null;
 		let lastVideoTime = -1;
+		let runningMode: 'IMAGE' | 'VIDEO' = 'VIDEO';
 		const textureSources = new Map<string, TextureSource>();
 		const maxFaces = options?.maxFaces ?? 1;
 
@@ -67,7 +68,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 					baseOptions: {
 						modelAssetPath: options?.modelPath || defaultModelPath,
 					},
-					runningMode: 'VIDEO',
+					runningMode: runningMode,
 					numFaces: options?.maxFaces ?? 1,
 					minFaceDetectionConfidence: options?.minFaceDetectionConfidence ?? 0.5,
 					minFacePresenceConfidence: options?.minFacePresenceConfidence ?? 0.5,
@@ -277,7 +278,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			await initializeFaceLandmarker();
 		});
 
-		shaderPad.registerHook('updateTextures', (updates: Record<string, TextureSource>) => {
+		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
 			if (!source) return;
 
@@ -289,6 +290,12 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			textureSources.set(textureName, source);
 			if (!faceLandmarker) return;
 			try {
+				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
+				if (runningMode !== requiredMode) {
+					runningMode = requiredMode;
+					await faceLandmarker.setOptions({ runningMode: runningMode });
+				}
+
 				if (source instanceof HTMLVideoElement) {
 					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) {
 						return;

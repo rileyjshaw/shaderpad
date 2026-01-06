@@ -17,6 +17,7 @@ const demos = [
 	{ path: './pose', name: 'Pose Detection' },
 	{ path: './body-camo', name: 'Body Camo' },
 	{ path: './hands', name: 'Hands Detection' },
+	{ path: './segmenter', name: 'Segmenter' },
 	{ path: './resize-test', name: 'Resize Test' },
 	{ path: './god-rays', name: 'God rays' },
 	{ path: './fragmentum', name: 'Fragmentum' },
