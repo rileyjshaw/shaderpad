@@ -468,7 +468,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 **Helper functions:**
 
 -   `poseLandmark(int poseIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(poseLandmark(...))` to get just the screen position.
--   `inBody(vec2 pos) -> float` - Returns body mask value at position (green channel)
+-   `inBody(vec2 pos) -> int` - Returns 0 if no body at position, otherwise returns a 1-indexed pose index
 
 **Constants:**
 

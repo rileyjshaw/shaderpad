@@ -53,8 +53,8 @@ void main() {
 		}
 
 		vec2 uvNearerPoseCenter = uv - dir * 80.0 * pixel;
-		float body = inBody(uv) + inBody(uvNearerPoseCenter);
-		if (body > 0.0) {
+		int body = inBody(uv) + inBody(uvNearerPoseCenter);
+		if (body > 0) {
 			vec2 target = uv + dir * (20.0 * pixel); // Grab the color 20px away from your body center.
 			float z = historyZ(u_history, u_historyFrameOffset, 1);
 			color = texture(u_history, vec3(target, z)).rgb;

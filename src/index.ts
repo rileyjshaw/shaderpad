@@ -50,7 +50,14 @@ export interface PartialCustomTexture extends CustomTexture {
 	y?: number;
 }
 
-export type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | CustomTexture;
+export type TextureSource =
+	| HTMLImageElement
+	| HTMLVideoElement
+	| HTMLCanvasElement
+	| OffscreenCanvas
+	| ImageBitmap
+	| WebGLTexture
+	| CustomTexture;
 
 // Custom textures allow partial updates starting from (x, y).
 type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
@@ -60,7 +67,7 @@ export interface PluginContext {
 	uniforms: Map<string, Uniform>;
 	textures: Map<string | symbol, Texture>;
 	get program(): WebGLProgram | null;
-	canvas: HTMLCanvasElement;
+	canvas: HTMLCanvasElement | OffscreenCanvas;
 	reserveTextureUnit: (name: string | symbol) => number;
 	releaseTextureUnit: (name: string | symbol) => void;
 	injectGLSL: (code: string) => void;
@@ -80,7 +87,7 @@ type LifecycleMethod =
 	| 'updateUniforms';
 
 export interface Options {
-	canvas?: HTMLCanvasElement | null;
+	canvas?: HTMLCanvasElement | OffscreenCanvas | null;
 	plugins?: Plugin[];
 	history?: number;
 	debug?: boolean;
@@ -106,19 +113,18 @@ function combineShaderCode(shader: string, injections: string[]): string {
 	return lines.join('\n');
 }
 
-function getSourceDimensions(source: TextureSource) {
-	if ('data' in source) {
-		return { width: source.width, height: source.height };
-	} else if (source instanceof HTMLVideoElement) {
-		return { width: source.videoWidth, height: source.videoHeight };
-	} else if (source instanceof HTMLCanvasElement) {
-		const gl = source.getContext('webgl2');
-		return gl
-			? { width: gl.drawingBufferWidth, height: gl.drawingBufferHeight }
-			: { width: source.width, height: source.height };
+function getSourceDimensions(source: TextureSource): { width: number; height: number } {
+	if (source instanceof WebGLTexture) {
+		return { width: 0, height: 0 }; // Invalid - dimensions not readable.
 	}
-	// HTMLImageElement
-	return { width: source.naturalWidth ?? source.width, height: source.naturalHeight ?? source.height };
+	if (source instanceof HTMLVideoElement) {
+		return { width: source.videoWidth, height: source.videoHeight };
+	}
+	if (source instanceof HTMLImageElement) {
+		return { width: source.naturalWidth ?? source.width, height: source.naturalHeight ?? source.height };
+	}
+	// CustomTexture, HTMLCanvasElement, OffscreenCanvas, ImageBitmap.
+	return { width: source.width, height: source.height };
 }
 
 function stringFrom(name: string | symbol) {
@@ -135,6 +141,7 @@ class ShaderPad {
 	private textureUnitPool: TextureUnitPool;
 	private buffer: WebGLBuffer | null = null;
 	private program: WebGLProgram | null = null;
+	private aPositionLocation = 0;
 	private animationFrameId: number | null;
 	private resolutionObserver: MutationObserver;
 	private resizeObserver: ResizeObserver;
@@ -146,7 +153,7 @@ class ShaderPad {
 	private cursorPosition = [0.5, 0.5];
 	private clickPosition = [0.5, 0.5];
 	private isMouseDown = false;
-	public canvas: HTMLCanvasElement;
+	public canvas: HTMLCanvasElement | OffscreenCanvas;
 	public onResize?: (width: number, height: number) => void;
 	private hooks: Map<LifecycleMethod, Function[]> = new Map();
 	private historyDepth: number;
@@ -156,11 +163,12 @@ class ShaderPad {
 		this.canvas = options.canvas || document.createElement('canvas');
 		if (!options.canvas) {
 			this.isInternalCanvas = true;
-			this.canvas.style.position = 'fixed';
-			this.canvas.style.inset = '0';
-			this.canvas.style.height = '100dvh';
-			this.canvas.style.width = '100dvw';
-			document.body.appendChild(this.canvas);
+			const htmlCanvas = this.canvas as HTMLCanvasElement;
+			htmlCanvas.style.position = 'fixed';
+			htmlCanvas.style.inset = '0';
+			htmlCanvas.style.height = '100dvh';
+			htmlCanvas.style.width = '100dvw';
+			document.body.appendChild(htmlCanvas);
 		}
 
 		this.gl = this.canvas.getContext('webgl2', { antialias: false }) as WebGL2RenderingContext;
@@ -203,7 +211,9 @@ class ShaderPad {
 
 		this.fragmentShaderSrc = combineShaderCode(fragmentShaderSrc, glslInjections);
 		this.init();
-		this.addEventListeners();
+		if (this.canvas instanceof HTMLCanvasElement) {
+			this.addEventListeners();
+		}
 	}
 
 	registerHook(name: LifecycleMethod, fn: Function) {
@@ -235,13 +245,15 @@ class ShaderPad {
 			throw new Error('Failed to link WebGL program');
 		}
 
-		const aPosition = this.gl.getAttribLocation(this.program, 'aPosition');
-		this.setupBuffer(aPosition);
+		this.aPositionLocation = this.gl.getAttribLocation(this.program, 'aPosition');
+		this.setupBuffer();
 
 		this.gl.useProgram(this.program);
 
-		this.resolutionObserver.observe(this.canvas, { attributes: true, attributeFilter: ['width', 'height'] });
-		this.resizeObserver.observe(this.canvas);
+		if (this.canvas instanceof HTMLCanvasElement) {
+			this.resolutionObserver.observe(this.canvas, { attributes: true, attributeFilter: ['width', 'height'] });
+			this.resizeObserver.observe(this.canvas);
+		}
 
 		if (!this.isInternalCanvas) {
 			this.updateResolution();
@@ -270,15 +282,15 @@ class ShaderPad {
 		return shader;
 	}
 
-	private setupBuffer(aPosition: number) {
+	private setupBuffer() {
 		const quadVertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
 
 		this.buffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, quadVertices, this.gl.STATIC_DRAW);
 		this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-		this.gl.enableVertexAttribArray(aPosition);
-		this.gl.vertexAttribPointer(aPosition, 2, this.gl.FLOAT, false, 0, 0);
+		this.gl.enableVertexAttribArray(this.aPositionLocation);
+		this.gl.vertexAttribPointer(this.aPositionLocation, 2, this.gl.FLOAT, false, 0, 0);
 	}
 
 	private throttledHandleResize() {
@@ -294,6 +306,7 @@ class ShaderPad {
 	}
 
 	private handleResize() {
+		if (!(this.canvas instanceof HTMLCanvasElement)) return;
 		const pixelRatio = window.devicePixelRatio || 1;
 		const width = this.canvas.clientWidth * pixelRatio;
 		const height = this.canvas.clientHeight * pixelRatio;
@@ -305,9 +318,10 @@ class ShaderPad {
 	}
 
 	private addEventListeners() {
+		const htmlCanvas = this.canvas as HTMLCanvasElement;
 		const updateCursor = (x: number, y: number) => {
 			if (!this.uniforms.has('u_cursor')) return;
-			const rect = this.canvas.getBoundingClientRect();
+			const rect = htmlCanvas.getBoundingClientRect();
 			this.cursorPosition[0] = (x - rect.left) / rect.width;
 			this.cursorPosition[1] = 1 - (y - rect.top) / rect.height; // Flip Y for WebGL
 			this.updateUniforms({ u_cursor: this.cursorPosition });
@@ -317,7 +331,7 @@ class ShaderPad {
 			if (!this.uniforms.has('u_click')) return;
 			this.isMouseDown = isMouseDown;
 			if (isMouseDown) {
-				const rect = this.canvas.getBoundingClientRect();
+				const rect = htmlCanvas.getBoundingClientRect();
 				const xVal = x as number;
 				const yVal = y as number;
 				this.clickPosition[0] = (xVal - rect.left) / rect.width;
@@ -376,7 +390,7 @@ class ShaderPad {
 		});
 
 		this.eventListeners.forEach((listener, event) => {
-			this.canvas.addEventListener(event, listener);
+			htmlCanvas.addEventListener(event, listener);
 		});
 	}
 
@@ -482,6 +496,7 @@ class ShaderPad {
 		updates: Record<string, number | number[] | (number | number[])[]>,
 		options?: { startIndex?: number }
 	) {
+		this.gl.useProgram(this.program);
 		Object.entries(updates).forEach(([name, value]) => {
 			const uniform = this.uniforms.get(name);
 			if (!uniform) {
@@ -620,6 +635,12 @@ class ShaderPad {
 		const info = this.textures.get(name);
 		if (!info) throw new Error(`Texture '${stringFrom(name)}' is not initialized.`);
 
+		if (source instanceof WebGLTexture) {
+			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
+			this.gl.bindTexture(this.gl.TEXTURE_2D, source);
+			return;
+		}
+
 		// If dimensions changed, recreate the texture with new dimensions.
 		const { width, height } = getSourceDimensions(source);
 		if (!width || !height) return;
@@ -715,9 +736,14 @@ class ShaderPad {
 		}
 	}
 
-	draw() {
+	draw(clear = true) {
 		const gl = this.gl;
-		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.useProgram(this.program);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		gl.vertexAttribPointer(this.aPositionLocation, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(this.aPositionLocation);
+		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+		if (clear) gl.clear(gl.COLOR_BUFFER_BIT);
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 	}
 
@@ -776,9 +802,11 @@ class ShaderPad {
 
 		this.resolutionObserver.disconnect();
 		this.resizeObserver.disconnect();
-		this.eventListeners.forEach((listener, event) => {
-			this.canvas.removeEventListener(event, listener);
-		});
+		if (this.canvas instanceof HTMLCanvasElement) {
+			this.eventListeners.forEach((listener, event) => {
+				this.canvas.removeEventListener(event, listener);
+			});
+		}
 
 		if (this.program) {
 			this.gl.deleteProgram(this.program);
@@ -797,7 +825,7 @@ class ShaderPad {
 
 		this.hooks.get('destroy')?.forEach(hook => hook.call(this));
 
-		if (this.isInternalCanvas) {
+		if (this.isInternalCanvas && this.canvas instanceof HTMLCanvasElement) {
 			this.canvas.remove();
 		}
 	}

@@ -19,14 +19,15 @@ function save() {
 				filename = `${filename}.png`;
 			}
 			filename = filename || 'export.png';
+
+			const blob: Blob = await (canvas instanceof HTMLCanvasElement
+				? new Promise(resolve => canvas.toBlob(resolve as BlobCallback, 'image/png'))
+				: canvas.convertToBlob({ type: 'image/png' }));
+
 			if ('ongesturechange' in window) {
 				// Mobile.
 				try {
-					const blob: Blob = await new Promise(resolve =>
-						canvas.toBlob(resolve as BlobCallback, 'image/png')
-					);
 					const file = new File([blob], filename, { type: blob.type });
-
 					const shareData: ShareData = { files: [file] };
 					if (text) shareData.text = text;
 
@@ -37,12 +38,13 @@ function save() {
 				} catch (error) {
 					console.warn('Web Share API failed:', error);
 				}
-			} else {
-				// Desktop.
-				downloadLink.download = filename;
-				downloadLink.href = canvas.toDataURL();
-				downloadLink.click();
 			}
+
+			// Desktop / mobile fallback.
+			downloadLink.download = filename;
+			downloadLink.href = URL.createObjectURL(blob);
+			downloadLink.click();
+			URL.revokeObjectURL(downloadLink.href);
 		};
 	};
 }

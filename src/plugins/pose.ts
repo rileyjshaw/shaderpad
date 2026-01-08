@@ -1,5 +1,5 @@
 import ShaderPad, { PluginContext, TextureSource } from '../index';
-import type { PoseLandmarker, PoseLandmarkerResult, NormalizedLandmark } from '@mediapipe/tasks-vision';
+import type { PoseLandmarker, PoseLandmarkerResult, NormalizedLandmark, MPMask } from '@mediapipe/tasks-vision';
 
 export interface PosePluginOptions {
 	modelPath?: string;
@@ -49,6 +49,8 @@ const LANDMARK_INDICES = {
 	TORSO_CENTER: STANDARD_LANDMARK_COUNT + 5,
 };
 
+const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
+
 function pose(config: { textureName: string; options?: PosePluginOptions }) {
 	const { textureName, options } = config;
 	const defaultModelPath =
@@ -68,15 +70,9 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		let landmarksTextureHeight = 0;
 		let landmarksDataArray: Float32Array | null = null;
 
-		const maskWidth = 512;
-		const maskHeight = 512;
-		const poseMaskCanvas = document.createElement('canvas');
-		poseMaskCanvas.width = maskWidth;
-		poseMaskCanvas.height = maskHeight;
-		const poseMaskCtx = poseMaskCanvas.getContext('2d')!;
-		const segmentationCanvas = document.createElement('canvas');
-		const segmentationCtx = segmentationCanvas.getContext('2d')!;
-		poseMaskCtx.globalCompositeOperation = segmentationCtx.globalCompositeOperation = 'lighten'; // Keep the highest value of each channel.
+		// Shared canvas for MediaPipe and maskShader (same WebGL context)
+		const sharedCanvas = new OffscreenCanvas(1, 1);
+		let maskShader: ShaderPad | null = null;
 
 		async function initializePoseLandmarker() {
 			try {
@@ -87,7 +83,9 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
 					baseOptions: {
 						modelAssetPath: options?.modelPath || defaultModelPath,
+						delegate: 'GPU',
 					},
+					canvas: sharedCanvas,
 					runningMode,
 					numPoses: options?.maxPoses ?? 1,
 					minPoseDetectionConfidence: options?.minPoseDetectionConfidence ?? 0.5,
@@ -96,7 +94,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					outputSegmentationMasks: options?.outputSegmentationMasks ?? true,
 				});
 			} catch (error) {
-				console.error('[Pose Plugin] Failed to initialize Pose Landmarker:', error);
+				console.error('[Pose Plugin] Failed to initialize:', error);
 				throw error;
 			}
 		}
@@ -132,54 +130,15 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			return [centerX, centerY, centerZ, centerVisibility];
 		}
 
-		async function updateMaskTexture(segmentationMasks?: any[]) {
-			if (!poseLandmarker || !landmarksDataArray) {
-				console.warn('[Pose Plugin] Cannot update mask: poseLandmarker or landmarksDataArray missing');
-				return;
+		function updateMaskTexture(segmentationMasks?: MPMask[]) {
+			if (!segmentationMasks || segmentationMasks.length === 0 || !maskShader) return;
+			for (let i = 0; i < segmentationMasks.length; ++i) {
+				const mask = segmentationMasks[i];
+				maskShader.updateTextures({ u_mask: mask.getAsWebGLTexture() });
+				maskShader.updateUniforms({ u_poseIndex: (i + 1) / maxPoses });
+				maskShader.draw(i === 0); // Only clear on first mask.
 			}
-
-			try {
-				poseMaskCtx.clearRect(0, 0, poseMaskCanvas.width, poseMaskCanvas.height);
-
-				// Draw the segmentation masks.
-				if (segmentationMasks && segmentationMasks.length > 0) {
-					segmentationMasks.forEach(mask => {
-						if (!mask) return;
-
-						const { width, height } = mask;
-						const maskData = mask.getAsUint8Array();
-						const pixelCount = width * height;
-						const outputData = new Uint8ClampedArray(pixelCount * 4);
-
-						for (let i = 0; i < pixelCount; i++) {
-							outputData[i * 4 + 1] = maskData[i]; // G (body mask)
-							outputData[i * 4 + 3] = 255; // A (required for compositing)
-						}
-
-						const rgbaMask = new ImageData(outputData, width, height);
-
-						// Resize mask to canvas size if needed.
-						if (width === poseMaskCanvas.width && height === poseMaskCanvas.height) {
-							poseMaskCtx.putImageData(rgbaMask, 0, 0);
-						} else {
-							if (segmentationCanvas.width !== width) segmentationCanvas.width = width;
-							if (segmentationCanvas.height !== height) segmentationCanvas.height = height;
-							segmentationCtx.putImageData(rgbaMask, 0, 0);
-							poseMaskCtx.drawImage(
-								segmentationCanvas,
-								0,
-								0,
-								poseMaskCanvas.width,
-								poseMaskCanvas.height
-							);
-						}
-					});
-				}
-
-				shaderPad.updateTextures({ u_poseMask: poseMaskCanvas });
-			} catch (error) {
-				console.error('[Pose Plugin] Failed to generate mask texture:', error);
-			}
+			shaderPad.updateTextures({ u_poseMask: sharedCanvas.transferToImageBitmap() });
 		}
 
 		function updateLandmarksTexture(poses: NormalizedLandmark[][]) {
@@ -194,7 +153,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					const landmark = landmarks[lmIdx];
 					const dataIdx = (poseIdx * LANDMARK_COUNT + lmIdx) * 4;
 					landmarksDataArray[dataIdx] = landmark.x; // R (X)
-					landmarksDataArray[dataIdx + 1] = 1 - landmark.y; // G (Inverted Y)
+					landmarksDataArray[dataIdx + 1] = landmark.y; // G (Y)
 					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0; // B (Z)
 					landmarksDataArray[dataIdx + 3] = landmark.visibility ?? 1; // A (Visibility)
 				}
@@ -288,18 +247,40 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		function processPoseResults(result: PoseLandmarkerResult) {
 			if (!result.landmarks || !landmarksDataArray) return;
 
+			// IMPORTANT: maskShader and MediaPipe share a WebGL context. MediaPipe needs to run at least once before
+			// ShaderPad is created on the same canvas, otherwise MediaPipe’s WebGL state gets corrupted.
+			if (!maskShader) {
+				maskShader = new ShaderPad(
+					`#version 300 es
+					precision highp float;
+					in vec2 v_uv;
+					out vec4 outColor;
+					uniform sampler2D u_mask;
+					uniform float u_poseIndex;
+					void main() {
+						// Flip V because MediaPipe's mask uses image coordinates (top-left origin)
+						// while WebGL UVs use bottom-left origin
+						vec2 maskUV = vec2(v_uv.x, 1.0 - v_uv.y);
+						float confidence = texture(u_mask, maskUV).r;
+						float poseIdx = step(0.01, confidence) * u_poseIndex;
+						outColor = vec4(confidence, 1.0, poseIdx, 1.0);
+					}`,
+					{ canvas: sharedCanvas }
+				);
+				maskShader.initializeTexture('u_mask', dummyTexture);
+				maskShader.initializeUniform('u_poseIndex', 'float', 0);
+			}
+
 			const nPoses = result.landmarks.length;
 			updateLandmarksTexture(result.landmarks);
-			updateMaskTexture(result.segmentationMasks).catch(error => {
-				console.warn('[Pose Plugin] Mask texture update error:', error);
-			});
+			updateMaskTexture(result.segmentationMasks);
 			shaderPad.updateUniforms({ u_nPoses: nPoses });
 
 			options?.onResults?.(result);
 		}
 
 		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_poseMask', poseMaskCanvas);
+			shaderPad.initializeTexture('u_poseMask', dummyTexture);
 			shaderPad.initializeUniform('u_maxPoses', 'int', maxPoses);
 			shaderPad.initializeUniform('u_nPoses', 'int', 0);
 
@@ -337,6 +318,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 
 			textureSources.set(textureName, source);
 			if (!poseLandmarker) return;
+
 			try {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (runningMode !== requiredMode) {
@@ -345,24 +327,19 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				}
 
 				if (source instanceof HTMLVideoElement) {
-					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) {
-						return;
-					}
+					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
 					if (source.currentTime !== lastVideoTime) {
 						lastVideoTime = source.currentTime;
-						const timestamp = performance.now();
-						const result = poseLandmarker.detectForVideo(source, timestamp);
+						const result = poseLandmarker.detectForVideo(source, performance.now());
 						processPoseResults(result);
 					}
 				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
-					if (source.width === 0 || source.height === 0) {
-						return;
-					}
+					if (source.width === 0 || source.height === 0) return;
 					const result = poseLandmarker.detect(source);
 					processPoseResults(result);
 				}
 			} catch (error) {
-				console.error('[Pose Plugin] Pose detection error:', error);
+				console.error('[Pose Plugin] Detection error:', error);
 			}
 		});
 
@@ -371,13 +348,14 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				poseLandmarker.close();
 				poseLandmarker = null;
 			}
+			if (maskShader) {
+				maskShader.destroy();
+				maskShader = null;
+			}
 			vision = null;
 			textureSources.clear();
-			poseMaskCanvas.remove();
 			landmarksDataArray = null;
 		});
-		// TODO: inBody shouldn't rely on alpha. Does it? Seems so in the example.
-		//       Might be because putImageData ignores alpha compositing.
 		injectGLSL(`
 uniform int u_maxPoses;
 uniform int u_nPoses;
@@ -407,7 +385,11 @@ vec4 poseLandmark(int poseIndex, int landmarkIndex) {
 	int y = i / ${LANDMARKS_TEXTURE_WIDTH};
 	return texelFetch(u_poseLandmarksTex, ivec2(x, y), 0);
 }
-float inBody(vec2 pos) { return texture(u_poseMask, pos).g; }`);
+
+int inBody(vec2 pos) {
+	vec4 mask = texture(u_poseMask, pos);
+	return int(mask.b * float(u_maxPoses) + 0.5);
+}`);
 	};
 }
 
