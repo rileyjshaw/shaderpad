@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.33
+
+### Minor Changes
+
+-   Expand texture input types and improve MediaPipe plugins
+
 ## 1.0.0-beta.32
 
 ### Minor Changes
