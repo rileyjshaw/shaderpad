@@ -269,7 +269,11 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		}
 
 		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_poseMask', dummyTexture, { preserveY: true });
+			shaderPad.initializeTexture('u_poseMask', dummyTexture, {
+				preserveY: true,
+				minFilter: gl.NEAREST,
+				magFilter: gl.NEAREST,
+			});
 			shaderPad.initializeUniform('u_maxPoses', 'int', maxPoses);
 			shaderPad.initializeUniform('u_nPoses', 'int', 0);
 

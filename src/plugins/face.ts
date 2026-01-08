@@ -80,7 +80,8 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 
 		const mediaPipeCanvas = new OffscreenCanvas(1, 1);
 		const faceMaskCanvas = document.createElement('canvas');
-		const faceMaskCtx = faceMaskCanvas.getContext('2d')!;
+		const faceMaskCtx = faceMaskCanvas.getContext('2d', { willReadFrequently: true })!;
+		faceMaskCtx.imageSmoothingEnabled = false;
 
 		let faceTesselationIndices: number[] | null = null;
 		let faceOvalIndices: number[] | null = null;
@@ -255,7 +256,11 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		}
 
 		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_faceMask', faceMaskCanvas, { preserveY: true });
+			shaderPad.initializeTexture('u_faceMask', faceMaskCanvas, {
+				preserveY: true,
+				minFilter: gl.NEAREST,
+				magFilter: gl.NEAREST,
+			});
 			shaderPad.initializeUniform('u_maxFaces', 'int', maxFaces);
 			shaderPad.initializeUniform('u_nFaces', 'int', 0);
 
@@ -333,10 +338,12 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			landmarksDataArray = null;
 		});
 
-		const regionCheck = (val: number) =>
-			`(mask.r > ${(val - HALF_GAP).toFixed(4)} && mask.r < ${(val + HALF_GAP).toFixed(
-				4
-			)})  ? vec2(1.0, faceIndex) : vec2(0.0, -1.0)`;
+		const checkAt = (regionMin: keyof typeof FACE_REGION, regionMax: keyof typeof FACE_REGION = regionMin) =>
+			`vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return (mask.r > ${(FACE_REGION[regionMin] - HALF_GAP).toFixed(4)} && mask.r < ${(
+				FACE_REGION[regionMax] + HALF_GAP
+			).toFixed(4)})  ? vec2(1.0, faceIndex) : vec2(0.0, -1.0)`;
 
 		injectGLSL(`
 uniform int u_maxFaces;
@@ -358,39 +365,31 @@ vec4 faceLandmark(int faceIndex, int landmarkIndex) {
 }
 
 vec2 leftEyebrowAt(vec2 pos) {
-	vec4 mask = texture(u_faceMask, pos);
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return ${regionCheck(FACE_REGION.LEFT_EYEBROW)};
+	${checkAt('LEFT_EYEBROW')}
 }
 
 vec2 rightEyebrowAt(vec2 pos) {
-	vec4 mask = texture(u_faceMask, pos);
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return ${regionCheck(FACE_REGION.RIGHT_EYEBROW)};
+	${checkAt('RIGHT_EYEBROW')}
 }
 
 vec2 leftEyeAt(vec2 pos) {
-	vec4 mask = texture(u_faceMask, pos);
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return ${regionCheck(FACE_REGION.LEFT_EYE)};
+	${checkAt('LEFT_EYE')}
 }
 
 vec2 rightEyeAt(vec2 pos) {
-	vec4 mask = texture(u_faceMask, pos);
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return ${regionCheck(FACE_REGION.RIGHT_EYE)};
+	${checkAt('RIGHT_EYE')}
+}
+
+vec2 lipsAt(vec2 pos) {
+	${checkAt('OUTER_MOUTH')}
 }
 
 vec2 outerMouthAt(vec2 pos) {
-	vec4 mask = texture(u_faceMask, pos);
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return ${regionCheck(FACE_REGION.OUTER_MOUTH)};
+	${checkAt('OUTER_MOUTH', 'INNER_MOUTH')}
 }
 
 vec2 innerMouthAt(vec2 pos) {
-	vec4 mask = texture(u_faceMask, pos);
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return ${regionCheck(FACE_REGION.INNER_MOUTH)};
+	${checkAt('INNER_MOUTH')}
 }
 
 vec2 faceOvalAt(vec2 pos) {
@@ -426,14 +425,16 @@ float inEye(vec2 pos) {
 	return eyeAt(pos).x;
 }
 
-float inMouth(vec2 pos) {
+float inOuterMouth(vec2 pos) {
+	return outerMouthAt(pos).x;
+}
+
+float inInnerMouth(vec2 pos) {
 	return innerMouthAt(pos).x;
 }
 
 float inLips(vec2 pos) {
-	float lips = outerMouthAt(pos).x;
-	float mouth = innerMouthAt(pos).x;
-	return max(0.0, lips - mouth);
+	return lipsAt(pos).x;
 }
 
 float inFace(vec2 pos) {

@@ -415,7 +415,8 @@ All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexe
 -   `rightEyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in right eyebrow, `vec2(0.0, -1.0)` otherwise.
 -   `leftEyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in left eye, `vec2(0.0, -1.0)` otherwise.
 -   `rightEyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in right eye, `vec2(0.0, -1.0)` otherwise.
--   `outerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in outer mouth/lip region, `vec2(0.0, -1.0)` otherwise.
+-   `lipsAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in lips, `vec2(0.0, -1.0)` otherwise.
+-   `outerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in outer mouth (lips + inner mouth), `vec2(0.0, -1.0)` otherwise.
 -   `innerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in inner mouth region, `vec2(0.0, -1.0)` otherwise.
 -   `faceOvalAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face oval contour, `vec2(0.0, -1.0)` otherwise.
 -   `faceAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face mesh or oval contour, `vec2(0.0, -1.0)` otherwise.
@@ -427,8 +428,9 @@ All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexe
 -   `inFace(vec2 pos) -> float` - Returns `1.0` if position is in face mesh, `0.0` otherwise.
 -   `inEye(vec2 pos) -> float` - Returns `1.0` if position is in either eye, `0.0` otherwise.
 -   `inEyebrow(vec2 pos) -> float` - Returns `1.0` if position is in either eyebrow, `0.0` otherwise.
--   `inMouth(vec2 pos) -> float` - Returns `1.0` if position is in inner mouth, `0.0` otherwise.
--   `inLips(vec2 pos) -> float` - Returns `1.0` if position is in lips (outer mouth excluding inner), `0.0` otherwise.
+-   `inOuterMouth(vec2 pos) -> float` - Returns `1.0` if position is in outer mouth (lips + inner mouth), `0.0` otherwise.
+-   `inInnerMouth(vec2 pos) -> float` - Returns `1.0` if position is in inner mouth, `0.0` otherwise.
+-   `inLips(vec2 pos) -> float` - Returns `1.0` if position is in lips, `0.0` otherwise.
 
 **Landmark Constants:**
 

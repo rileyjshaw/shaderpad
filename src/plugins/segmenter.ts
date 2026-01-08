@@ -49,7 +49,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		'https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite';
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL } = context;
+		const { injectGLSL, gl } = context;
 
 		let imageSegmenter: ImageSegmenter | null = null;
 		let vision: any = null;
@@ -118,7 +118,11 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		}
 
 		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_segmentMask', dummyTexture, { preserveY: true });
+			shaderPad.initializeTexture('u_segmentMask', dummyTexture, {
+				preserveY: true,
+				minFilter: gl.NEAREST,
+				magFilter: gl.NEAREST,
+			});
 			shaderPad.initializeUniform('u_numCategories', 'int', numCategories);
 			await initializeImageSegmenter();
 		});
