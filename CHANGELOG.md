@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.34
+
+### Minor Changes
+
+-   Limit antialiasing on mask textures
+
 ## 1.0.0-beta.33
 
 ### Minor Changes
