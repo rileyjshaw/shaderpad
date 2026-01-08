@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.35
+
+### Patch Changes
+
+-   Fix bug in face plugin
+
 ## 1.0.0-beta.34
 
 ### Minor Changes
