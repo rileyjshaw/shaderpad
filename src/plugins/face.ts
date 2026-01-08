@@ -343,7 +343,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
 	return (mask.r > ${(FACE_REGION[regionMin] - HALF_GAP).toFixed(4)} && mask.r < ${(
 				FACE_REGION[regionMax] + HALF_GAP
-			).toFixed(4)})  ? vec2(1.0, faceIndex) : vec2(0.0, -1.0)`;
+			).toFixed(4)}) ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`;
 
 		injectGLSL(`
 uniform int u_maxFaces;
