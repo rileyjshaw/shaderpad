@@ -54,8 +54,8 @@ void main() {
 		}
 
 		vec2 uvNearerFaceCenter = uv - dir * 80.0 * pixel;
-		float face = inFace(uv) + inFace(uvNearerFaceCenter);
-		if (face > 0.0) {
+		float faceConfidence = inFace(uv) + inFace(uvNearerFaceCenter);
+		if (faceConfidence > 0.0) {
 			vec2 target = uv + dir * (20.0 * pixel); // Grab the color 20px away from your face center.
 			float z = historyZ(u_history, u_historyFrameOffset, 1);
 			color = texture(u_history, vec3(target, z)).rgb;

@@ -1,4 +1,34 @@
-function O(I){let{textureName:d,options:f}=I,v="https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite";return function(s,A){let{injectGLSL:T}=A,o=null,p=null,h=-1,u="VIDEO",y=new Map,M=2,k=512,S=512,r=document.createElement("canvas");r.width=k,r.height=S;let c=r.getContext("2d");c.fillStyle="black",c.fillRect(0,0,k,S);async function F(){try{let{FilesetResolver:t,ImageSegmenter:e}=await import("@mediapipe/tasks-vision");p=await t.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"),o=await e.createFromOptions(p,{baseOptions:{modelAssetPath:f?.modelPath||v},runningMode:u,outputCategoryMask:f?.outputCategoryMask??!0,outputConfidenceMasks:f?.outputConfidenceMasks??!1});let a=o.getLabels();M=a?a.length:2}catch(t){throw console.error("[Segmenter Plugin] Failed to initialize Image Segmenter:",t),t}}async function E(t){if(!(!o||!t))try{c.clearRect(0,0,r.width,r.height);let e=t.width,a=t.height,i,m=!1;if(typeof t.getAsUint8Array=="function")i=t.getAsUint8Array();else if(typeof t.getAsFloat32Array=="function")i=t.getAsFloat32Array(),m=!0;else return;let w=e*a,l=new Uint8ClampedArray(w*4),P=Math.max(1,M-1);for(let n=0;n<w;n++){let g;m?g=Math.round(i[n]):g=i[n];let D=g/P,H=Math.round(D*255);l[n*4]=H,l[n*4+1]=0,l[n*4+2]=0,l[n*4+3]=255}let C=new ImageData(l,e,a);if(e!==r.width||a!==r.height){let n=document.createElement("canvas");n.width=e,n.height=a,n.getContext("2d").putImageData(C,0,0),c.drawImage(n,0,0,r.width,r.height)}else c.putImageData(C,0,0);s.updateTextures({u_segmentMask:r})}catch(e){console.error("[Segmenter Plugin] Failed to generate mask texture:",e)}}function x(t){let e=t.categoryMask||t.confidenceMasks&&t.confidenceMasks[0];e&&E(e).catch(a=>{console.warn("[Segmenter Plugin] Mask texture update error:",a)})}function V(t){x(t)}function b(t){x(t)}s.registerHook("init",async()=>{s.initializeTexture("u_segmentMask",r),await F()}),s.registerHook("updateTextures",async t=>{let e=t[d];if(!(!e||(y.get(d)!==e&&(h=-1),y.set(d,e),!o)))try{let i=e instanceof HTMLVideoElement?"VIDEO":"IMAGE";if(u!==i&&(u=i,await o.setOptions({runningMode:u})),e instanceof HTMLVideoElement){if(e.videoWidth===0||e.videoHeight===0||e.readyState<2)return;if(e.currentTime!==h){h=e.currentTime;let m=performance.now();o.segmentForVideo(e,m,b)}}else if(e instanceof HTMLImageElement||e instanceof HTMLCanvasElement){if(e.width===0||e.height===0)return;o.segment(e,V)}}catch(i){console.error("[Segmenter Plugin] Segmentation error:",i)}}),s.registerHook("destroy",()=>{o&&(o.close(),o=null),p=null,y.clear(),r.remove()}),T(`
+import{a as S}from"../chunk-RKULNJXI.mjs";var M={data:new Uint8Array(4),width:1,height:1};function y(s){let u=Array.from({length:s},(m,t)=>`uniform sampler2D u_confidenceMask${t};`).join(`
+`),c=Array.from({length:s},(m,t)=>`		${t>0?"else ":""}if (i == ${t}) c = texelFetch(u_confidenceMask${t}, texCoord, 0).r;`).join(`
+`);return`#version 300 es
+precision mediump float;
+in vec2 v_uv;
+out vec4 outColor;
+${u}
+
+void main() {
+	ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_confidenceMask0, 0)));
+	float maxConfidence = 0.0;
+	int maxIndex = 0;
+
+	for (int i = 0; i < ${s}; i++) {
+		float c = 0.0;
+${c}
+		if (c > maxConfidence) {
+			maxConfidence = c;
+			maxIndex = i;
+		}
+	}
+
+	// Normalize index: 0 = background, 1/(n-1) to 1 for foreground categories.
+	float normalizedIndex = float(maxIndex) / float(max(1, ${s-1}));
+	outColor = vec4(normalizedIndex, maxConfidence, 0.0, 1.0);
+}`}function I(s){let{textureName:u,options:c}=s,m="https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite";return function(t,k){let{injectGLSL:C}=k,o=null,g=null,f=-1,l="VIDEO",d=new Map,p=1,x=new OffscreenCanvas(1,1),i=null;async function T(){try{let{FilesetResolver:n,ImageSegmenter:e}=await import("@mediapipe/tasks-vision");g=await n.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"),o=await e.createFromOptions(g,{baseOptions:{modelAssetPath:c?.modelPath||m,delegate:"GPU"},canvas:x,runningMode:l,outputCategoryMask:c?.outputCategoryMask??!1,outputConfidenceMasks:!0});let r=o.getLabels();r.length&&(p=r.length),t.updateUniforms({u_numCategories:p})}catch(n){throw console.error("[Segmenter Plugin] Failed to initialize:",n),n}}function _(n){if(!i)return;let e={};for(let r=0;r<n.length;r++)e[`u_confidenceMask${r}`]=n[r].getAsWebGLTexture();i.updateTextures(e),i.draw(),t.updateTextures({u_segmentMask:x})}function h(n){let{confidenceMasks:e}=n;if(!(!e||e.length===0)){if(!i){let r=y(e.length);i=new S(r,{canvas:x});for(let a=0;a<e.length;a++)i.initializeTexture(`u_confidenceMask${a}`,M)}_(e)}}t.registerHook("init",async()=>{t.initializeTexture("u_segmentMask",M,{preserveY:!0}),t.initializeUniform("u_numCategories","int",p),await T()}),t.registerHook("updateTextures",async n=>{let e=n[u];if(!(!e||(d.get(u)!==e&&(f=-1),d.set(u,e),!o)))try{let a=e instanceof HTMLVideoElement?"VIDEO":"IMAGE";if(l!==a&&(l=a,await o.setOptions({runningMode:l})),e instanceof HTMLVideoElement){if(e.videoWidth===0||e.videoHeight===0||e.readyState<2)return;if(e.currentTime!==f){f=e.currentTime;let v=o.segmentForVideo(e,performance.now());h(v)}}else if(e instanceof HTMLImageElement||e instanceof HTMLCanvasElement){if(e.width===0||e.height===0)return;let v=o.segment(e);h(v)}}catch(a){console.error("[Segmenter Plugin] Segmentation error:",a)}}),t.registerHook("destroy",()=>{o&&(o.close(),o=null),i&&(i.destroy(),i=null),g=null,d.clear()}),C(`
 uniform sampler2D u_segmentMask;
-float inSegment(vec2 pos) { return texture(u_segmentMask, pos).r; }`)}}var L=O;export{L as default};
+uniform int u_numCategories;
+
+vec2 segmentAt(vec2 pos) {
+	vec4 mask = texture(u_segmentMask, pos);
+	return vec2(mask.r, mask.g);
+}`)}}var z=I;export{z as default};
 //# sourceMappingURL=segmenter.mjs.map

@@ -1,22 +1,102 @@
-"use strict";var Z=Object.create;var b=Object.defineProperty;var q=Object.getOwnPropertyDescriptor;var J=Object.getOwnPropertyNames;var Q=Object.getPrototypeOf,ee=Object.prototype.hasOwnProperty;var te=(c,u)=>{for(var r in u)b(c,r,{get:u[r],enumerable:!0})},U=(c,u,r,k)=>{if(u&&typeof u=="object"||typeof u=="function")for(let s of J(u))!ee.call(c,s)&&s!==r&&b(c,s,{get:()=>u[s],enumerable:!(k=q(u,s))||k.enumerable});return c};var K=(c,u,r)=>(r=c!=null?Z(Q(c)):{},U(u||!c||!c.__esModule?b(r,"default",{value:c,enumerable:!0}):r,c)),ne=c=>U(b({},"__esModule",{value:!0}),c);var oe={};te(oe,{default:()=>ie});module.exports=ne(oe);var M=478,ae=2,_=M+ae,l={LEFT_EYEBROW:[336,296,334,293,300,276,283,282,295,285],LEFT_EYE:[362,398,384,385,386,387,388,466,263,249,390,373,374,380,381,382],LEFT_EYE_CENTER:473,RIGHT_EYEBROW:[70,63,105,66,107,55,65,52,53,46],RIGHT_EYE:[33,246,161,160,159,158,157,173,133,155,154,153,145,144,163,7],RIGHT_EYE_CENTER:468,NOSE_TIP:4,OUTER_LIP:[61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146],INNER_LIP:[78,191,80,81,82,13,312,311,310,415,308,324,318,402,317,14,87,178,88,95],FACE_CENTER:M,MOUTH_CENTER:M+1};function re(c){let{textureName:u,options:r}=c,k="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task";return function(s,V){let{injectGLSL:$,gl:A}=V,E=null,O=null,y=-1,N="VIDEO",S=new Map,D=r?.maxFaces??1,L=512,v=0,t=null,z=512,B=512,m=document.createElement("canvas");m.width=z,m.height=B;let F=m.getContext("2d");F.globalCompositeOperation="lighten";async function G(){try{let{FilesetResolver:n,FaceLandmarker:e}=await import("@mediapipe/tasks-vision");O=await n.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"),E=await e.createFromOptions(O,{baseOptions:{modelAssetPath:r?.modelPath||k},runningMode:N,numFaces:r?.maxFaces??1,minFaceDetectionConfidence:r?.minFaceDetectionConfidence??.5,minFacePresenceConfidence:r?.minFacePresenceConfidence??.5,minTrackingConfidence:r?.minTrackingConfidence??.5,outputFaceBlendshapes:r?.outputFaceBlendshapes??!1,outputFacialTransformationMatrixes:r?.outputFacialTransformationMatrixes??!1})}catch(n){throw console.error("Failed to initialize Face Landmarker:",n),n}}function w(n,e,a){let o=1/0,i=-1/0,T=1/0,d=-1/0,f=0,R=0;for(let j of a){let I=(e*_+j)*4,Y=n[I],P=n[I+1];o=Math.min(o,Y),i=Math.max(i,Y),T=Math.min(T,P),d=Math.max(d,P),f+=n[I+2],R+=n[I+3]}let p=(o+i)/2,h=(T+d)/2,x=f/a.length,C=R/a.length;return[p,h,x,C]}function g(n,e,a){if(!t)return;F.fillStyle=`rgb(${Math.round(a.r*255)}, ${Math.round(a.g*255)}, ${Math.round(a.b*255)})`,F.beginPath();let o=(n*_+e[0])*4,i=t[o],T=t[o+1];F.moveTo(i*m.width,T*m.height);for(let d=1;d<e.length;++d){let f=(n*_+e[d])*4,R=t[f],p=t[f+1];F.lineTo(R*m.width,p*m.height)}F.closePath(),F.fill()}async function W(n){if(!E||!t){console.warn("[Face Plugin] Cannot update mask: faceLandmarker or landmarksDataArray missing");return}try{let{FaceLandmarker:e}=await import("@mediapipe/tasks-vision");F.clearRect(0,0,m.width,m.height);for(let a=0;a<n;++a)g(a,l.OUTER_LIP,{r:.25,g:0,b:0}),g(a,l.INNER_LIP,{r:.75,g:0,b:0}),g(a,e.FACE_LANDMARKS_TESSELATION.map(({start:o})=>o),{r:0,g:.25,b:0}),g(a,e.FACE_LANDMARKS_FACE_OVAL.map(({start:o})=>o),{r:0,g:1,b:0}),g(a,l.LEFT_EYEBROW,{r:0,g:0,b:.15}),g(a,l.RIGHT_EYEBROW,{r:0,g:0,b:.35}),g(a,l.LEFT_EYE,{r:0,g:0,b:.65}),g(a,l.RIGHT_EYE,{r:0,g:0,b:.85});s.updateTextures({u_faceMask:m})}catch(e){console.error("[Face Plugin] Failed to generate mask texture:",e)}}function X(n){if(!t)return;let e=n.length,a=e*_;for(let i=0;i<e;++i){let T=n[i];for(let h=0;h<M;++h){let x=T[h],C=(i*_+h)*4;t[C]=x.x,t[C+1]=1-x.y,t[C+2]=x.z??0,t[C+3]=x.visibility??1}let d=w(t,i,Array.from({length:M},(h,x)=>x)),f=(i*_+l.FACE_CENTER)*4;t[f]=d[0],t[f+1]=d[1],t[f+2]=0,t[f+3]=1;let R=w(t,i,l.INNER_LIP),p=(i*_+l.MOUTH_CENTER)*4;t[p]=R[0],t[p+1]=R[1],t[p+2]=0,t[p+3]=1}let o=Math.ceil(a/L);s.updateTextures({u_faceLandmarksTex:{data:t,width:L,height:o}})}function H(n){if(!n.faceLandmarks||!t)return;let e=n.faceLandmarks.length;X(n.faceLandmarks),W(e).catch(a=>{console.warn("Mask texture update error:",a)}),s.updateUniforms({u_nFaces:e}),r?.onResults?.(n)}s.registerHook("init",async()=>{s.initializeTexture("u_faceMask",m,{preserveY:!0}),s.initializeUniform("u_maxFaces","int",D),s.initializeUniform("u_nFaces","int",0);let n=D*_;v=Math.ceil(n/L);let e=L*v*4;t=new Float32Array(e),s.initializeTexture("u_faceLandmarksTex",{data:t,width:L,height:v},{internalFormat:A.RGBA32F,type:A.FLOAT,minFilter:A.NEAREST,magFilter:A.NEAREST}),await G()}),s.registerHook("updateTextures",async n=>{let e=n[u];if(!(!e||(S.get(u)!==e&&(y=-1),S.set(u,e),!E)))try{let o=e instanceof HTMLVideoElement?"VIDEO":"IMAGE";if(N!==o&&(N=o,await E.setOptions({runningMode:N})),e instanceof HTMLVideoElement){if(e.videoWidth===0||e.videoHeight===0||e.readyState<2)return;if(e.currentTime!==y){y=e.currentTime;let i=performance.now(),T=E.detectForVideo(e,i);H(T)}}else if(e instanceof HTMLImageElement||e instanceof HTMLCanvasElement){if(e.width===0||e.height===0)return;let i=E.detect(e);H(i)}}catch(o){console.warn("Face detection error:",o)}}),s.registerHook("destroy",()=>{E&&(E.close(),E=null),O=null,S.clear(),m.remove(),t=null}),$(`
+"use strict";var se=Object.create;var b=Object.defineProperty;var ie=Object.getOwnPropertyDescriptor;var ue=Object.getOwnPropertyNames;var le=Object.getPrototypeOf,fe=Object.prototype.hasOwnProperty;var Ee=(r,c)=>{for(var s in c)b(r,s,{get:c[s],enumerable:!0})},V=(r,c,s,C)=>{if(c&&typeof c=="object"||typeof c=="function")for(let i of ue(c))!fe.call(r,i)&&i!==s&&b(r,i,{get:()=>c[i],enumerable:!(C=ie(c,i))||C.enumerable});return r};var me=(r,c,s)=>(s=r!=null?se(le(r)):{},V(c||!r||!r.__esModule?b(s,"default",{value:r,enumerable:!0}):s,r)),_e=r=>V(b({},"__esModule",{value:!0}),r);var Fe={};Ee(Fe,{default:()=>pe});module.exports=_e(Fe);var k=478,de=2,_=k+de,X=[336,296,334,293,300,276,283,282,295,285],j=[362,398,384,385,386,387,388,466,263,249,390,373,374,380,381,382],Z=[70,63,105,66,107,55,65,52,53,46],q=[33,246,161,160,159,158,157,173,133,155,154,153,145,144,163,7],J=[61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146],$=[78,191,80,81,82,13,312,311,310,415,308,324,318,402,317,14,87,178,88,95],Te=Array.from({length:k},(r,c)=>c),A={LEFT_EYEBROW:X,LEFT_EYE:j,LEFT_EYE_CENTER:473,RIGHT_EYEBROW:Z,RIGHT_EYE:q,RIGHT_EYE_CENTER:468,NOSE_TIP:4,OUTER_MOUTH:J,INNER_MOUTH:$,FACE_CENTER:k,MOUTH_CENTER:k+1},Q=["BACKGROUND","LEFT_EYEBROW","RIGHT_EYEBROW","LEFT_EYE","RIGHT_EYE","OUTER_MOUTH","INNER_MOUTH"],ee=Q.length-1,f=Object.fromEntries(Q.map((r,c)=>[r,c/ee])),z=.5/ee;function xe(r){let{textureName:c,options:s}=r,C="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task";return function(i,te){let{injectGLSL:ne,gl:N}=te,d=null,y=null,H=-1,L="VIDEO",S=new Map,D=s?.maxFaces??1,F=512,U=0,a=null,Y=new OffscreenCanvas(1,1),T=document.createElement("canvas"),E=T.getContext("2d"),w=null,G=null;async function ae(){try{let{FilesetResolver:t,FaceLandmarker:e}=await import("@mediapipe/tasks-vision");y=await t.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"),d=await e.createFromOptions(y,{baseOptions:{modelAssetPath:s?.modelPath||C,delegate:"GPU"},canvas:Y,runningMode:L,numFaces:s?.maxFaces??1,minFaceDetectionConfidence:s?.minFaceDetectionConfidence??.5,minFacePresenceConfidence:s?.minFacePresenceConfidence??.5,minTrackingConfidence:s?.minTrackingConfidence??.5,outputFaceBlendshapes:s?.outputFaceBlendshapes??!1,outputFacialTransformationMatrixes:s?.outputFacialTransformationMatrixes??!1}),w=e.FACE_LANDMARKS_TESSELATION.map(({start:u})=>u),G=e.FACE_LANDMARKS_FACE_OVAL.map(({start:u})=>u)}catch(t){throw console.error("[Face Plugin] Failed to initialize:",t),t}}function B(t,e,u){let o=1/0,n=-1/0,p=1/0,l=-1/0,m=0,R=0;for(let ce of u){let O=(e*_+ce)*4,K=t[O],W=t[O+1];o=Math.min(o,K),n=Math.max(n,K),p=Math.min(p,W),l=Math.max(l,W),m+=t[O+2],R+=t[O+3]}let g=(o+n)/2,h=(p+l)/2,I=m/u.length,v=R/u.length;return[g,h,I,v]}function x(t,e,u){if(!a)return;let{width:o,height:n}=T;E.fillStyle=`rgb(${u.r}, ${u.g}, ${u.b})`,E.beginPath();let p=(t*_+e[0])*4;E.moveTo(a[p]*o,a[p+1]*n);for(let l=1;l<e.length;++l){let m=(t*_+e[l])*4;E.lineTo(a[m]*o,a[m+1]*n)}E.closePath(),E.fill()}function oe(t){if(!a||!w||!G)return;let{width:e,height:u}=T;E.clearRect(0,0,e,u),E.save(),E.globalCompositeOperation="lighten";for(let o=0;o<t;++o){let n=Math.round((o+1)/D*255);x(o,w,{r:0,g:128,b:n}),x(o,G,{r:0,g:255,b:n}),x(o,X,{r:Math.round(f.LEFT_EYEBROW*255),g:0,b:n}),x(o,Z,{r:Math.round(f.RIGHT_EYEBROW*255),g:0,b:n}),x(o,j,{r:Math.round(f.LEFT_EYE*255),g:0,b:n}),x(o,q,{r:Math.round(f.RIGHT_EYE*255),g:0,b:n}),x(o,J,{r:Math.round(f.OUTER_MOUTH*255),g:0,b:n}),x(o,$,{r:Math.round(f.INNER_MOUTH*255),g:0,b:n})}E.restore(),i.updateTextures({u_faceMask:T})}function re(t){if(!a)return;let e=t.length,u=e*_;for(let n=0;n<e;++n){let p=t[n];for(let h=0;h<k;++h){let I=p[h],v=(n*_+h)*4;a[v]=I.x,a[v+1]=1-I.y,a[v+2]=I.z??0,a[v+3]=I.visibility??1}let l=B(a,n,Te),m=(n*_+A.FACE_CENTER)*4;a[m]=l[0],a[m+1]=l[1],a[m+2]=l[2],a[m+3]=l[3];let R=B(a,n,$),g=(n*_+A.MOUTH_CENTER)*4;a[g]=R[0],a[g+1]=R[1],a[g+2]=R[2],a[g+3]=R[3]}let o=Math.ceil(u/F);i.updateTextures({u_faceLandmarksTex:{data:a,width:F,height:o,isPartial:!0}})}function P(t){if(!t.faceLandmarks||!a)return;T.width=Y.width,T.height=Y.height;let e=t.faceLandmarks.length;re(t.faceLandmarks),oe(e),i.updateUniforms({u_nFaces:e}),s?.onResults?.(t)}i.registerHook("init",async()=>{i.initializeTexture("u_faceMask",T,{preserveY:!0}),i.initializeUniform("u_maxFaces","int",D),i.initializeUniform("u_nFaces","int",0);let t=D*_;U=Math.ceil(t/F);let e=F*U*4;a=new Float32Array(e),i.initializeTexture("u_faceLandmarksTex",{data:a,width:F,height:U},{internalFormat:N.RGBA32F,type:N.FLOAT,minFilter:N.NEAREST,magFilter:N.NEAREST}),await ae()}),i.registerHook("updateTextures",async t=>{let e=t[c];if(!(!e||(S.get(c)!==e&&(H=-1),S.set(c,e),!d)))try{let o=e instanceof HTMLVideoElement?"VIDEO":"IMAGE";if(L!==o&&(L=o,await d.setOptions({runningMode:L})),e instanceof HTMLVideoElement){if(e.videoWidth===0||e.videoHeight===0||e.readyState<2)return;if(e.currentTime!==H){H=e.currentTime;let n=d.detectForVideo(e,performance.now());P(n)}}else if(e instanceof HTMLImageElement||e instanceof HTMLCanvasElement){if(e.width===0||e.height===0)return;let n=d.detect(e);P(n)}}catch(o){console.error("[Face Plugin] Detection error:",o)}}),i.registerHook("destroy",()=>{d&&(d.close(),d=null),y=null,S.clear(),T.remove(),a=null});let M=t=>`(mask.r > ${(t-z).toFixed(4)} && mask.r < ${(t+z).toFixed(4)})  ? vec2(1.0, faceIndex) : vec2(0.0, -1.0)`;ne(`
 uniform int u_maxFaces;
 uniform int u_nFaces;
 uniform sampler2D u_faceLandmarksTex;
 uniform sampler2D u_faceMask;
 
-#define FACE_LANDMARK_L_EYE_CENTER ${l.LEFT_EYE_CENTER}
-#define FACE_LANDMARK_R_EYE_CENTER ${l.RIGHT_EYE_CENTER}
-#define FACE_LANDMARK_NOSE_TIP ${l.NOSE_TIP}
-#define FACE_LANDMARK_FACE_CENTER ${l.FACE_CENTER}
-#define FACE_LANDMARK_MOUTH_CENTER ${l.MOUTH_CENTER}
+#define FACE_LANDMARK_L_EYE_CENTER ${A.LEFT_EYE_CENTER}
+#define FACE_LANDMARK_R_EYE_CENTER ${A.RIGHT_EYE_CENTER}
+#define FACE_LANDMARK_NOSE_TIP ${A.NOSE_TIP}
+#define FACE_LANDMARK_FACE_CENTER ${A.FACE_CENTER}
+#define FACE_LANDMARK_MOUTH_CENTER ${A.MOUTH_CENTER}
 
 vec4 faceLandmark(int faceIndex, int landmarkIndex) {
 	int i = faceIndex * ${_} + landmarkIndex;
-	int x = i % ${L};
-	int y = i / ${L};
+	int x = i % ${F};
+	int y = i / ${F};
 	return texelFetch(u_faceLandmarksTex, ivec2(x, y), 0);
 }
-float inFace(vec2 pos) { return texture(u_faceMask, pos).g; }
-float inEye(vec2 pos) { return texture(u_faceMask, pos).b; }
-float inMouth(vec2 pos) { return texture(u_faceMask, pos).r; }`)}}var ie=re;
+
+vec2 leftEyebrowAt(vec2 pos) {
+	vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return ${M(f.LEFT_EYEBROW)};
+}
+
+vec2 rightEyebrowAt(vec2 pos) {
+	vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return ${M(f.RIGHT_EYEBROW)};
+}
+
+vec2 leftEyeAt(vec2 pos) {
+	vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return ${M(f.LEFT_EYE)};
+}
+
+vec2 rightEyeAt(vec2 pos) {
+	vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return ${M(f.RIGHT_EYE)};
+}
+
+vec2 outerMouthAt(vec2 pos) {
+	vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return ${M(f.OUTER_MOUTH)};
+}
+
+vec2 innerMouthAt(vec2 pos) {
+	vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return ${M(f.INNER_MOUTH)};
+}
+
+vec2 faceOvalAt(vec2 pos) {
+	vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return mask.g > 0.75 ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);
+}
+
+// Includes face mesh and oval.
+vec2 faceAt(vec2 pos) {
+	vec4 mask = texture(u_faceMask, pos);
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return mask.g > 0.25 ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);
+}
+
+vec2 eyeAt(vec2 pos) {
+	vec2 left = leftEyeAt(pos);
+	vec2 right = rightEyeAt(pos);
+	return left.x >= 0.0 ? left : right;
+}
+
+vec2 eyebrowAt(vec2 pos) {
+	vec2 left = leftEyebrowAt(pos);
+	vec2 right = rightEyebrowAt(pos);
+	return left.x >= 0.0 ? left : right;
+}
+
+float inEyebrow(vec2 pos) {
+	return eyebrowAt(pos).x;
+}
+
+float inEye(vec2 pos) {
+	return eyeAt(pos).x;
+}
+
+float inMouth(vec2 pos) {
+	return innerMouthAt(pos).x;
+}
+
+float inLips(vec2 pos) {
+	float lips = outerMouthAt(pos).x;
+	float mouth = innerMouthAt(pos).x;
+	return max(0.0, lips - mouth);
+}
+
+float inFace(vec2 pos) {
+	return faceAt(pos).x;
+}`)}}var pe=xe;
 //# sourceMappingURL=face.js.map

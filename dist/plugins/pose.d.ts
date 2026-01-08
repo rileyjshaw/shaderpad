@@ -7,7 +7,6 @@ interface PosePluginOptions {
     minPoseDetectionConfidence?: number;
     minPosePresenceConfidence?: number;
     minTrackingConfidence?: number;
-    outputSegmentationMasks?: boolean;
     onResults?: (results: PoseLandmarkerResult) => void;
 }
 declare function pose(config: {

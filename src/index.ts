@@ -658,14 +658,17 @@ class ShaderPad {
 			}
 		}
 
-		const shouldFlipY = !info.options?.preserveY;
+		// UNPACK_FLIP_Y_WEBGL only works for DOM element sources, not typed arrays.
+		const isTypedArray = 'data' in source && source.data;
+		const shouldFlipY = !isTypedArray && !info.options?.preserveY;
+		const previousFlipY = this.gl.getParameter(this.gl.UNPACK_FLIP_Y_WEBGL);
+
 		if (info.history) {
 			const isFramebufferHistory = name === HISTORY_TEXTURE_KEY;
 
 			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
 			this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
 			if (isFramebufferHistory) {
-				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
 				this.gl.copyTexSubImage3D(
 					this.gl.TEXTURE_2D_ARRAY,
 					0,
@@ -692,6 +695,7 @@ class ShaderPad {
 					info.options?.type ?? this.gl.UNSIGNED_BYTE,
 					((source as PartialCustomTexture).data ?? (source as Exclude<TextureSource, CustomTexture>)) as any
 				);
+				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
 			}
 			const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
 			this.updateUniforms({ [frameOffsetUniformName]: info.history.writeIndex });
@@ -717,7 +721,6 @@ class ShaderPad {
 					source.data
 				);
 			} else {
-				const isTypedArray = 'data' in source && source.data;
 				const internalFormat =
 					info.options?.internalFormat ??
 					(isTypedArray ? (type === this.gl.FLOAT ? this.gl.RGBA32F : this.gl.RGBA8) : this.gl.RGBA);
@@ -733,6 +736,7 @@ class ShaderPad {
 					((source as PartialCustomTexture).data ?? (source as Exclude<TextureSource, CustomTexture>)) as any
 				);
 			}
+			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
 		}
 	}
 

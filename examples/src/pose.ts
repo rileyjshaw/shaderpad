@@ -36,8 +36,13 @@ void main() {
 	vec4 webcamColor = texture(u_webcam, uv);
 	vec3 color = webcamColor.rgb;
 
-	bool isInBody = inBody(uv) > 0;
-	color = mix(color, vec3(0.0, 1.0, 0.0), isInBody ? 0.3 : 0.0);
+	for (int i = 0; i < u_nPoses; ++i) {
+		vec2 pose = poseAt(uv);
+		vec3 poseColor = vec3(float(i % 3 == 0), float(i % 3 == 1), float(i % 3 == 2));
+		if (int(pose.y) == i) {
+			color = mix(color, poseColor, pose.x * 0.3);
+		}
+	}
 
 	for (int i = 0; i < u_nPoses; ++i) {
 		// Draw tiny red dots on all pose landmarks.

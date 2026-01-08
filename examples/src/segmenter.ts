@@ -35,11 +35,11 @@ void main() {
 	vec4 webcamColor = texture(u_webcam, v_uv);
 	vec3 color = webcamColor.rgb;
 
-	float segmentMask = inSegment(v_uv);
-
-	// Apply green tint to segmented regions (non-background)
-	if (segmentMask > 0.0) {
-		color = mix(color, vec3(0.0, 1.0, 0.0), segmentMask * 0.3);
+	vec2 segment = segmentAt(v_uv);
+	float category = segment.x;
+	float confidence = segment.y;
+	if (category > 0.0) {
+		color = mix(color, vec3(0.0, 1.0, 0.0), confidence * 0.2);
 	}
 
 	// Display mask in bottom-right corner as debug overlay.

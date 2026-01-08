@@ -399,27 +399,44 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform              | Type      | Description                                                |
-| -------------------- | --------- | ---------------------------------------------------------- |
-| `u_maxFaces`         | int       | Maximum number of faces to detect                          |
-| `u_nFaces`           | int       | Current number of detected faces                           |
-| `u_faceLandmarksTex` | sampler2D | Raw landmark data texture (use `faceLandmark()` to access) |
-| `u_faceMask`         | sampler2D | Face mask texture (R: mouth, G: face, B: eyes)             |
+| Uniform              | Type      | Description                                                                 |
+| -------------------- | --------- | --------------------------------------------------------------------------- |
+| `u_maxFaces`         | int       | Maximum number of faces to detect                                           |
+| `u_nFaces`           | int       | Current number of detected faces                                            |
+| `u_faceLandmarksTex` | sampler2D | Raw landmark data texture (use `faceLandmark()` to access)                  |
+| `u_faceMask`         | sampler2D | Face mask texture (R: region type, G: confidence, B: normalized face index) |
 
 **Helper functions:**
 
--   `faceLandmark(int faceIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(faceLandmark(...))` to get just the screen position.
--   `inFace(vec2 pos) -> float` - Returns face mask value at position (green channel)
--   `inEye(vec2 pos) -> float` - Returns eye mask value at position (blue channel)
--   `inMouth(vec2 pos) -> float` - Returns mouth mask value at position (red channel)
+All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexed (-1 = no face).
 
-**Constants:**
+-   `faceLandmark(int faceIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(faceLandmark(...))` to get just the screen position.
+-   `leftEyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in left eyebrow, `vec2(0.0, -1.0)` otherwise.
+-   `rightEyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in right eyebrow, `vec2(0.0, -1.0)` otherwise.
+-   `leftEyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in left eye, `vec2(0.0, -1.0)` otherwise.
+-   `rightEyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in right eye, `vec2(0.0, -1.0)` otherwise.
+-   `outerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in outer mouth/lip region, `vec2(0.0, -1.0)` otherwise.
+-   `innerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in inner mouth region, `vec2(0.0, -1.0)` otherwise.
+-   `faceOvalAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face oval contour, `vec2(0.0, -1.0)` otherwise.
+-   `faceAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face mesh or oval contour, `vec2(0.0, -1.0)` otherwise.
+-   `eyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eye, `vec2(0.0, -1.0)` otherwise.
+-   `eyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eyebrow, `vec2(0.0, -1.0)` otherwise.
+
+**Convenience functions** (return `1.0` if true, `0.0` if false):
+
+-   `inFace(vec2 pos) -> float` - Returns `1.0` if position is in face mesh, `0.0` otherwise.
+-   `inEye(vec2 pos) -> float` - Returns `1.0` if position is in either eye, `0.0` otherwise.
+-   `inEyebrow(vec2 pos) -> float` - Returns `1.0` if position is in either eyebrow, `0.0` otherwise.
+-   `inMouth(vec2 pos) -> float` - Returns `1.0` if position is in inner mouth, `0.0` otherwise.
+-   `inLips(vec2 pos) -> float` - Returns `1.0` if position is in lips (outer mouth excluding inner), `0.0` otherwise.
+
+**Landmark Constants:**
 
 -   `FACE_LANDMARK_L_EYE_CENTER` - Left eye center landmark index
 -   `FACE_LANDMARK_R_EYE_CENTER` - Right eye center landmark index
 -   `FACE_LANDMARK_NOSE_TIP` - Nose tip landmark index
 -   `FACE_LANDMARK_FACE_CENTER` - Face center landmark index (custom, calculated from all landmarks)
--   `FACE_LANDMARK_MOUTH_CENTER` - Mouth center landmark index (custom, calculated from inner lip landmarks)
+-   `FACE_LANDMARK_MOUTH_CENTER` - Mouth center landmark index (custom, calculated from inner mouth landmarks)
 
 **Example usage:**
 
@@ -427,14 +444,17 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 // Get a specific landmark position.
 vec2 nosePos = vec2(faceLandmark(0, FACE_LANDMARK_NOSE_TIP));
 
-if (inMouth(v_uv) > 0.0) {
-	// Position is inside a mouth.
-}
+// Use in* convenience functions for simple boolean checks.
+float eyeMask = inEye(v_uv);
 
-// Iterate through all faces and landmarks.
+// Use faceLandmark or *At functions when you need to check a specific face index.
+vec2 leftEye = leftEyeAt(v_uv);
 for (int i = 0; i < u_nFaces; ++i) {
-    vec4 leftEye = faceLandmark(i, FACE_LANDMARK_L_EYE_CENTER);
-    vec4 rightEye = faceLandmark(i, FACE_LANDMARK_R_EYE_CENTER);
+    vec4 leftEyeCenter = faceLandmark(i, FACE_LANDMARK_L_EYE_CENTER);
+    vec4 rightEyeCenter = faceLandmark(i, FACE_LANDMARK_R_EYE_CENTER);
+	if (leftEye.x > 0.0 && int(leftEye.y) == i) {
+		// Position is inside the left eye of face i.
+	}
     // ...
 }
 ```
@@ -458,17 +478,18 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform              | Type      | Description                                           |
-| -------------------- | --------- | ----------------------------------------------------- |
-| `u_maxPoses`         | int       | Maximum number of poses to track                      |
-| `u_nPoses`           | int       | Current number of detected poses                      |
-| `u_poseLandmarksTex` | sampler2D | Raw landmark data texture (RGBA: x, y, z, visibility) |
-| `u_poseMask`         | sampler2D | Pose mask texture (G: body)                           |
+| Uniform              | Type      | Description                                                                   |
+| -------------------- | --------- | ----------------------------------------------------------------------------- |
+| `u_maxPoses`         | int       | Maximum number of poses to track                                              |
+| `u_nPoses`           | int       | Current number of detected poses                                              |
+| `u_poseLandmarksTex` | sampler2D | Raw landmark data texture (RGBA: x, y, z, visibility)                         |
+| `u_poseMask`         | sampler2D | Pose mask texture (R: body detected, G: confidence, B: normalized pose index) |
 
 **Helper functions:**
 
 -   `poseLandmark(int poseIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(poseLandmark(...))` to get just the screen position.
--   `inBody(vec2 pos) -> int` - Returns 0 if no body at position, otherwise returns a 1-indexed pose index
+-   `poseAt(vec2 pos) -> vec2` - Returns `vec2(confidence, poseIndex)`. poseIndex is 0-indexed (-1 = no pose), confidence is the segmentation confidence.
+-   `inPose(vec2 pos) -> float` - Returns `1.0` if position is in any pose, `0.0` otherwise.
 
 **Constants:**
 
@@ -550,13 +571,15 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 | -------------------- | --------- | ----------------------------------------------------- |
 | `u_maxHands`         | int       | Maximum number of hands to track                      |
 | `u_nHands`           | int       | Current number of detected hands                      |
-| `u_handLandmarksTex` | sampler2D | Raw landmark data texture (RGBA: x, y, z, visibility) |
+| `u_handLandmarksTex` | sampler2D | Raw landmark data texture (RGBA: x, y, z, handedness) |
 
 **Helper functions:**
 
--   `handLandmark(int handIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(handLandmark(...))` to get just the screen position.
+-   `handLandmark(int handIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, handedness)`. Use `vec2(handLandmark(...))` to get just the screen position. Handedness: 0.0 = left hand, 1.0 = right hand.
+-   `isRightHand(int handIndex) -> float` - Returns 1.0 if the hand is a right hand, 0.0 if left.
+-   `isLeftHand(int handIndex) -> float` - Returns 1.0 if the hand is a left hand, 0.0 if right.
 
-Use `handLandmark(int handIndex, int landmarkIndex)` in GLSL to retrieve a specific point. Landmark indices are:
+**Landmark Indices:**
 
 | Index | Landmark          | Index | Landmark          |
 | ----- | ----------------- | ----- | ----------------- |
@@ -577,16 +600,20 @@ Use `handLandmark(int handIndex, int landmarkIndex)` in GLSL to retrieve a speci
 A minimal fragment shader loop looks like:
 
 ```glsl
-#define HAND_LANDMARK_WRIST 0
-#define HAND_LANDMARK_THUMB_TIP 4
-#define HAND_LANDMARK_INDEX_TIP 8
-#define HAND_LANDMARK_HAND_CENTER 21
+#define WRIST 0
+#define THUMB_TIP 4
+#define INDEX_TIP 8
+#define HAND_CENTER 21
+
 for (int i = 0; i < u_maxHands; ++i) {
 	if (i >= u_nHands) break;
-	vec2 wrist = vec2(handLandmark(i, HAND_LANDMARK_WRIST));
-	vec2 thumbTip = vec2(handLandmark(i, HAND_LANDMARK_THUMB_TIP));
-	vec2 indexTip = vec2(handLandmark(i, HAND_LANDMARK_INDEX_TIP));
-	vec2 handCenter = vec2(handLandmark(i, HAND_LANDMARK_HAND_CENTER));
+	vec2 wrist = vec2(handLandmark(i, WRIST));
+	vec2 thumbTip = vec2(handLandmark(i, THUMB_TIP));
+	vec2 indexTip = vec2(handLandmark(i, INDEX_TIP));
+	vec2 handCenter = vec2(handLandmark(i, HAND_CENTER));
+
+	// Use handedness for coloring (0.0 = left/black, 1.0 = right/white).
+	vec3 handColor = vec3(isRightHand(i));
 	// …
 }
 ```
@@ -609,7 +636,6 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 				modelPath:
 					'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
 				outputCategoryMask: true,
-				outputConfidenceMasks: false,
 			},
 		}),
 	],
@@ -618,19 +644,26 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform         | Type      | Description                                                                                                              |
-| --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `u_segmentMask` | sampler2D | Segment mask texture (R: normalized category value, 0.0 for background, >0.0 for segments, spread evenly over 0-1 range) |
+| Uniform           | Type      | Description                                                             |
+| ----------------- | --------- | ----------------------------------------------------------------------- |
+| `u_segmentMask`   | sampler2D | Segment mask texture (R: normalized category, G: confidence, B: unused) |
+| `u_numCategories` | int       | Number of segmentation categories (including background)                |
 
 **Helper functions:**
 
--   `inSegment(vec2 pos) -> float` - Returns segment mask value at position (red channel). Returns 0.0 for background, >0.0 for segments. The value is normalized based on the number of categories, with segments spread evenly over the 0-1 range. For instance, with 3 categories: 0→0.0 (background), 1→0.5 (segment 1), 2→1.0 (segment 2).
+-   `segmentAt(vec2 pos) -> vec2` - Returns `vec2(confidence, categoryIndex)`. categoryIndex is 0-indexed (-1 = background). confidence is the segmentation confidence (0-1).
 
 **Example usage:**
 
 ```glsl
-bool isForeground = inSegment(v_uv) > 0.0;
-color = mix(color, vec3(1.0, 0.0, 1.0), isForeground);
+vec2 segment = segmentAt(v_uv);
+float confidence = segment.x;  // Segmentation confidence
+float category = segment.y;    // Category index (0-indexed, -1 = background)
+
+if (category >= 0.0) {
+	// Apply effect based on confidence.
+	color = mix(color, vec3(1.0, 0.0, 1.0), confidence);
+}
 ```
 
 **Note:** The segmenter plugin requires `@mediapipe/tasks-vision` as a peer dependency.

@@ -13,7 +13,7 @@ export interface HandsPluginOptions {
 const STANDARD_LANDMARK_COUNT = 21; // See https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models.
 const CUSTOM_LANDMARK_COUNT = 1;
 const LANDMARK_COUNT = STANDARD_LANDMARK_COUNT + CUSTOM_LANDMARK_COUNT;
-const HAND_CENTER_LANDMARKS = [0, 0, 5, 9, 13, 17]; // Wrist + MCP joints of all fingers, weighted toward the wrist.
+const HAND_CENTER_LANDMARKS = [0, 0, 5, 9, 13, 17] as const; // Wrist + MCP joints, weighted toward wrist.
 
 function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 	const { textureName, options } = config;
@@ -44,7 +44,9 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 				handLandmarker = await HandLandmarker.createFromOptions(vision, {
 					baseOptions: {
 						modelAssetPath: options?.modelPath || defaultModelPath,
+						delegate: 'GPU',
 					},
+					canvas: new OffscreenCanvas(1, 1),
 					runningMode: runningMode,
 					numHands: options?.maxHands ?? 2,
 					minHandDetectionConfidence: options?.minHandDetectionConfidence ?? 0.5,
@@ -52,7 +54,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					minTrackingConfidence: options?.minTrackingConfidence ?? 0.5,
 				});
 			} catch (error) {
-				console.error('Failed to initialize Hand Landmarker:', error);
+				console.error('[Hands Plugin] Failed to initialize:', error);
 				throw error;
 			}
 		}
@@ -60,7 +62,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		function calculateBoundingBoxCenter(
 			landmarksDataArray: Float32Array,
 			handIdx: number,
-			landmarkIndices: number[]
+			landmarkIndices: readonly number[]
 		): [number, number, number, number] {
 			let minX = Infinity,
 				maxX = -Infinity,
@@ -88,7 +90,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			return [centerX, centerY, centerZ, centerVisibility];
 		}
 
-		function updateLandmarksTexture(hands: NormalizedLandmark[][]) {
+		function updateLandmarksTexture(hands: NormalizedLandmark[][], handedness: { categoryName: string }[][]) {
 			if (!landmarksDataArray) return;
 
 			const nHands = hands.length;
@@ -96,23 +98,22 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 
 			for (let handIdx = 0; handIdx < nHands; ++handIdx) {
 				const landmarks = hands[handIdx];
-				// Store standard 21 landmarks
-				for (let lmIdx = 0; lmIdx < 21; ++lmIdx) {
+				const isRightHand = handedness[handIdx]?.[0]?.categoryName === 'Right';
+				for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
 					const landmark = landmarks[lmIdx];
 					const dataIdx = (handIdx * LANDMARK_COUNT + lmIdx) * 4;
-					landmarksDataArray[dataIdx] = landmark.x; // R (X)
-					landmarksDataArray[dataIdx + 1] = 1 - landmark.y; // G (Inverted Y)
-					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0; // B (Z)
-					landmarksDataArray[dataIdx + 3] = landmark.visibility ?? 1; // A (Visibility)
+					landmarksDataArray[dataIdx] = landmark.x;
+					landmarksDataArray[dataIdx + 1] = 1 - landmark.y;
+					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0;
+					landmarksDataArray[dataIdx + 3] = isRightHand ? 1 : 0;
 				}
 
-				// Calculate and store hand center (landmark 21)
 				const handCenter = calculateBoundingBoxCenter(landmarksDataArray, handIdx, HAND_CENTER_LANDMARKS);
-				const handCenterIdx = (handIdx * LANDMARK_COUNT + 21) * 4;
+				const handCenterIdx = (handIdx * LANDMARK_COUNT + STANDARD_LANDMARK_COUNT) * 4;
 				landmarksDataArray[handCenterIdx] = handCenter[0];
 				landmarksDataArray[handCenterIdx + 1] = handCenter[1];
 				landmarksDataArray[handCenterIdx + 2] = handCenter[2];
-				landmarksDataArray[handCenterIdx + 3] = handCenter[3];
+				landmarksDataArray[handCenterIdx + 3] = isRightHand ? 1 : 0;
 			}
 
 			const rowsToUpdate = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
@@ -121,6 +122,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					data: landmarksDataArray,
 					width: LANDMARKS_TEXTURE_WIDTH,
 					height: rowsToUpdate,
+					isPartial: true,
 				},
 			});
 		}
@@ -129,7 +131,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			if (!result.landmarks || !landmarksDataArray) return;
 
 			const nHands = result.landmarks.length;
-			updateLandmarksTexture(result.landmarks);
+			updateLandmarksTexture(result.landmarks, result.handedness);
 			shaderPad.updateUniforms({ u_nHands: nHands });
 
 			options?.onResults?.(result);
@@ -173,6 +175,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 
 			textureSources.set(textureName, source);
 			if (!handLandmarker) return;
+
 			try {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (runningMode !== requiredMode) {
@@ -186,8 +189,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					}
 					if (source.currentTime !== lastVideoTime) {
 						lastVideoTime = source.currentTime;
-						const timestamp = performance.now();
-						const result = handLandmarker.detectForVideo(source, timestamp);
+						const result = handLandmarker.detectForVideo(source, performance.now());
 						processHandResults(result);
 					}
 				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
@@ -198,7 +200,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					processHandResults(result);
 				}
 			} catch (error) {
-				console.warn('Hand detection error:', error);
+				console.error('[Hands Plugin] Detection error:', error);
 			}
 		});
 
@@ -216,11 +218,20 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 uniform int u_maxHands;
 uniform int u_nHands;
 uniform sampler2D u_handLandmarksTex;
+
 vec4 handLandmark(int handIndex, int landmarkIndex) {
 	int i = handIndex * ${LANDMARK_COUNT} + landmarkIndex;
 	int x = i % ${LANDMARKS_TEXTURE_WIDTH};
 	int y = i / ${LANDMARKS_TEXTURE_WIDTH};
 	return texelFetch(u_handLandmarksTex, ivec2(x, y), 0);
+}
+
+float isRightHand(int handIndex) {
+	return handLandmark(handIndex, 0).w;
+}
+
+float isLeftHand(int handIndex) {
+	return 1.0 - handLandmark(handIndex, 0).w;
 }`);
 	};
 }

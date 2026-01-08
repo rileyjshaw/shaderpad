@@ -1,10 +1,46 @@
 import ShaderPad, { PluginContext, TextureSource } from '../index';
-import type { ImageSegmenter } from '@mediapipe/tasks-vision';
+import type { ImageSegmenter, ImageSegmenterResult, MPMask } from '@mediapipe/tasks-vision';
 
 export interface SegmenterPluginOptions {
 	modelPath?: string;
 	outputCategoryMask?: boolean;
-	outputConfidenceMasks?: boolean;
+}
+
+const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
+
+function createMaskShaderSource(numMasks: number): string {
+	const uniforms = Array.from({ length: numMasks }, (_, i) => `uniform sampler2D u_confidenceMask${i};`).join('\n');
+
+	// GLSL doesn't allow dynamic indexing of samplers, so we need a switch-like construct.
+	const sampleByIndex = Array.from(
+		{ length: numMasks },
+		(_, i) => `\t\t${i > 0 ? 'else ' : ''}if (i == ${i}) c = texelFetch(u_confidenceMask${i}, texCoord, 0).r;`
+	).join('\n');
+
+	return `#version 300 es
+precision mediump float;
+in vec2 v_uv;
+out vec4 outColor;
+${uniforms}
+
+void main() {
+	ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_confidenceMask0, 0)));
+	float maxConfidence = 0.0;
+	int maxIndex = 0;
+
+	for (int i = 0; i < ${numMasks}; i++) {
+		float c = 0.0;
+${sampleByIndex}
+		if (c > maxConfidence) {
+			maxConfidence = c;
+			maxIndex = i;
+		}
+	}
+
+	// Normalize index: 0 = background, 1/(n-1) to 1 for foreground categories.
+	float normalizedIndex = float(maxIndex) / float(max(1, ${numMasks - 1}));
+	outColor = vec4(normalizedIndex, maxConfidence, 0.0, 1.0);
+}`;
 }
 
 function segmenter(config: { textureName: string; options?: SegmenterPluginOptions }) {
@@ -20,17 +56,11 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		let lastVideoTime = -1;
 		let runningMode: 'IMAGE' | 'VIDEO' = 'VIDEO';
 		const textureSources = new Map<string, TextureSource>();
-		let numCategories = 2;
+		let numCategories = 1;
 
-		const maskWidth = 512;
-		const maskHeight = 512;
-		const segmentMaskCanvas = document.createElement('canvas');
-		segmentMaskCanvas.width = maskWidth;
-		segmentMaskCanvas.height = maskHeight;
-		const segmentMaskCtx = segmentMaskCanvas.getContext('2d')!;
-		segmentMaskCtx.fillStyle = 'black';
-		segmentMaskCtx.fillRect(0, 0, maskWidth, maskHeight);
-
+		// Shared canvas for MediaPipe and maskShader (same WebGL context).
+		const sharedCanvas = new OffscreenCanvas(1, 1);
+		let maskShader: ShaderPad | null = null;
 		async function initializeImageSegmenter() {
 			try {
 				const { FilesetResolver, ImageSegmenter } = await import('@mediapipe/tasks-vision');
@@ -41,104 +71,55 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
 					baseOptions: {
 						modelAssetPath: options?.modelPath || defaultModelPath,
+						delegate: 'GPU',
 					},
+					canvas: sharedCanvas,
 					runningMode: runningMode,
-					outputCategoryMask: options?.outputCategoryMask ?? true,
-					outputConfidenceMasks: options?.outputConfidenceMasks ?? false,
+					outputCategoryMask: options?.outputCategoryMask ?? false, // Better for perf, and category can be inferred from confidence mask index.
+					outputConfidenceMasks: true,
 				});
 
 				const labels = imageSegmenter.getLabels();
-				numCategories = labels ? labels.length : 2;
+				if (labels.length) numCategories = labels.length;
+				shaderPad.updateUniforms({ u_numCategories: numCategories });
 			} catch (error) {
-				console.error('[Segmenter Plugin] Failed to initialize Image Segmenter:', error);
+				console.error('[Segmenter Plugin] Failed to initialize:', error);
 				throw error;
 			}
 		}
 
-		async function updateMaskTexture(segmentationMask: any) {
-			if (!imageSegmenter || !segmentationMask) {
-				return;
+		function updateMaskTexture(confidenceMasks: MPMask[]) {
+			if (!maskShader) return;
+
+			const textures: Record<string, WebGLTexture> = {};
+			for (let i = 0; i < confidenceMasks.length; i++) {
+				textures[`u_confidenceMask${i}`] = confidenceMasks[i].getAsWebGLTexture();
 			}
-
-			try {
-				segmentMaskCtx.clearRect(0, 0, segmentMaskCanvas.width, segmentMaskCanvas.height);
-
-				const width = segmentationMask.width;
-				const height = segmentationMask.height;
-
-				let maskData: Uint8Array | Float32Array;
-				let dataIsFloat = false;
-
-				if (typeof segmentationMask.getAsUint8Array === 'function') {
-					maskData = segmentationMask.getAsUint8Array();
-				} else if (typeof segmentationMask.getAsFloat32Array === 'function') {
-					maskData = segmentationMask.getAsFloat32Array();
-					dataIsFloat = true;
-				} else {
-					return;
-				}
-
-				const pixelCount = width * height;
-				const outputData = new Uint8ClampedArray(pixelCount * 4);
-				const maxCategory = Math.max(1, numCategories - 1);
-
-				for (let i = 0; i < pixelCount; i++) {
-					let categoryValue: number;
-					if (dataIsFloat) {
-						categoryValue = Math.round((maskData as Float32Array)[i]);
-					} else {
-						categoryValue = (maskData as Uint8Array)[i];
-					}
-
-					const normalizedValue = categoryValue / maxCategory;
-					const normalizedByte = Math.round(normalizedValue * 255);
-
-					outputData[i * 4] = normalizedByte;
-					outputData[i * 4 + 1] = 0;
-					outputData[i * 4 + 2] = 0;
-					outputData[i * 4 + 3] = 255;
-				}
-
-				const rgbaMask = new ImageData(outputData, width, height);
-
-				if (width !== segmentMaskCanvas.width || height !== segmentMaskCanvas.height) {
-					const tempCanvas = document.createElement('canvas');
-					tempCanvas.width = width;
-					tempCanvas.height = height;
-					const tempCtx = tempCanvas.getContext('2d')!;
-					tempCtx.putImageData(rgbaMask, 0, 0);
-
-					segmentMaskCtx.drawImage(tempCanvas, 0, 0, segmentMaskCanvas.width, segmentMaskCanvas.height);
-				} else {
-					segmentMaskCtx.putImageData(rgbaMask, 0, 0);
-				}
-
-				shaderPad.updateTextures({ u_segmentMask: segmentMaskCanvas });
-			} catch (error) {
-				console.error('[Segmenter Plugin] Failed to generate mask texture:', error);
-			}
+			maskShader.updateTextures(textures);
+			maskShader.draw();
+			shaderPad.updateTextures({ u_segmentMask: sharedCanvas });
 		}
 
-		function processSegmenterResults(result: any) {
-			const mask = result.categoryMask || (result.confidenceMasks && result.confidenceMasks[0]);
+		function processSegmenterResults(result: ImageSegmenterResult) {
+			const { confidenceMasks } = result;
+			if (!confidenceMasks || confidenceMasks.length === 0) return;
 
-			if (mask) {
-				updateMaskTexture(mask).catch(error => {
-					console.warn('[Segmenter Plugin] Mask texture update error:', error);
-				});
+			// IMPORTANT: maskShader and MediaPipe share a WebGL context. MediaPipe needs to run at least once before
+			// ShaderPad is created on the same canvas, otherwise MediaPipe's WebGL state gets corrupted.
+			if (!maskShader) {
+				const shaderSource = createMaskShaderSource(confidenceMasks.length);
+				maskShader = new ShaderPad(shaderSource, { canvas: sharedCanvas });
+				for (let i = 0; i < confidenceMasks.length; i++) {
+					maskShader.initializeTexture(`u_confidenceMask${i}`, dummyTexture);
+				}
 			}
-		}
 
-		function callbackForImage(result: any) {
-			processSegmenterResults(result);
-		}
-
-		function callbackForVideo(result: any) {
-			processSegmenterResults(result);
+			updateMaskTexture(confidenceMasks);
 		}
 
 		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_segmentMask', segmentMaskCanvas);
+			shaderPad.initializeTexture('u_segmentMask', dummyTexture, { preserveY: true });
+			shaderPad.initializeUniform('u_numCategories', 'int', numCategories);
 			await initializeImageSegmenter();
 		});
 
@@ -167,14 +148,16 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					}
 					if (source.currentTime !== lastVideoTime) {
 						lastVideoTime = source.currentTime;
-						const timestamp = performance.now();
-						imageSegmenter.segmentForVideo(source, timestamp, callbackForVideo);
+						// TODO: I think segmentForVideo runs its own animation loop maybe? args are (source, startTime, callbackForVideo).
+						const result = imageSegmenter.segmentForVideo(source, performance.now());
+						processSegmenterResults(result);
 					}
 				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
 					if (source.width === 0 || source.height === 0) {
 						return;
 					}
-					imageSegmenter.segment(source, callbackForImage);
+					const result = imageSegmenter.segment(source);
+					processSegmenterResults(result);
 				}
 			} catch (error) {
 				console.error('[Segmenter Plugin] Segmentation error:', error);
@@ -186,14 +169,22 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				imageSegmenter.close();
 				imageSegmenter = null;
 			}
+			if (maskShader) {
+				maskShader.destroy();
+				maskShader = null;
+			}
 			vision = null;
 			textureSources.clear();
-			segmentMaskCanvas.remove();
 		});
 
 		injectGLSL(`
 uniform sampler2D u_segmentMask;
-float inSegment(vec2 pos) { return texture(u_segmentMask, pos).r; }`);
+uniform int u_numCategories;
+
+vec2 segmentAt(vec2 pos) {
+	vec4 mask = texture(u_segmentMask, pos);
+	return vec2(mask.r, mask.g);
+}`);
 	};
 }
 

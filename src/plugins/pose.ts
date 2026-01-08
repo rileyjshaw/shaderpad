@@ -7,7 +7,6 @@ export interface PosePluginOptions {
 	minPoseDetectionConfidence?: number;
 	minPosePresenceConfidence?: number;
 	minTrackingConfidence?: number;
-	outputSegmentationMasks?: boolean;
 	onResults?: (results: PoseLandmarkerResult) => void;
 }
 
@@ -48,9 +47,33 @@ const LANDMARK_INDICES = {
 	RIGHT_FOOT_CENTER: STANDARD_LANDMARK_COUNT + 4,
 	TORSO_CENTER: STANDARD_LANDMARK_COUNT + 5,
 };
+const ALL_STANDARD_INDICES = Array.from({ length: STANDARD_LANDMARK_COUNT }, (_, i) => i);
+const LEFT_HAND_INDICES = [
+	LANDMARK_INDICES.LEFT_WRIST,
+	LANDMARK_INDICES.LEFT_PINKY,
+	LANDMARK_INDICES.LEFT_THUMB,
+	LANDMARK_INDICES.LEFT_INDEX,
+];
+const RIGHT_HAND_INDICES = [
+	LANDMARK_INDICES.RIGHT_WRIST,
+	LANDMARK_INDICES.RIGHT_PINKY,
+	LANDMARK_INDICES.RIGHT_THUMB,
+	LANDMARK_INDICES.RIGHT_INDEX,
+];
+const LEFT_FOOT_INDICES = [LANDMARK_INDICES.LEFT_ANKLE, LANDMARK_INDICES.LEFT_HEEL, LANDMARK_INDICES.LEFT_FOOT_INDEX];
+const RIGHT_FOOT_INDICES = [
+	LANDMARK_INDICES.RIGHT_ANKLE,
+	LANDMARK_INDICES.RIGHT_HEEL,
+	LANDMARK_INDICES.RIGHT_FOOT_INDEX,
+];
+const TORSO_INDICES = [
+	LANDMARK_INDICES.LEFT_SHOULDER,
+	LANDMARK_INDICES.RIGHT_SHOULDER,
+	LANDMARK_INDICES.LEFT_HIP,
+	LANDMARK_INDICES.RIGHT_HIP,
+];
 
 const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
-
 function pose(config: { textureName: string; options?: PosePluginOptions }) {
 	const { textureName, options } = config;
 	const defaultModelPath =
@@ -70,7 +93,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		let landmarksTextureHeight = 0;
 		let landmarksDataArray: Float32Array | null = null;
 
-		// Shared canvas for MediaPipe and maskShader (same WebGL context)
+		// Shared canvas for MediaPipe and maskShader (same WebGL context).
 		const sharedCanvas = new OffscreenCanvas(1, 1);
 		let maskShader: ShaderPad | null = null;
 
@@ -91,7 +114,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					minPoseDetectionConfidence: options?.minPoseDetectionConfidence ?? 0.5,
 					minPosePresenceConfidence: options?.minPosePresenceConfidence ?? 0.5,
 					minTrackingConfidence: options?.minTrackingConfidence ?? 0.5,
-					outputSegmentationMasks: options?.outputSegmentationMasks ?? true,
+					outputSegmentationMasks: true,
 				});
 			} catch (error) {
 				console.error('[Pose Plugin] Failed to initialize:', error);
@@ -138,7 +161,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				maskShader.updateUniforms({ u_poseIndex: (i + 1) / maxPoses });
 				maskShader.draw(i === 0); // Only clear on first mask.
 			}
-			shaderPad.updateTextures({ u_poseMask: sharedCanvas.transferToImageBitmap() });
+			shaderPad.updateTextures({ u_poseMask: sharedCanvas });
 		}
 
 		function updateLandmarksTexture(poses: NormalizedLandmark[][]) {
@@ -152,81 +175,48 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
 					const landmark = landmarks[lmIdx];
 					const dataIdx = (poseIdx * LANDMARK_COUNT + lmIdx) * 4;
-					landmarksDataArray[dataIdx] = landmark.x; // R (X)
-					landmarksDataArray[dataIdx + 1] = landmark.y; // G (Y)
-					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0; // B (Z)
-					landmarksDataArray[dataIdx + 3] = landmark.visibility ?? 1; // A (Visibility)
+					landmarksDataArray[dataIdx] = landmark.x;
+					landmarksDataArray[dataIdx + 1] = 1 - landmark.y;
+					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0;
+					landmarksDataArray[dataIdx + 3] = landmark.visibility ?? 1;
 				}
 
-				// Body center (landmark 33) - calculated from all standard landmarks
-				const bodyCenter = calculateBoundingBoxCenter(
-					landmarksDataArray,
-					poseIdx,
-					Array.from({ length: STANDARD_LANDMARK_COUNT }, (_, i) => i)
-				);
+				const bodyCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, ALL_STANDARD_INDICES);
 				const bodyCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.BODY_CENTER) * 4;
 				landmarksDataArray[bodyCenterIdx] = bodyCenter[0];
 				landmarksDataArray[bodyCenterIdx + 1] = bodyCenter[1];
 				landmarksDataArray[bodyCenterIdx + 2] = bodyCenter[2];
 				landmarksDataArray[bodyCenterIdx + 3] = bodyCenter[3];
 
-				// Left hand center (landmark 34) - center of pinky, thumb, wrist, index.
-				const leftHandCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, [
-					LANDMARK_INDICES.LEFT_WRIST,
-					LANDMARK_INDICES.LEFT_PINKY,
-					LANDMARK_INDICES.LEFT_THUMB,
-					LANDMARK_INDICES.LEFT_INDEX,
-				]);
+				const leftHandCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, LEFT_HAND_INDICES);
 				const leftHandCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_HAND_CENTER) * 4;
 				landmarksDataArray[leftHandCenterIdx] = leftHandCenter[0];
 				landmarksDataArray[leftHandCenterIdx + 1] = leftHandCenter[1];
 				landmarksDataArray[leftHandCenterIdx + 2] = leftHandCenter[2];
 				landmarksDataArray[leftHandCenterIdx + 3] = leftHandCenter[3];
 
-				// Right hand center (landmark 35) - center of pinky, thumb, wrist, index.
-				const rightHandCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, [
-					LANDMARK_INDICES.RIGHT_WRIST,
-					LANDMARK_INDICES.RIGHT_PINKY,
-					LANDMARK_INDICES.RIGHT_THUMB,
-					LANDMARK_INDICES.RIGHT_INDEX,
-				]);
+				const rightHandCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, RIGHT_HAND_INDICES);
 				const rightHandCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_HAND_CENTER) * 4;
 				landmarksDataArray[rightHandCenterIdx] = rightHandCenter[0];
 				landmarksDataArray[rightHandCenterIdx + 1] = rightHandCenter[1];
 				landmarksDataArray[rightHandCenterIdx + 2] = rightHandCenter[2];
 				landmarksDataArray[rightHandCenterIdx + 3] = rightHandCenter[3];
 
-				// Left foot center (landmark 36) - center of ankle, heel, foot index
-				const leftFootCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, [
-					LANDMARK_INDICES.LEFT_ANKLE,
-					LANDMARK_INDICES.LEFT_HEEL,
-					LANDMARK_INDICES.LEFT_FOOT_INDEX,
-				]);
+				const leftFootCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, LEFT_FOOT_INDICES);
 				const leftFootCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_FOOT_CENTER) * 4;
 				landmarksDataArray[leftFootCenterIdx] = leftFootCenter[0];
 				landmarksDataArray[leftFootCenterIdx + 1] = leftFootCenter[1];
 				landmarksDataArray[leftFootCenterIdx + 2] = leftFootCenter[2];
 				landmarksDataArray[leftFootCenterIdx + 3] = leftFootCenter[3];
 
-				// Right foot center (landmark 37) - center of ankle, heel, foot index
-				const rightFootCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, [
-					LANDMARK_INDICES.RIGHT_ANKLE,
-					LANDMARK_INDICES.RIGHT_HEEL,
-					LANDMARK_INDICES.RIGHT_FOOT_INDEX,
-				]);
+				const rightFootCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, RIGHT_FOOT_INDICES);
 				const rightFootCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_FOOT_CENTER) * 4;
 				landmarksDataArray[rightFootCenterIdx] = rightFootCenter[0];
 				landmarksDataArray[rightFootCenterIdx + 1] = rightFootCenter[1];
 				landmarksDataArray[rightFootCenterIdx + 2] = rightFootCenter[2];
 				landmarksDataArray[rightFootCenterIdx + 3] = rightFootCenter[3];
 
-				// Torso center (landmark 38) - center of shoulders and hips
-				const torsoCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, [
-					LANDMARK_INDICES.LEFT_SHOULDER,
-					LANDMARK_INDICES.RIGHT_SHOULDER,
-					LANDMARK_INDICES.LEFT_HIP,
-					LANDMARK_INDICES.RIGHT_HIP,
-				]);
+				const torsoCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, TORSO_INDICES);
 				const torsoCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.TORSO_CENTER) * 4;
 				landmarksDataArray[torsoCenterIdx] = torsoCenter[0];
 				landmarksDataArray[torsoCenterIdx + 1] = torsoCenter[1];
@@ -240,6 +230,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					data: landmarksDataArray,
 					width: LANDMARKS_TEXTURE_WIDTH,
 					height: rowsToUpdate,
+					isPartial: true,
 				},
 			});
 		}
@@ -252,18 +243,16 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			if (!maskShader) {
 				maskShader = new ShaderPad(
 					`#version 300 es
-					precision highp float;
+					precision mediump float;
 					in vec2 v_uv;
 					out vec4 outColor;
 					uniform sampler2D u_mask;
 					uniform float u_poseIndex;
 					void main() {
-						// Flip V because MediaPipe's mask uses image coordinates (top-left origin)
-						// while WebGL UVs use bottom-left origin
-						vec2 maskUV = vec2(v_uv.x, 1.0 - v_uv.y);
-						float confidence = texture(u_mask, maskUV).r;
-						float poseIdx = step(0.01, confidence) * u_poseIndex;
-						outColor = vec4(confidence, 1.0, poseIdx, 1.0);
+						ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_mask, 0)));
+						float confidence = texelFetch(u_mask, texCoord, 0).r;
+						if (confidence < 0.01) discard;
+						outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
 					}`,
 					{ canvas: sharedCanvas }
 				);
@@ -280,7 +269,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		}
 
 		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_poseMask', dummyTexture);
+			shaderPad.initializeTexture('u_poseMask', dummyTexture, { preserveY: true });
 			shaderPad.initializeUniform('u_maxPoses', 'int', maxPoses);
 			shaderPad.initializeUniform('u_nPoses', 'int', 0);
 
@@ -386,9 +375,15 @@ vec4 poseLandmark(int poseIndex, int landmarkIndex) {
 	return texelFetch(u_poseLandmarksTex, ivec2(x, y), 0);
 }
 
-int inBody(vec2 pos) {
+vec2 poseAt(vec2 pos) {
 	vec4 mask = texture(u_poseMask, pos);
-	return int(mask.b * float(u_maxPoses) + 0.5);
+	float poseIndex = floor(mask.b * float(u_maxPoses) + 0.5) - 1.0;
+	return vec2(mask.g, poseIndex);
+}
+	
+float inPose(vec2 pos) {
+	float pose = poseAt(pos).x;
+	return step(0.0, pose);
 }`);
 	};
 }

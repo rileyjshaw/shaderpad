@@ -43,10 +43,11 @@ void main() {
 	vec3 color = webcamColor.rgb;
 
 	for (int i = 0; i < u_nHands; ++i) {
-		// Draw hand center dot (white).
+		// Draw hand center dot (white or black).
+		vec3 handColor = vec3(isRightHand(i));
 		float handCenterDist = distance(v_uv, vec2(handLandmark(i, HAND_CENTER)));
-		float handCenterDot = 1.0 - smoothstep(0.0, 0.01, handCenterDist);
-		color = mix(color, vec3(1.0, 1.0, 1.0), handCenterDot);
+		float handCenterDot = 1.0 - smoothstep(0.0, 0.02, handCenterDist);
+		color = mix(color, handColor, handCenterDot);
 
 		// Draw thumb tip (yellow).
 		float thumbTipDist = distance(v_uv, vec2(handLandmark(i, THUMB_TIP)));

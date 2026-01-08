@@ -3,7 +3,6 @@ import ShaderPad, { PluginContext } from '../index.mjs';
 interface SegmenterPluginOptions {
     modelPath?: string;
     outputCategoryMask?: boolean;
-    outputConfidenceMasks?: boolean;
 }
 declare function segmenter(config: {
     textureName: string;

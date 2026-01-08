@@ -1,31 +1,52 @@
-var R=33,J=6,T=R+J,t={LEFT_EYE:2,RIGHT_EYE:5,LEFT_SHOULDER:11,RIGHT_SHOULDER:12,LEFT_ELBOW:13,RIGHT_ELBOW:14,LEFT_HIP:23,RIGHT_HIP:24,LEFT_KNEE:25,RIGHT_KNEE:26,LEFT_WRIST:15,RIGHT_WRIST:16,LEFT_PINKY:17,RIGHT_PINKY:18,LEFT_INDEX:19,RIGHT_INDEX:20,LEFT_THUMB:21,RIGHT_THUMB:22,LEFT_ANKLE:27,RIGHT_ANKLE:28,LEFT_HEEL:29,RIGHT_HEEL:30,LEFT_FOOT_INDEX:31,RIGHT_FOOT_INDEX:32,BODY_CENTER:R,LEFT_HAND_CENTER:R+1,RIGHT_HAND_CENTER:R+2,LEFT_FOOT_CENTER:R+3,RIGHT_FOOT_CENTER:R+4,TORSO_CENTER:R+5};function Q(B){let{textureName:G,options:L}=B,Y="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";return function(c,W){let{injectGLSL:X,gl:x}=W,u=null,K=null,y=-1,h="VIDEO",w=new Map,v=L?.maxPoses??1,I=512,U=0,e=null,z=512,V=512,E=document.createElement("canvas");E.width=z,E.height=V;let M=E.getContext("2d"),f=document.createElement("canvas"),b=f.getContext("2d");M.globalCompositeOperation=b.globalCompositeOperation="lighten";async function j(){try{let{FilesetResolver:o,PoseLandmarker:n}=await import("@mediapipe/tasks-vision");K=await o.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"),u=await n.createFromOptions(K,{baseOptions:{modelAssetPath:L?.modelPath||Y},runningMode:h,numPoses:L?.maxPoses??1,minPoseDetectionConfidence:L?.minPoseDetectionConfidence??.5,minPosePresenceConfidence:L?.minPosePresenceConfidence??.5,minTrackingConfidence:L?.minTrackingConfidence??.5,outputSegmentationMasks:L?.outputSegmentationMasks??!0})}catch(o){throw console.error("[Pose Plugin] Failed to initialize Pose Landmarker:",o),o}}function O(o,n,r){let s=1/0,i=-1/0,l=1/0,_=-1/0,m=0,a=0;for(let F of r){let d=(n*T+F)*4,H=o[d],N=o[d+1];s=Math.min(s,H),i=Math.max(i,H),l=Math.min(l,N),_=Math.max(_,N),m+=o[d+2],a+=o[d+3]}let p=(s+i)/2,g=(l+_)/2,P=m/r.length,A=a/r.length;return[p,g,P,A]}async function Z(o){if(!u||!e){console.warn("[Pose Plugin] Cannot update mask: poseLandmarker or landmarksDataArray missing");return}try{M.clearRect(0,0,E.width,E.height),o&&o.length>0&&o.forEach(n=>{if(!n)return;let{width:r,height:s}=n,i=n.getAsUint8Array(),l=r*s,_=new Uint8ClampedArray(l*4);for(let a=0;a<l;a++)_[a*4+1]=i[a],_[a*4+3]=255;let m=new ImageData(_,r,s);r===E.width&&s===E.height?M.putImageData(m,0,0):(f.width!==r&&(f.width=r),f.height!==s&&(f.height=s),b.putImageData(m,0,0),M.drawImage(f,0,0,E.width,E.height))}),c.updateTextures({u_poseMask:E})}catch(n){console.error("[Pose Plugin] Failed to generate mask texture:",n)}}function q(o){if(!e)return;let n=o.length,r=n*T;for(let i=0;i<n;++i){let l=o[i];for(let D=0;D<R;++D){let C=l[D],S=(i*T+D)*4;e[S]=C.x,e[S+1]=1-C.y,e[S+2]=C.z??0,e[S+3]=C.visibility??1}let _=O(e,i,Array.from({length:R},(D,C)=>C)),m=(i*T+t.BODY_CENTER)*4;e[m]=_[0],e[m+1]=_[1],e[m+2]=_[2],e[m+3]=_[3];let a=O(e,i,[t.LEFT_WRIST,t.LEFT_PINKY,t.LEFT_THUMB,t.LEFT_INDEX]),p=(i*T+t.LEFT_HAND_CENTER)*4;e[p]=a[0],e[p+1]=a[1],e[p+2]=a[2],e[p+3]=a[3];let g=O(e,i,[t.RIGHT_WRIST,t.RIGHT_PINKY,t.RIGHT_THUMB,t.RIGHT_INDEX]),P=(i*T+t.RIGHT_HAND_CENTER)*4;e[P]=g[0],e[P+1]=g[1],e[P+2]=g[2],e[P+3]=g[3];let A=O(e,i,[t.LEFT_ANKLE,t.LEFT_HEEL,t.LEFT_FOOT_INDEX]),F=(i*T+t.LEFT_FOOT_CENTER)*4;e[F]=A[0],e[F+1]=A[1],e[F+2]=A[2],e[F+3]=A[3];let d=O(e,i,[t.RIGHT_ANKLE,t.RIGHT_HEEL,t.RIGHT_FOOT_INDEX]),H=(i*T+t.RIGHT_FOOT_CENTER)*4;e[H]=d[0],e[H+1]=d[1],e[H+2]=d[2],e[H+3]=d[3];let N=O(e,i,[t.LEFT_SHOULDER,t.RIGHT_SHOULDER,t.LEFT_HIP,t.RIGHT_HIP]),k=(i*T+t.TORSO_CENTER)*4;e[k]=N[0],e[k+1]=N[1],e[k+2]=N[2],e[k+3]=N[3]}let s=Math.ceil(r/I);c.updateTextures({u_poseLandmarksTex:{data:e,width:I,height:s}})}function $(o){if(!o.landmarks||!e)return;let n=o.landmarks.length;q(o.landmarks),Z(o.segmentationMasks).catch(r=>{console.warn("[Pose Plugin] Mask texture update error:",r)}),c.updateUniforms({u_nPoses:n}),L?.onResults?.(o)}c.registerHook("init",async()=>{c.initializeTexture("u_poseMask",E),c.initializeUniform("u_maxPoses","int",v),c.initializeUniform("u_nPoses","int",0);let o=v*T;U=Math.ceil(o/I);let n=I*U*4;e=new Float32Array(n),c.initializeTexture("u_poseLandmarksTex",{data:e,width:I,height:U},{internalFormat:x.RGBA32F,type:x.FLOAT,minFilter:x.NEAREST,magFilter:x.NEAREST}),await j()}),c.registerHook("updateTextures",async o=>{let n=o[G];if(!(!n||(w.get(G)!==n&&(y=-1),w.set(G,n),!u)))try{let s=n instanceof HTMLVideoElement?"VIDEO":"IMAGE";if(h!==s&&(h=s,await u.setOptions({runningMode:h})),n instanceof HTMLVideoElement){if(n.videoWidth===0||n.videoHeight===0||n.readyState<2)return;if(n.currentTime!==y){y=n.currentTime;let i=performance.now(),l=u.detectForVideo(n,i);$(l)}}else if(n instanceof HTMLImageElement||n instanceof HTMLCanvasElement){if(n.width===0||n.height===0)return;let i=u.detect(n);$(i)}}catch(s){console.error("[Pose Plugin] Pose detection error:",s)}}),c.registerHook("destroy",()=>{u&&(u.close(),u=null),K=null,w.clear(),E.remove(),e=null}),X(`
+import{a as b}from"../chunk-RKULNJXI.mjs";var T=33,Z=6,r=T+Z,n={LEFT_EYE:2,RIGHT_EYE:5,LEFT_SHOULDER:11,RIGHT_SHOULDER:12,LEFT_ELBOW:13,RIGHT_ELBOW:14,LEFT_HIP:23,RIGHT_HIP:24,LEFT_KNEE:25,RIGHT_KNEE:26,LEFT_WRIST:15,RIGHT_WRIST:16,LEFT_PINKY:17,RIGHT_PINKY:18,LEFT_INDEX:19,RIGHT_INDEX:20,LEFT_THUMB:21,RIGHT_THUMB:22,LEFT_ANKLE:27,RIGHT_ANKLE:28,LEFT_HEEL:29,RIGHT_HEEL:30,LEFT_FOOT_INDEX:31,RIGHT_FOOT_INDEX:32,BODY_CENTER:T,LEFT_HAND_CENTER:T+1,RIGHT_HAND_CENTER:T+2,LEFT_FOOT_CENTER:T+3,RIGHT_FOOT_CENTER:T+4,TORSO_CENTER:T+5},q=Array.from({length:T},(w,x)=>x),J=[n.LEFT_WRIST,n.LEFT_PINKY,n.LEFT_THUMB,n.LEFT_INDEX],Q=[n.RIGHT_WRIST,n.RIGHT_PINKY,n.RIGHT_THUMB,n.RIGHT_INDEX],ee=[n.LEFT_ANKLE,n.LEFT_HEEL,n.LEFT_FOOT_INDEX],ne=[n.RIGHT_ANKLE,n.RIGHT_HEEL,n.RIGHT_FOOT_INDEX],te=[n.LEFT_SHOULDER,n.RIGHT_SHOULDER,n.LEFT_HIP,n.RIGHT_HIP],Y={data:new Uint8Array(4),width:1,height:1};function oe(w){let{textureName:x,options:d}=w,B="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";return function(a,z){let{injectGLSL:W,gl:P}=z,c=null,G=null,h=-1,C="VIDEO",v=new Map,K=d?.maxPoses??1,m=512,y=0,e=null,U=new OffscreenCanvas(1,1),s=null;async function X(){try{let{FilesetResolver:o,PoseLandmarker:t}=await import("@mediapipe/tasks-vision");G=await o.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"),c=await t.createFromOptions(G,{baseOptions:{modelAssetPath:d?.modelPath||B,delegate:"GPU"},canvas:U,runningMode:C,numPoses:d?.maxPoses??1,minPoseDetectionConfidence:d?.minPoseDetectionConfidence??.5,minPosePresenceConfidence:d?.minPosePresenceConfidence??.5,minTrackingConfidence:d?.minTrackingConfidence??.5,outputSegmentationMasks:!0})}catch(o){throw console.error("[Pose Plugin] Failed to initialize:",o),o}}function N(o,t,u){let _=1/0,i=-1/0,D=1/0,l=-1/0,R=0,L=0;for(let F of u){let E=(t*r+F)*4,I=o[E],f=o[E+1];_=Math.min(_,I),i=Math.max(i,I),D=Math.min(D,f),l=Math.max(l,f),R+=o[E+2],L+=o[E+3]}let H=(_+i)/2,O=(D+l)/2,p=R/u.length,A=L/u.length;return[H,O,p,A]}function V(o){if(!(!o||o.length===0||!s)){for(let t=0;t<o.length;++t){let u=o[t];s.updateTextures({u_mask:u.getAsWebGLTexture()}),s.updateUniforms({u_poseIndex:(t+1)/K}),s.draw(t===0)}a.updateTextures({u_poseMask:U})}}function j(o){if(!e)return;let t=o.length,u=t*r;for(let i=0;i<t;++i){let D=o[i];for(let k=0;k<T;++k){let M=D[k],g=(i*r+k)*4;e[g]=M.x,e[g+1]=1-M.y,e[g+2]=M.z??0,e[g+3]=M.visibility??1}let l=N(e,i,q),R=(i*r+n.BODY_CENTER)*4;e[R]=l[0],e[R+1]=l[1],e[R+2]=l[2],e[R+3]=l[3];let L=N(e,i,J),H=(i*r+n.LEFT_HAND_CENTER)*4;e[H]=L[0],e[H+1]=L[1],e[H+2]=L[2],e[H+3]=L[3];let O=N(e,i,Q),p=(i*r+n.RIGHT_HAND_CENTER)*4;e[p]=O[0],e[p+1]=O[1],e[p+2]=O[2],e[p+3]=O[3];let A=N(e,i,ee),F=(i*r+n.LEFT_FOOT_CENTER)*4;e[F]=A[0],e[F+1]=A[1],e[F+2]=A[2],e[F+3]=A[3];let E=N(e,i,ne),I=(i*r+n.RIGHT_FOOT_CENTER)*4;e[I]=E[0],e[I+1]=E[1],e[I+2]=E[2],e[I+3]=E[3];let f=N(e,i,te),S=(i*r+n.TORSO_CENTER)*4;e[S]=f[0],e[S+1]=f[1],e[S+2]=f[2],e[S+3]=f[3]}let _=Math.ceil(u/m);a.updateTextures({u_poseLandmarksTex:{data:e,width:m,height:_,isPartial:!0}})}function $(o){if(!o.landmarks||!e)return;s||(s=new b(`#version 300 es
+					precision mediump float;
+					in vec2 v_uv;
+					out vec4 outColor;
+					uniform sampler2D u_mask;
+					uniform float u_poseIndex;
+					void main() {
+						ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_mask, 0)));
+						float confidence = texelFetch(u_mask, texCoord, 0).r;
+						if (confidence < 0.01) discard;
+						outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
+					}`,{canvas:U}),s.initializeTexture("u_mask",Y),s.initializeUniform("u_poseIndex","float",0));let t=o.landmarks.length;j(o.landmarks),V(o.segmentationMasks),a.updateUniforms({u_nPoses:t}),d?.onResults?.(o)}a.registerHook("init",async()=>{a.initializeTexture("u_poseMask",Y,{preserveY:!0}),a.initializeUniform("u_maxPoses","int",K),a.initializeUniform("u_nPoses","int",0);let o=K*r;y=Math.ceil(o/m);let t=m*y*4;e=new Float32Array(t),a.initializeTexture("u_poseLandmarksTex",{data:e,width:m,height:y},{internalFormat:P.RGBA32F,type:P.FLOAT,minFilter:P.NEAREST,magFilter:P.NEAREST}),await X()}),a.registerHook("updateTextures",async o=>{let t=o[x];if(!(!t||(v.get(x)!==t&&(h=-1),v.set(x,t),!c)))try{let _=t instanceof HTMLVideoElement?"VIDEO":"IMAGE";if(C!==_&&(C=_,await c.setOptions({runningMode:C})),t instanceof HTMLVideoElement){if(t.videoWidth===0||t.videoHeight===0||t.readyState<2)return;if(t.currentTime!==h){h=t.currentTime;let i=c.detectForVideo(t,performance.now());$(i)}}else if(t instanceof HTMLImageElement||t instanceof HTMLCanvasElement){if(t.width===0||t.height===0)return;let i=c.detect(t);$(i)}}catch(_){console.error("[Pose Plugin] Detection error:",_)}}),a.registerHook("destroy",()=>{c&&(c.close(),c=null),s&&(s.destroy(),s=null),G=null,v.clear(),e=null}),W(`
 uniform int u_maxPoses;
 uniform int u_nPoses;
 uniform sampler2D u_poseLandmarksTex;
 uniform sampler2D u_poseMask;
 
-#define POSE_LANDMARK_LEFT_EYE ${t.LEFT_EYE}
-#define POSE_LANDMARK_RIGHT_EYE ${t.RIGHT_EYE}
-#define POSE_LANDMARK_LEFT_SHOULDER ${t.LEFT_SHOULDER}
-#define POSE_LANDMARK_RIGHT_SHOULDER ${t.RIGHT_SHOULDER}
-#define POSE_LANDMARK_LEFT_ELBOW ${t.LEFT_ELBOW}
-#define POSE_LANDMARK_RIGHT_ELBOW ${t.RIGHT_ELBOW}
-#define POSE_LANDMARK_LEFT_HIP ${t.LEFT_HIP}
-#define POSE_LANDMARK_RIGHT_HIP ${t.RIGHT_HIP}
-#define POSE_LANDMARK_LEFT_KNEE ${t.LEFT_KNEE}
-#define POSE_LANDMARK_RIGHT_KNEE ${t.RIGHT_KNEE}
-#define POSE_LANDMARK_BODY_CENTER ${t.BODY_CENTER}
-#define POSE_LANDMARK_LEFT_HAND_CENTER ${t.LEFT_HAND_CENTER}
-#define POSE_LANDMARK_RIGHT_HAND_CENTER ${t.RIGHT_HAND_CENTER}
-#define POSE_LANDMARK_LEFT_FOOT_CENTER ${t.LEFT_FOOT_CENTER}
-#define POSE_LANDMARK_RIGHT_FOOT_CENTER ${t.RIGHT_FOOT_CENTER}
-#define POSE_LANDMARK_TORSO_CENTER ${t.TORSO_CENTER}
+#define POSE_LANDMARK_LEFT_EYE ${n.LEFT_EYE}
+#define POSE_LANDMARK_RIGHT_EYE ${n.RIGHT_EYE}
+#define POSE_LANDMARK_LEFT_SHOULDER ${n.LEFT_SHOULDER}
+#define POSE_LANDMARK_RIGHT_SHOULDER ${n.RIGHT_SHOULDER}
+#define POSE_LANDMARK_LEFT_ELBOW ${n.LEFT_ELBOW}
+#define POSE_LANDMARK_RIGHT_ELBOW ${n.RIGHT_ELBOW}
+#define POSE_LANDMARK_LEFT_HIP ${n.LEFT_HIP}
+#define POSE_LANDMARK_RIGHT_HIP ${n.RIGHT_HIP}
+#define POSE_LANDMARK_LEFT_KNEE ${n.LEFT_KNEE}
+#define POSE_LANDMARK_RIGHT_KNEE ${n.RIGHT_KNEE}
+#define POSE_LANDMARK_BODY_CENTER ${n.BODY_CENTER}
+#define POSE_LANDMARK_LEFT_HAND_CENTER ${n.LEFT_HAND_CENTER}
+#define POSE_LANDMARK_RIGHT_HAND_CENTER ${n.RIGHT_HAND_CENTER}
+#define POSE_LANDMARK_LEFT_FOOT_CENTER ${n.LEFT_FOOT_CENTER}
+#define POSE_LANDMARK_RIGHT_FOOT_CENTER ${n.RIGHT_FOOT_CENTER}
+#define POSE_LANDMARK_TORSO_CENTER ${n.TORSO_CENTER}
 
 vec4 poseLandmark(int poseIndex, int landmarkIndex) {
-	int i = poseIndex * ${T} + landmarkIndex;
-	int x = i % ${I};
-	int y = i / ${I};
+	int i = poseIndex * ${r} + landmarkIndex;
+	int x = i % ${m};
+	int y = i / ${m};
 	return texelFetch(u_poseLandmarksTex, ivec2(x, y), 0);
 }
-float inBody(vec2 pos) { return texture(u_poseMask, pos).g; }`)}}var ee=Q;export{ee as default};
+
+vec2 poseAt(vec2 pos) {
+	vec4 mask = texture(u_poseMask, pos);
+	float poseIndex = floor(mask.b * float(u_maxPoses) + 0.5) - 1.0;
+	return vec2(mask.g, poseIndex);
+}
+	
+float inPose(vec2 pos) {
+	float pose = poseAt(pos).x;
+	return step(0.0, pose);
+}`)}}var ae=oe;export{ae as default};
 //# sourceMappingURL=pose.mjs.map

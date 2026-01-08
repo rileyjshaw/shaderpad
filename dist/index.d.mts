@@ -35,14 +35,14 @@ interface PartialCustomTexture extends CustomTexture {
     x?: number;
     y?: number;
 }
-type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | CustomTexture;
+type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | WebGLTexture | CustomTexture;
 type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 interface PluginContext {
     gl: WebGL2RenderingContext;
     uniforms: Map<string, Uniform>;
     textures: Map<string | symbol, Texture>;
     get program(): WebGLProgram | null;
-    canvas: HTMLCanvasElement;
+    canvas: HTMLCanvasElement | OffscreenCanvas;
     reserveTextureUnit: (name: string | symbol) => number;
     releaseTextureUnit: (name: string | symbol) => void;
     injectGLSL: (code: string) => void;
@@ -50,7 +50,7 @@ interface PluginContext {
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset' | 'initializeTexture' | 'updateTextures' | 'initializeUniform' | 'updateUniforms';
 interface Options {
-    canvas?: HTMLCanvasElement | null;
+    canvas?: HTMLCanvasElement | OffscreenCanvas | null;
     plugins?: Plugin[];
     history?: number;
     debug?: boolean;
@@ -65,6 +65,7 @@ declare class ShaderPad {
     private textureUnitPool;
     private buffer;
     private program;
+    private aPositionLocation;
     private animationFrameId;
     private resolutionObserver;
     private resizeObserver;
@@ -76,7 +77,7 @@ declare class ShaderPad {
     private cursorPosition;
     private clickPosition;
     private isMouseDown;
-    canvas: HTMLCanvasElement;
+    canvas: HTMLCanvasElement | OffscreenCanvas;
     onResize?: (width: number, height: number) => void;
     private hooks;
     private historyDepth;
@@ -107,7 +108,7 @@ declare class ShaderPad {
     }): void;
     updateTextures(updates: Record<string, UpdateTextureSource>): void;
     private updateTexture;
-    draw(): void;
+    draw(clear?: boolean): void;
     step(time: number): void;
     play(callback?: (time: number, frame: number) => void): void;
     pause(): void;

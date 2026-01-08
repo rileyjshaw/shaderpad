@@ -36,39 +36,31 @@ uniform sampler2D u_webcam;
 
 void main() {
 	vec4 webcamColor = texture(u_webcam, v_uv);
-	vec4 mask = texture(u_faceMask, v_uv);
 	vec3 color = webcamColor.rgb;
 
-	float mouthMask = mask.r;
-	float faceMask = mask.g;
-	float eyeMask = mask.b;
+	// Draw face mesh and oval regions.
+	vec2 faceMesh = faceAt(v_uv);
+	vec2 faceOval = faceOvalAt(v_uv);
+	color = mix(color, vec3(0.0, 1.0, 0.0), faceMesh.x * 0.5);
+	color = mix(color, vec3(0.0, 1.0, 0.0), faceOval.x * 0.2);
 
-	float faceTesselation = step(faceMask, 0.5) * step(0.1, faceMask);
-	float faceContour = step(0.5, faceMask);
-	color = mix(color, vec3(0.0, 1.0, 0.0), faceTesselation * 0.3);
-	color = mix(color, vec3(0.0, 1.0, 0.0), faceContour * 0.5);
+	// Draw eyebrows.
+	vec2 leftEyebrow = leftEyebrowAt(v_uv);
+	vec2 rightEyebrow = rightEyebrowAt(v_uv);
+	color = mix(color, vec3(0.5, 0.0, 0.5), leftEyebrow.x * 0.7);
+	color = mix(color, vec3(1.0, 0.5, 0.0), rightEyebrow.x * 0.7);
 
-	if (eyeMask > 0.0) {
-		vec3 eyeColor = vec3(0.0);
-		if (eyeMask < 0.25) {
-			eyeColor = vec3(0.5, 0.0, 0.5); // Left eyebrow.
-		} else if (eyeMask < 0.5) {
-			eyeColor = vec3(1.0, 0.5, 0.0);  // Right eyebrow.
-		} else if (eyeMask < 0.75) {
-			eyeColor = vec3(1.0, 0.0, 0.0);  // Left eye.
-		} else {
-			eyeColor = vec3(0.0, 0.0, 1.0);  // Right eye.
-		}
-		color = mix(color, eyeColor, smoothstep(0.0, 0.1, eyeMask) * 0.7);
-	}
+	// Draw eyes.
+	vec2 leftEye = leftEyeAt(v_uv);
+	vec2 rightEye = rightEyeAt(v_uv);
+	color = mix(color, vec3(1.0, 0.0, 0.0), leftEye.x * 0.7);
+	color = mix(color, vec3(0.0, 0.0, 1.0), rightEye.x * 0.7);
 
-	if (mouthMask > 0.0) {
-		if (mouthMask < 0.5) {
-			color = mix(color, vec3(1.0, 0.0, 0.0), 0.6);
-		} else {
-			color = mix(color, vec3(0.5, 0.0, 0.0), 0.8);
-		}
-	}
+	// Draw mouth.
+	vec2 outerMouth = outerMouthAt(v_uv);
+	vec2 innerMouth = innerMouthAt(v_uv);
+	color = mix(color, vec3(1.0, 0.0, 0.0), outerMouth.x * 0.6);
+	color = mix(color, vec3(0.5, 0.0, 0.0), innerMouth.x * 0.8);
 
 	for (int i = 0; i < u_nFaces; ++i) {
 		// Draw tiny red dots on all face landmarks.
