@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.36
+
+### Minor Changes
+
+-   Re-address antialiasing in face plugin
+
 ## 1.0.0-beta.35
 
 ### Patch Changes
