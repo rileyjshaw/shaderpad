@@ -43,8 +43,7 @@ const LANDMARK_INDICES = {
 	MOUTH_CENTER: STANDARD_LANDMARK_COUNT + 1,
 };
 
-// Face region types for R channel encoding (evenly spaced 0-1).
-const FACE_REGION_NAMES = [
+const REGION_NAMES = [
 	'BACKGROUND',
 	'LEFT_EYEBROW',
 	'RIGHT_EYEBROW',
@@ -53,12 +52,20 @@ const FACE_REGION_NAMES = [
 	'OUTER_MOUTH',
 	'INNER_MOUTH',
 ] as const;
-const nFaceRegions = FACE_REGION_NAMES.length - 1;
-const FACE_REGION = Object.fromEntries(FACE_REGION_NAMES.map((name, i) => [name, i / nFaceRegions])) as Record<
-	(typeof FACE_REGION_NAMES)[number],
+const nFaceRegions = REGION_NAMES.length - 1;
+const RED_CHANNEL_VALUES = Object.fromEntries(REGION_NAMES.map((name, i) => [name, i / nFaceRegions])) as Record<
+	(typeof REGION_NAMES)[number],
 	number
 >;
 const HALF_GAP = 0.5 / nFaceRegions;
+
+function fanTriangulate(indices: readonly number[]): number[] {
+	const tris: number[] = [];
+	for (let i = 1; i < indices.length - 1; ++i) {
+		tris.push(indices[0], indices[i], indices[i + 1]);
+	}
+	return tris;
+}
 
 function face(config: { textureName: string; options?: FacePluginOptions }) {
 	const { textureName, options } = config;
@@ -79,11 +86,88 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		let landmarksDataArray: Float32Array | null = null;
 
 		const mediaPipeCanvas = new OffscreenCanvas(1, 1);
-		const faceMaskCanvas = document.createElement('canvas');
-		const faceMaskCtx = faceMaskCanvas.getContext('2d')!;
+		const maskCanvas = new OffscreenCanvas(1, 1);
 
-		let faceTesselationIndices: number[] | null = null;
-		let faceOvalIndices: number[] | null = null;
+		// WebGL resources for triangle rendering (no antialiasing).
+		let maskGl: WebGL2RenderingContext | null = null;
+		let maskProgram: WebGLProgram | null = null;
+		let positionBuffer: WebGLBuffer | null = null;
+		let colorLocation: WebGLUniformLocation | null = null;
+
+		const regionTriangles: Record<string, number[]> = {
+			LEFT_EYEBROW: fanTriangulate(LEFT_EYEBROW_INDICES),
+			RIGHT_EYEBROW: fanTriangulate(RIGHT_EYEBROW_INDICES),
+			LEFT_EYE: fanTriangulate(LEFT_EYE_INDICES),
+			RIGHT_EYE: fanTriangulate(RIGHT_EYE_INDICES),
+			OUTER_MOUTH: fanTriangulate(OUTER_MOUTH_INDICES),
+			INNER_MOUTH: fanTriangulate(INNER_MOUTH_INDICES),
+			// Populated after FaceLandmarker loads.
+			TESSELATION: [],
+			OVAL: [],
+		};
+
+		function initMaskRenderer() {
+			maskGl = maskCanvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
+			if (!maskGl) throw new Error('Failed to get WebGL2 context for mask');
+
+			const vertexShader = maskGl.createShader(maskGl.VERTEX_SHADER)!;
+			maskGl.shaderSource(
+				vertexShader,
+				`#version 300 es
+in vec2 a_pos;
+void main() {
+	gl_Position = vec4(a_pos * 2.0 - 1.0, 0.0, 1.0);
+}`
+			);
+			maskGl.compileShader(vertexShader);
+
+			const fragmentShader = maskGl.createShader(maskGl.FRAGMENT_SHADER)!;
+			maskGl.shaderSource(
+				fragmentShader,
+				`#version 300 es
+precision mediump float;
+uniform vec4 u_color;
+out vec4 outColor;
+void main() { outColor = u_color; }`
+			);
+			maskGl.compileShader(fragmentShader);
+
+			maskProgram = maskGl.createProgram()!;
+			maskGl.attachShader(maskProgram, vertexShader);
+			maskGl.attachShader(maskProgram, fragmentShader);
+			maskGl.linkProgram(maskProgram);
+			maskGl.deleteShader(vertexShader);
+			maskGl.deleteShader(fragmentShader);
+
+			positionBuffer = maskGl.createBuffer();
+			maskGl.bindBuffer(maskGl.ARRAY_BUFFER, positionBuffer);
+			const positionLocation = maskGl.getAttribLocation(maskProgram, 'a_pos');
+			maskGl.enableVertexAttribArray(positionLocation);
+			maskGl.vertexAttribPointer(positionLocation, 2, maskGl.FLOAT, false, 0, 0);
+
+			colorLocation = maskGl.getUniformLocation(maskProgram, 'u_color');
+			maskGl.useProgram(maskProgram);
+
+			// Enable blending to handle overlapping faces (set once, never disabled).
+			maskGl.enable(maskGl.BLEND);
+			maskGl.blendEquation(maskGl.MAX);
+		}
+
+		function drawTriangles(triangleIndices: number[], faceIdx: number, r: number, g: number, b: number) {
+			if (!maskGl || !landmarksDataArray || triangleIndices.length === 0) return;
+
+			const vertices = new Float32Array(triangleIndices.length * 2);
+			for (let i = 0; i < triangleIndices.length; ++i) {
+				const landmarkIdx = (faceIdx * LANDMARK_COUNT + triangleIndices[i]) * 4;
+				vertices[i * 2] = landmarksDataArray[landmarkIdx];
+				vertices[i * 2 + 1] = landmarksDataArray[landmarkIdx + 1];
+			}
+
+			maskGl.bufferData(maskGl.ARRAY_BUFFER, vertices, maskGl.DYNAMIC_DRAW);
+			maskGl.uniform4f(colorLocation, r, g, b, 1.0);
+			maskGl.drawArrays(maskGl.TRIANGLES, 0, triangleIndices.length);
+		}
+
 		async function initializeFaceLandmarker() {
 			try {
 				const { FilesetResolver, FaceLandmarker } = await import('@mediapipe/tasks-vision');
@@ -106,8 +190,20 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 					outputFacialTransformationMatrixes: options?.outputFacialTransformationMatrixes ?? false,
 				});
 
-				faceTesselationIndices = FaceLandmarker.FACE_LANDMARKS_TESSELATION.map(({ start }) => start);
-				faceOvalIndices = FaceLandmarker.FACE_LANDMARKS_FACE_OVAL.map(({ start }) => start);
+				const tesselationConnections = FaceLandmarker.FACE_LANDMARKS_TESSELATION;
+				regionTriangles.TESSELATION = [];
+				for (let i = 0; i < tesselationConnections.length - 2; i += 3) {
+					regionTriangles.TESSELATION.push(
+						tesselationConnections[i].start,
+						tesselationConnections[i + 1].start,
+						tesselationConnections[i + 2].start
+					);
+				}
+
+				const ovalIndices = FaceLandmarker.FACE_LANDMARKS_FACE_OVAL.map(({ start }) => start);
+				regionTriangles.OVAL = fanTriangulate(ovalIndices);
+
+				initMaskRenderer();
 			} catch (error) {
 				console.error('[Face Plugin] Failed to initialize:', error);
 				throw error;
@@ -124,7 +220,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				minY = Infinity,
 				maxY = -Infinity,
 				avgZ = 0,
-				avgVis = 0;
+				avgVisibility = 0;
 
 			for (const idx of indices) {
 				const i = (faceIdx * LANDMARK_COUNT + idx) * 4;
@@ -135,54 +231,9 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				minY = Math.min(minY, y);
 				maxY = Math.max(maxY, y);
 				avgZ += data[i + 2];
-				avgVis += data[i + 3];
+				avgVisibility += data[i + 3];
 			}
-			return [(minX + maxX) / 2, (minY + maxY) / 2, avgZ / indices.length, avgVis / indices.length];
-		}
-
-		function fillRegion(faceIdx: number, indices: readonly number[] | number[], r: number, g: number, b: number) {
-			if (!landmarksDataArray) return;
-
-			const { width, height } = faceMaskCanvas;
-			faceMaskCtx.fillStyle = `rgba(${r}, ${g}, ${b}, 255)`;
-			faceMaskCtx.beginPath();
-			const first = (faceIdx * LANDMARK_COUNT + indices[0]) * 4;
-			faceMaskCtx.moveTo(landmarksDataArray[first] * width, landmarksDataArray[first + 1] * height);
-			for (let i = 1; i < indices.length; ++i) {
-				const idx = (faceIdx * LANDMARK_COUNT + indices[i]) * 4;
-				faceMaskCtx.lineTo(landmarksDataArray[idx] * width, landmarksDataArray[idx + 1] * height);
-			}
-			faceMaskCtx.closePath();
-			faceMaskCtx.fill();
-		}
-
-		function updateMaskTexture(nFaces: number) {
-			if (!landmarksDataArray || !faceTesselationIndices || !faceOvalIndices) return;
-
-			const { width, height } = faceMaskCanvas;
-			faceMaskCtx.clearRect(0, 0, width, height);
-
-			faceMaskCtx.save();
-			faceMaskCtx.globalCompositeOperation = 'lighten';
-
-			for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
-				const b = Math.round(((faceIdx + 1) / maxFaces) * 255);
-
-				// G channel: face mesh (0.5) and oval (1.0)
-				fillRegion(faceIdx, faceTesselationIndices, 0, 128, b);
-				fillRegion(faceIdx, faceOvalIndices, 0, 255, b);
-
-				// R channel: feature regions (drawn on top)
-				fillRegion(faceIdx, LEFT_EYEBROW_INDICES, Math.round(FACE_REGION.LEFT_EYEBROW * 255), 0, b);
-				fillRegion(faceIdx, RIGHT_EYEBROW_INDICES, Math.round(FACE_REGION.RIGHT_EYEBROW * 255), 0, b);
-				fillRegion(faceIdx, LEFT_EYE_INDICES, Math.round(FACE_REGION.LEFT_EYE * 255), 0, b);
-				fillRegion(faceIdx, RIGHT_EYE_INDICES, Math.round(FACE_REGION.RIGHT_EYE * 255), 0, b);
-				fillRegion(faceIdx, OUTER_MOUTH_INDICES, Math.round(FACE_REGION.OUTER_MOUTH * 255), 0, b);
-				fillRegion(faceIdx, INNER_MOUTH_INDICES, Math.round(FACE_REGION.INNER_MOUTH * 255), 0, b);
-			}
-
-			faceMaskCtx.restore();
-			shaderPad.updateTextures({ u_faceMask: faceMaskCanvas });
+			return [(minX + maxX) / 2, (minY + maxY) / 2, avgZ / indices.length, avgVisibility / indices.length];
 		}
 
 		function updateLandmarksTexture(faces: NormalizedLandmark[][]) {
@@ -193,9 +244,9 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 
 			for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
 				const landmarks = faces[faceIdx];
-				for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
-					const landmark = landmarks[lmIdx];
-					const dataIdx = (faceIdx * LANDMARK_COUNT + lmIdx) * 4;
+				for (let landmarkIdx = 0; landmarkIdx < STANDARD_LANDMARK_COUNT; ++landmarkIdx) {
+					const landmark = landmarks[landmarkIdx];
+					const dataIdx = (faceIdx * LANDMARK_COUNT + landmarkIdx) * 4;
 					landmarksDataArray[dataIdx] = landmark.x;
 					landmarksDataArray[dataIdx + 1] = 1 - landmark.y;
 					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0;
@@ -203,12 +254,10 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				}
 
 				const faceCenter = calculateBoundingBoxCenter(landmarksDataArray, faceIdx, ALL_STANDARD_INDICES);
-				const faceCenterIdx = (faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.FACE_CENTER) * 4;
-				landmarksDataArray.set(faceCenter, faceCenterIdx);
+				landmarksDataArray.set(faceCenter, (faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.FACE_CENTER) * 4);
 
 				const mouthCenter = calculateBoundingBoxCenter(landmarksDataArray, faceIdx, INNER_MOUTH_INDICES);
-				const mouthCenterIdx = (faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.MOUTH_CENTER) * 4;
-				landmarksDataArray.set(mouthCenter, mouthCenterIdx);
+				landmarksDataArray.set(mouthCenter, (faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.MOUTH_CENTER) * 4);
 			}
 
 			const rowsToUpdate = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
@@ -222,11 +271,37 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			});
 		}
 
+		function updateMaskTexture(nFaces: number) {
+			if (!maskGl || !landmarksDataArray) return;
+
+			// Resize and clear.
+			maskCanvas.width = mediaPipeCanvas.width;
+			maskCanvas.height = mediaPipeCanvas.height;
+			maskGl.viewport(0, 0, maskCanvas.width, maskCanvas.height);
+			maskGl.clearColor(0, 0, 0, 0);
+			maskGl.clear(maskGl.COLOR_BUFFER_BIT);
+
+			for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
+				const b = (faceIdx + 1) / maxFaces;
+
+				// G channel: face mesh (0.5) and oval (1.0)
+				drawTriangles(regionTriangles.TESSELATION, faceIdx, 0, 0.5, b);
+				drawTriangles(regionTriangles.OVAL, faceIdx, 0, 1.0, b);
+
+				// R channel: feature regions
+				drawTriangles(regionTriangles.LEFT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.LEFT_EYEBROW, 0, b);
+				drawTriangles(regionTriangles.RIGHT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYEBROW, 0, b);
+				drawTriangles(regionTriangles.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, 0, b);
+				drawTriangles(regionTriangles.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, 0, b);
+				drawTriangles(regionTriangles.OUTER_MOUTH, faceIdx, RED_CHANNEL_VALUES.OUTER_MOUTH, 0, b);
+				drawTriangles(regionTriangles.INNER_MOUTH, faceIdx, RED_CHANNEL_VALUES.INNER_MOUTH, 0, b);
+			}
+
+			shaderPad.updateTextures({ u_faceMask: maskCanvas });
+		}
+
 		function processFaceResults(result: FaceLandmarkerResult) {
 			if (!result.faceLandmarks || !landmarksDataArray) return;
-
-			faceMaskCanvas.width = mediaPipeCanvas.width;
-			faceMaskCanvas.height = mediaPipeCanvas.height;
 
 			const nFaces = result.faceLandmarks.length;
 			updateLandmarksTexture(result.faceLandmarks);
@@ -237,8 +312,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		}
 
 		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_faceMask', faceMaskCanvas, {
-				preserveY: true,
+			shaderPad.initializeTexture('u_faceMask', maskCanvas, {
 				minFilter: gl.NEAREST,
 				magFilter: gl.NEAREST,
 			});
@@ -292,18 +366,25 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		shaderPad.registerHook('destroy', () => {
 			faceLandmarker?.close();
 			faceLandmarker = null;
+			if (maskGl && maskProgram) {
+				maskGl.deleteProgram(maskProgram);
+				maskGl.deleteBuffer(positionBuffer);
+			}
+			maskGl = null;
+			maskProgram = null;
 			vision = null;
 			textureSources.clear();
-			faceMaskCanvas.remove();
 			landmarksDataArray = null;
 		});
 
-		const checkAt = (regionMin: keyof typeof FACE_REGION, regionMax: keyof typeof FACE_REGION = regionMin) =>
+		const checkAt = (
+			regionMin: keyof typeof RED_CHANNEL_VALUES,
+			regionMax: keyof typeof RED_CHANNEL_VALUES = regionMin
+		) =>
 			`vec4 mask = texture(u_faceMask, pos);
-	if (mask.a < 0.9) return vec2(0.0, -1.0);
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return (mask.r > ${(FACE_REGION[regionMin] - HALF_GAP).toFixed(4)} && mask.r < ${(
-				FACE_REGION[regionMax] + HALF_GAP
+	return (mask.r > ${(RED_CHANNEL_VALUES[regionMin] - HALF_GAP).toFixed(4)} && mask.r < ${(
+				RED_CHANNEL_VALUES[regionMax] + HALF_GAP
 			).toFixed(4)}) ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`;
 
 		injectGLSL(`
@@ -355,7 +436,6 @@ vec2 innerMouthAt(vec2 pos) {
 
 vec2 faceOvalAt(vec2 pos) {
 	vec4 mask = texture(u_faceMask, pos);
-	if (mask.a < 0.9) return vec2(0.0, -1.0);
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
 	return mask.g > 0.75 ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);
 }
@@ -363,7 +443,6 @@ vec2 faceOvalAt(vec2 pos) {
 // Includes face mesh and oval.
 vec2 faceAt(vec2 pos) {
 	vec4 mask = texture(u_faceMask, pos);
-	if (mask.a < 0.9) return vec2(0.0, -1.0);
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
 	return mask.g > 0.25 ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);
 }
