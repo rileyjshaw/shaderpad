@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.37
+
+### Minor Changes
+
+-   Generate face mask with GL TRIANGLEs
+
 ## 1.0.0-beta.36
 
 ### Minor Changes

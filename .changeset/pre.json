@@ -5,6 +5,7 @@
     "shaderpad": "1.0.0-alpha.16"
   },
   "changesets": [
+    "better-clubs-mate",
     "bright-knives-promise",
     "cool-melons-cheer",
     "curly-ways-create",
