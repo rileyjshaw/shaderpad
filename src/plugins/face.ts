@@ -311,31 +311,7 @@ void main() { outColor = u_color; }`
 			options?.onResults?.(result);
 		}
 
-		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_faceMask', maskCanvas, {
-				minFilter: gl.NEAREST,
-				magFilter: gl.NEAREST,
-			});
-			shaderPad.initializeUniform('u_maxFaces', 'int', maxFaces);
-			shaderPad.initializeUniform('u_nFaces', 'int', 0);
-
-			const totalLandmarks = maxFaces * LANDMARK_COUNT;
-			landmarksTextureHeight = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
-			landmarksDataArray = new Float32Array(LANDMARKS_TEXTURE_WIDTH * landmarksTextureHeight * 4);
-
-			shaderPad.initializeTexture(
-				'u_faceLandmarksTex',
-				{ data: landmarksDataArray, width: LANDMARKS_TEXTURE_WIDTH, height: landmarksTextureHeight },
-				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST }
-			);
-
-			await initializeFaceLandmarker();
-		});
-
-		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {
-			const source = updates[textureName];
-			if (!source) return;
-
+		async function detectFaces(source: TextureSource) {
 			const previousSource = textureSources.get(textureName);
 			if (previousSource !== source) lastVideoTime = -1;
 			textureSources.set(textureName, source);
@@ -361,6 +337,36 @@ void main() { outColor = u_color; }`
 			} catch (error) {
 				console.error('[Face Plugin] Detection error:', error);
 			}
+		}
+
+		shaderPad.registerHook('init', async () => {
+			shaderPad.initializeTexture('u_faceMask', maskCanvas, {
+				minFilter: gl.NEAREST,
+				magFilter: gl.NEAREST,
+			});
+			shaderPad.initializeUniform('u_maxFaces', 'int', maxFaces);
+			shaderPad.initializeUniform('u_nFaces', 'int', 0);
+
+			const totalLandmarks = maxFaces * LANDMARK_COUNT;
+			landmarksTextureHeight = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
+			landmarksDataArray = new Float32Array(LANDMARKS_TEXTURE_WIDTH * landmarksTextureHeight * 4);
+
+			shaderPad.initializeTexture(
+				'u_faceLandmarksTex',
+				{ data: landmarksDataArray, width: LANDMARKS_TEXTURE_WIDTH, height: landmarksTextureHeight },
+				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST }
+			);
+
+			await initializeFaceLandmarker();
+		});
+
+		shaderPad.registerHook('initializeTexture', (name: string, source: TextureSource) => {
+			if (name === textureName) detectFaces(source);
+		});
+
+		shaderPad.registerHook('updateTextures', (updates: Record<string, TextureSource>) => {
+			const source = updates[textureName];
+			if (source) detectFaces(source);
 		});
 
 		shaderPad.registerHook('destroy', () => {
