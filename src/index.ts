@@ -78,6 +78,7 @@ type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 type LifecycleMethod =
 	| 'init'
 	| 'step'
+	| 'afterStep'
 	| 'destroy'
 	| 'updateResolution'
 	| 'reset'
@@ -752,19 +753,19 @@ class ShaderPad {
 	}
 
 	step(time: number) {
-		if (this.uniforms.has('u_time')) {
-			this.updateUniforms({ u_time: time });
-		}
-		if (this.uniforms.has('u_frame')) {
-			this.updateUniforms({ u_frame: this.frame });
-		}
+		const updates: Record<string, number> = {};
+		if (this.uniforms.has('u_time')) updates.u_time = time;
+		if (this.uniforms.has('u_frame')) updates.u_frame = this.frame;
+		this.updateUniforms(updates);
+		this.hooks.get('step')?.forEach(hook => hook.call(this, time, this.frame));
 
 		this.draw();
 
 		if (this.textures.get(HISTORY_TEXTURE_KEY)) {
 			this.updateTexture(HISTORY_TEXTURE_KEY, this.canvas);
 		}
-		this.hooks.get('step')?.forEach(hook => hook.call(this, time, this.frame));
+
+		this.hooks.get('afterStep')?.forEach(hook => hook.call(this, time, this.frame));
 		++this.frame;
 	}
 
