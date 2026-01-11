@@ -532,7 +532,7 @@ class ShaderPad {
 					}
 					location = newLocation;
 				}
-				(this.gl as any)[glFunctionName + 'v'](uniform.location, typedArray);
+				(this.gl as any)[glFunctionName + 'v'](location, typedArray);
 			} else {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length !== uniform.length) {
