@@ -222,9 +222,9 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 
 -   `history?: number` - Number of previous frames to store (creates a `sampler2DArray`)
 -   `preserveY?: boolean` - For DOM sources only: if `true`, don't flip vertically (default: `false`, flips to match WebGL's bottom-up convention)
--   `internalFormat?: number` - WebGL internal format (e.g., `gl.RGBA8`, `gl.RGBA32F`)
--   `format?: number` - WebGL format (default: `gl.RGBA`)
--   `type?: number` - WebGL data type (default: `gl.UNSIGNED_BYTE` for DOM sources, must be specified for typed arrays)
+-   `internalFormat?: number` - Storage format in GPU memory (e.g., `gl.RGBA8`, `gl.RGBA32F`). Defaults to `gl.RGBA8` for 8-bit, or `gl.RGBA32F` if `type` is `gl.FLOAT`
+-   `format?: number` - Source data layout (default: `gl.RGBA`). Describes the channels in your input data (e.g., `gl.RGBA`, `gl.RGB`, `gl.LUMINANCE`)
+-   `type?: number` - Source data type (default: `gl.UNSIGNED_BYTE` for DOM sources, must be specified for typed arrays). Examples: `gl.UNSIGNED_BYTE`, `gl.FLOAT`
 -   `minFilter?: number` - Minification filter (default: `gl.LINEAR`)
 -   `magFilter?: number` - Magnification filter (default: `gl.LINEAR`)
 -   `wrapS?: number` - Wrap mode for S coordinate (default: `gl.CLAMP_TO_EDGE`)
