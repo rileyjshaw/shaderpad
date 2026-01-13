@@ -232,7 +232,7 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 
 **Note:** For typed array sources (`CustomTexture`), you must provide data in bottom-up orientation (WebGL convention). The `preserveY` option is ignored for typed arrays.
 
-#### `updateTextures(updates)`
+#### `updateTextures(updates, options?)`
 
 Update one or more textures. Useful for updating video textures each frame.
 
@@ -258,25 +258,81 @@ shader.updateTextures({
 		y: offsetY,
 	},
 });
+
+// Skip writing to history buffers for this update.
+shader.updateTextures({ u_camera: videoElement }, { skipHistoryWrite: true });
 ```
 
 **Parameters:**
 
 -   `updates` (Record<string, TextureSource | PartialCustomTexture>): Object mapping texture names to their new sources
+-   `options?` (optional): `{ skipHistoryWrite?: boolean }` - If `skipHistoryWrite` is `true`, history buffers for textures with history enabled are not updated
 
 ### Lifecycle methods
 
-#### `play(callback?)`
+#### `play(onStepComplete?, setStepOptions?)`
 
-Start the render loop. The callback is invoked each frame with the current time and frame number.
+Start the render loop. The first callback (`onStepComplete`) is invoked after each frame completes with the current time and frame number. The second callback (`setStepOptions`) is invoked before each frame to optionally return `StepOptions` that control the rendering behavior.
 
 ```typescript
 shader.play();
-// Can optionally take a callback to invoke each frame.
+
+// With per-frame callbacks.
 shader.play((time, frame) => {
 	shader.updateTextures({ u_webcam: videoElement });
 });
+
+shader.play(null, (time, frame) => {
+	// Only save every 10th frame to history.
+	return { skipHistoryWrite: frame % 10 === 0 };
+});
 ```
+
+**Parameters:**
+
+-   `onStepComplete?` (optional): `(time: number, frame: number) => void` - Callback invoked after each frame completes
+-   `setStepOptions?` (optional): `(time: number, frame: number) => StepOptions | void` - Callback invoked before each frame to return step options
+
+#### `step(time, options?)`
+
+Manually advance the shader by one frame. Updates uniforms (`u_time`, `u_frame`) and renders the shader. Useful for custom animation loops or when you need precise control over when frames are rendered.
+
+```typescript
+shader.step(5.0); // Render at 5 seconds.
+```
+
+**Parameters:**
+
+-   `time` (number): The current time in seconds
+-   `options?` (optional): `StepOptions` - Options to control rendering behavior (see below)
+
+#### `draw(options?)`
+
+Manually render the shader without updating uniforms or frame counter. This is useful when you want to render multiple times per frame or when using custom animation loops.
+
+```typescript
+shader.draw({ skipClear: true }); // Render without clearing the canvas.
+```
+
+**Parameters:**
+
+-   `options?` (optional): `StepOptions` - Options to control rendering behavior (see below)
+
+#### `StepOptions`
+
+Options that control rendering behavior for `play()`, `step()`, and `draw()` methods.
+
+```typescript
+interface StepOptions {
+	skipClear?: boolean; // Skip clearing the canvas before rendering
+	skipHistoryWrite?: boolean; // Skip writing to history buffers
+}
+```
+
+**Options:**
+
+-   `skipClear?: boolean` - If `true`, the canvas is not cleared before rendering. Useful for accumulating effects or multi-pass rendering.
+-   `skipHistoryWrite?: boolean` - If `true`, history buffers are not updated. Useful when you want to render without affecting the history state.
 
 #### `pause()`, `reset()`, `destroy()`
 
