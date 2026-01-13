@@ -160,7 +160,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				const mask = segmentationMasks[i];
 				maskShader.updateTextures({ u_mask: mask.getAsWebGLTexture() });
 				maskShader.updateUniforms({ u_poseIndex: (i + 1) / maxPoses });
-				maskShader.draw(i === 0); // Only clear on first mask.
+				maskShader.draw({ skipClear: i > 0 }); // Only clear on first mask.
 			}
 			shaderPad.updateTextures({ u_poseMask: sharedCanvas });
 		}
