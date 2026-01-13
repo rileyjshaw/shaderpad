@@ -7,6 +7,7 @@ export interface PosePluginOptions {
 	minPoseDetectionConfidence?: number;
 	minPosePresenceConfidence?: number;
 	minTrackingConfidence?: number;
+	onReady?: () => void;
 	onResults?: (results: PoseLandmarkerResult) => void;
 }
 
@@ -298,6 +299,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			);
 
 			await initializePoseLandmarker();
+			options?.onReady?.();
 		});
 
 		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {

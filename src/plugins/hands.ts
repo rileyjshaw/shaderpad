@@ -7,6 +7,7 @@ export interface HandsPluginOptions {
 	minHandDetectionConfidence?: number;
 	minHandPresenceConfidence?: number;
 	minTrackingConfidence?: number;
+	onReady?: () => void;
 	onResults?: (results: HandLandmarkerResult) => void;
 }
 
@@ -162,6 +163,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			);
 
 			await initializeHandLandmarker();
+			options?.onReady?.();
 		});
 
 		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {

@@ -397,6 +397,11 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
+**Options:**
+
+-   `onReady?: () => void` - Callback invoked when initialization is complete and the detection model is loaded
+-   `onResults?: (results: FaceLandmarkerResult) => void` - Callback invoked with detection results each frame
+
 **Uniforms:**
 
 | Uniform              | Type      | Description                                                                 |
@@ -477,6 +482,11 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [pose({ textureName: 'u_video', options: { maxPoses: 3 } })],
 });
 ```
+
+**Options:**
+
+-   `onReady?: () => void` - Callback invoked when initialization is complete and the detection model is loaded
+-   `onResults?: (results: PoseLandmarkerResult) => void` - Callback invoked with detection results each frame
 
 **Uniforms:**
 
@@ -567,6 +577,11 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
+**Options:**
+
+-   `onReady?: () => void` - Callback invoked when initialization is complete and the detection model is loaded
+-   `onResults?: (results: HandLandmarkerResult) => void` - Callback invoked with detection results each frame
+
 **Uniforms:**
 
 | Uniform              | Type      | Description                                           |
@@ -638,11 +653,19 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 				modelPath:
 					'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
 				outputCategoryMask: true,
+				onReady: () => {
+					console.log('Selfie multiclass model: loading complete');
+				},
 			},
 		}),
 	],
 });
 ```
+
+**Options:**
+
+-   `onReady?: () => void` - Callback invoked when initialization is complete and the detection model is loaded
+-   `onResults?: (results: ImageSegmenterResult) => void` - Callback invoked with segmentation results each frame
 
 **Uniforms:**
 

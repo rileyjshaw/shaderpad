@@ -4,6 +4,8 @@ import type { ImageSegmenter, ImageSegmenterResult, MPMask } from '@mediapipe/ta
 export interface SegmenterPluginOptions {
 	modelPath?: string;
 	outputCategoryMask?: boolean;
+	onReady?: () => void;
+	onResults?: (results: ImageSegmenterResult) => void;
 }
 
 const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
@@ -115,6 +117,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			}
 
 			updateMaskTexture(confidenceMasks);
+			options?.onResults?.(result);
 		}
 
 		shaderPad.registerHook('init', async () => {
@@ -125,6 +128,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			});
 			shaderPad.initializeUniform('u_numCategories', 'int', numCategories);
 			await initializeImageSegmenter();
+			options?.onReady?.();
 		});
 
 		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {

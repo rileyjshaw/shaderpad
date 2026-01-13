@@ -9,6 +9,7 @@ export interface FacePluginOptions {
 	minTrackingConfidence?: number;
 	outputFaceBlendshapes?: boolean;
 	outputFacialTransformationMatrixes?: boolean;
+	onReady?: () => void;
 	onResults?: (results: FaceLandmarkerResult) => void;
 }
 
@@ -358,6 +359,7 @@ void main() { outColor = u_color; }`
 			);
 
 			await initializeFaceLandmarker();
+			options?.onReady?.();
 		});
 
 		shaderPad.registerHook('initializeTexture', (name: string, source: TextureSource) => {
