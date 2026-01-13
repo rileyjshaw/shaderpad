@@ -7,6 +7,7 @@ interface PosePluginOptions {
     minPoseDetectionConfidence?: number;
     minPosePresenceConfidence?: number;
     minTrackingConfidence?: number;
+    onReady?: () => void;
     onResults?: (results: PoseLandmarkerResult) => void;
 }
 declare function pose(config: {

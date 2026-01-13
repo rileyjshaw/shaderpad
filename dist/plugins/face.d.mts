@@ -9,6 +9,7 @@ interface FacePluginOptions {
     minTrackingConfidence?: number;
     outputFaceBlendshapes?: boolean;
     outputFacialTransformationMatrixes?: boolean;
+    onReady?: () => void;
     onResults?: (results: FaceLandmarkerResult) => void;
 }
 declare function face(config: {

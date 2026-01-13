@@ -7,6 +7,7 @@ interface HandsPluginOptions {
     minHandDetectionConfidence?: number;
     minHandPresenceConfidence?: number;
     minTrackingConfidence?: number;
+    onReady?: () => void;
     onResults?: (results: HandLandmarkerResult) => void;
 }
 declare function hands(config: {

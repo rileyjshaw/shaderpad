@@ -1,5 +1,19 @@
 # shaderpad
 
+## 1.0.0-beta.38
+
+### Minor Changes
+
+-   Allow high-precision history
+
+    Also:
+
+    -   Allow texture options to be passed during ShaderPad creation
+    -   Add onReady callbacks to MediaPipe plugins
+    -   Add an afterStep lifecycle method
+    -   Add option to skip history writes
+    -   Various bugfixes and performance improvements
+
 ## 1.0.0-beta.37
 
 ### Minor Changes

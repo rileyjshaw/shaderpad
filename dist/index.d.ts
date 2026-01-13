@@ -48,12 +48,16 @@ interface PluginContext {
     injectGLSL: (code: string) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
-type LifecycleMethod = 'init' | 'step' | 'destroy' | 'updateResolution' | 'reset' | 'initializeTexture' | 'updateTextures' | 'initializeUniform' | 'updateUniforms';
-interface Options {
+type LifecycleMethod = 'init' | 'step' | 'afterStep' | 'destroy' | 'updateResolution' | 'reset' | 'initializeTexture' | 'updateTextures' | 'initializeUniform' | 'updateUniforms';
+interface Options extends Exclude<TextureOptions, 'preserveY'> {
     canvas?: HTMLCanvasElement | OffscreenCanvas | null;
     plugins?: Plugin[];
     history?: number;
     debug?: boolean;
+}
+interface StepOptions {
+    skipClear?: boolean;
+    skipHistoryWrite?: boolean;
 }
 declare class ShaderPad {
     private isInternalCanvas;
@@ -81,8 +85,10 @@ declare class ShaderPad {
     onResize?: (width: number, height: number) => void;
     private hooks;
     private historyDepth;
+    private textureOptions;
     private debug;
-    constructor(fragmentShaderSrc: string, options?: Options);
+    private intermediateFbo;
+    constructor(fragmentShaderSrc: string, { canvas, plugins, history, debug, ...textureOptions }?: Options);
     registerHook(name: LifecycleMethod, fn: Function): void;
     private init;
     private createShader;
@@ -91,6 +97,7 @@ declare class ShaderPad {
     private handleResize;
     private addEventListeners;
     private updateResolution;
+    private resizeTexture;
     private reserveTextureUnit;
     private releaseTextureUnit;
     private clearHistoryTextureLayers;
@@ -106,14 +113,16 @@ declare class ShaderPad {
     initializeTexture(name: string, source: TextureSource, options?: TextureOptions & {
         history?: number;
     }): void;
-    updateTextures(updates: Record<string, UpdateTextureSource>): void;
+    updateTextures(updates: Record<string, UpdateTextureSource>, options?: {
+        skipHistoryWrite?: boolean;
+    }): void;
     private updateTexture;
-    draw(clear?: boolean): void;
-    step(time: number): void;
-    play(callback?: (time: number, frame: number) => void): void;
+    draw(options?: StepOptions): void;
+    step(time: number, options?: StepOptions): void;
+    play(onStepComplete?: (time: number, frame: number) => void, setStepOptions?: (time: number, frame: number) => StepOptions | void): void;
     pause(): void;
     reset(): void;
     destroy(): void;
 }
 
-export { type CustomTexture, type Options, type PartialCustomTexture, type PluginContext, type TextureOptions, type TextureSource, ShaderPad as default };
+export { type CustomTexture, type Options, type PartialCustomTexture, type PluginContext, type StepOptions, type TextureOptions, type TextureSource, ShaderPad as default };
