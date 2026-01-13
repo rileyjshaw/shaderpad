@@ -100,6 +100,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			maskShader.updateTextures(textures);
 			maskShader.draw();
 			shaderPad.updateTextures({ u_segmentMask: sharedCanvas });
+			confidenceMasks.forEach(mask => mask.close());
 		}
 
 		function processSegmenterResults(result: ImageSegmenterResult) {
