@@ -92,7 +92,7 @@ vec3 faceRays(float density, float weight, float decay, float exposure,
 			break;
 		textCoo -= deltaTextCoord;
 
-		float brightness = min(1.0, inMouth(textCoo) + inEye(textCoo));
+		float brightness = min(1.0, inInnerMouth(textCoo) + inEye(textCoo));
 		vec3 samp = vec3(brightness);
 		samp.xy -= vec2(0.5, 0.2);
 		samp.xy = max(samp.xy, 0.);

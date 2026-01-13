@@ -54,10 +54,8 @@ void main() {
 	});
 
 	shader.play((_t, frame) => {
-		if (frame >= HISTORY_LENGTH + 1) {
-			console.log('Pausing the shader for inspection now that the history buffer is full.');
-			shader!.pause();
-		}
+		// Pause for inspection now that the history buffer is full.
+		if (frame >= HISTORY_LENGTH + 1) shader!.pause();
 	});
 }
 
