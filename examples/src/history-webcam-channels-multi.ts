@@ -1,3 +1,7 @@
+/**
+ * Multi-echo webcam with RGB channel separation. Uses texture history
+ * to delay each color channel independently.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 

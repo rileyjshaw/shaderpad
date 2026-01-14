@@ -1,3 +1,7 @@
+/**
+ * Canvas saving using save plugin. Exports shader output with
+ * custom metadata.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 import save, { WithSave } from 'shaderpad/plugins/save';

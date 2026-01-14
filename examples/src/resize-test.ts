@@ -1,3 +1,7 @@
+/**
+ * Dynamic texture resizing test. Switches between different input and
+ * output canvas sizes to test texture handling.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 

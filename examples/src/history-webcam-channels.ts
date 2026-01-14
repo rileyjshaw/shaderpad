@@ -1,3 +1,7 @@
+/**
+ * RGB channel separation effect. Each channel samples from different
+ * frames using texture history.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 

@@ -1,3 +1,7 @@
+/**
+ * History buffer as a grid. Each tile shows a different frame from the
+ * history buffer using helpers plugin.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 

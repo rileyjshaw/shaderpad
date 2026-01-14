@@ -1,3 +1,7 @@
+/**
+ * Hand detection visualization using hands plugin. Shows colored dots on
+ * fingertips and hand centers.
+ */
 import ShaderPad from 'shaderpad';
 import hands from 'shaderpad/plugins/hands';
 

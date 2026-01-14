@@ -1,3 +1,7 @@
+/**
+ * Image segmentation using segmenter plugin. Detects and highlights
+ * objects in webcam feed with mask overlay.
+ */
 import ShaderPad from 'shaderpad';
 import segmenter from 'shaderpad/plugins/segmenter';
 

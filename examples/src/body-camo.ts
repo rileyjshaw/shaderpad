@@ -1,3 +1,7 @@
+/**
+ * Body camouflage effect using pose plugin. Samples colors from around detected
+ * body centers to create a dynamic invisibility effect.
+ */
 import ShaderPad from 'shaderpad';
 import pose from 'shaderpad/plugins/pose';
 import helpers from 'shaderpad/plugins/helpers';

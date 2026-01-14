@@ -1,3 +1,7 @@
+/**
+ * Animated grid with rotating rings. Multiple visual variants cycled
+ * with arrow keys. Uses custom uniforms and u_time.
+ */
 import ShaderPad from 'shaderpad';
 
 const fragmentShaderSrc = `#version 300 es

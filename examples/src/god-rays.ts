@@ -1,3 +1,7 @@
+/**
+ * God-ray effects from fingertips and faces. Uses hands and face plugins to create
+ * volumetric light rays from user’s mouth, eyes, and fingertips in real-time.
+ */
 import ShaderPad from 'shaderpad';
 import hands from 'shaderpad/plugins/hands';
 import face from 'shaderpad/plugins/face';

@@ -51,7 +51,7 @@ shader.play(time => {
 });
 ```
 
-See the [`examples/` directory](./examples/) for more.
+See the [`examples/` directory](./examples/src) for more.
 
 ## Usage
 
@@ -700,24 +700,15 @@ if (category >= 0.0) {
 ### Running an example
 
 ```bash
-# Clone the repository.
 git clone https://github.com/rileyjshaw/shaderpad.git
-cd shaderpad
-
-# Install dependencies and start the development server.
-cd examples
+cd shaderpad/examples
 npm install
 npm run dev
 ```
 
-This will launch a local server. Open the provided URL (usually `http://localhost:5173`) in your browser to view and interact with the examples. Use the select box to view different examples.
-
 ### Adding an example
 
--   Add a new `.ts` file in `examples/src/`.
--   Follow the structure of an existing example as a template. The example must export an `init` function and a `destroy` function.
--   Add the example to the `demos` array in `examples/src/main.ts`.
--   If your example needs images or other assets, place them in `examples/public/` and reference them with a relative path.
+Add a `.ts` file in `examples/src/` that exports `init` and `destroy` functions. Add it to the `demos` array in `examples/src/main.ts`.
 
 ## License
 

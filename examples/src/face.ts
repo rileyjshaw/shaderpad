@@ -1,3 +1,7 @@
+/**
+ * Face detection visualization using face plugin. Shows landmarks, mesh, and
+ * region masks. Double-tap to switch cameras.
+ */
 import ShaderPad from 'shaderpad';
 import face from 'shaderpad/plugins/face';
 

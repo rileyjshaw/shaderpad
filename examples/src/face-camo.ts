@@ -1,3 +1,7 @@
+/**
+ * Face camouflage effect using face plugin. Samples colors from around detected
+ * face centers to create a dynamic invisibility effect.
+ */
 import ShaderPad from 'shaderpad';
 import face from 'shaderpad/plugins/face';
 import helpers from 'shaderpad/plugins/helpers';

@@ -1,3 +1,7 @@
+/**
+ * Procedural animation with rotating grid patterns. Multiple variants
+ * (rainbow, stripes, graph paper) cycled with arrow keys. Uses custom uniforms.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 

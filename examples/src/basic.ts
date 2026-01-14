@@ -1,3 +1,7 @@
+/**
+ * Interactive dot grid with cursor tracking. Uses built-in uniforms (u_time, u_cursor, u_click)
+ * and custom uniforms with dynamic updates. Spacebar to pause/play.
+ */
 import ShaderPad from 'shaderpad';
 import save, { WithSave } from 'shaderpad/plugins/save';
 

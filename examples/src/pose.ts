@@ -1,3 +1,7 @@
+/**
+ * Pose detection visualization using pose plugin. Shows landmarks and
+ * body segmentation mask with color-coded regions.
+ */
 import ShaderPad from 'shaderpad';
 import pose from 'shaderpad/plugins/pose';
 

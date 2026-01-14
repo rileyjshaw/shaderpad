@@ -1,3 +1,7 @@
+/**
+ * Webcam history as a grid. Each cell shows a different frame from
+ * the texture history buffer.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 

@@ -1,3 +1,7 @@
+/**
+ * History buffer demo. Flashes colors frame-by-frame, then displays
+ * all previous frames side-by-side using helpers plugin.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 

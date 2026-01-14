@@ -1,3 +1,7 @@
+/**
+ * Procedural 3D animation (ported from Shadertoy). Uses u_time uniform
+ * for animation. Spacebar to pause/play.
+ */
 import ShaderPad from 'shaderpad';
 
 const fragmentShaderSrc = `#version 300 es

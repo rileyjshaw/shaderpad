@@ -1,3 +1,7 @@
+/**
+ * Echo effect on webcam using texture history. Combines multiple
+ * time-delayed frames with easing for smooth trails.
+ */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 

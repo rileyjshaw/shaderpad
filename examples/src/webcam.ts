@@ -1,3 +1,7 @@
+/**
+ * Webcam with picture frame overlay. Blends webcam texture with
+ * static image using alpha channel.
+ */
 import ShaderPad from 'shaderpad';
 
 async function getWebcamStream(container: HTMLDivElement): Promise<HTMLVideoElement> {
