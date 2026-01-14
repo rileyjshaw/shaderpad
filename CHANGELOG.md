@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.39
+
+### Patch Changes
+
+-   Bugfix: allocate storage for intermediate texture
+
 ## 1.0.0-beta.38
 
 ### Minor Changes
