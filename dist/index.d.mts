@@ -14,6 +14,7 @@ interface TextureOptions {
     wrapT?: number;
     preserveY?: boolean;
 }
+type ResolvedTextureOptions = Required<Omit<TextureOptions, 'preserveY'>> & Pick<TextureOptions, 'preserveY'>;
 interface Texture {
     texture: WebGLTexture;
     unitIndex: number;
@@ -23,7 +24,7 @@ interface Texture {
         depth: number;
         writeIndex: number;
     };
-    options?: TextureOptions;
+    options: ResolvedTextureOptions;
 }
 interface CustomTexture {
     data: ArrayBufferView | null;
@@ -100,6 +101,7 @@ declare class ShaderPad {
     private resizeTexture;
     private reserveTextureUnit;
     private releaseTextureUnit;
+    private resolveTextureOptions;
     private clearHistoryTextureLayers;
     initializeUniform(name: string, type: 'float' | 'int', value: number | number[] | (number | number[])[], options?: {
         arrayLength?: number;

@@ -25,6 +25,7 @@ export interface TextureOptions {
 	wrapT?: number;
 	preserveY?: boolean;
 }
+type ResolvedTextureOptions = Required<Omit<TextureOptions, 'preserveY'>> & Pick<TextureOptions, 'preserveY'>;
 
 interface Texture {
 	texture: WebGLTexture;
@@ -35,7 +36,7 @@ interface Texture {
 		depth: number;
 		writeIndex: number;
 	};
-	options?: TextureOptions;
+	options: ResolvedTextureOptions;
 }
 
 export interface CustomTexture {
@@ -479,11 +480,28 @@ class ShaderPad {
 		}
 	}
 
+	private resolveTextureOptions(options?: TextureOptions): ResolvedTextureOptions {
+		const { gl } = this;
+		const type = options?.type ?? gl.UNSIGNED_BYTE;
+		return {
+			type,
+			format: options?.format ?? gl.RGBA,
+			internalFormat:
+				options?.internalFormat ??
+				(type === gl.FLOAT ? gl.RGBA32F : type === gl.HALF_FLOAT ? gl.RGBA16F : gl.RGBA8),
+			minFilter: options?.minFilter ?? gl.LINEAR,
+			magFilter: options?.magFilter ?? gl.LINEAR,
+			wrapS: options?.wrapS ?? gl.CLAMP_TO_EDGE,
+			wrapT: options?.wrapT ?? gl.CLAMP_TO_EDGE,
+			preserveY: options?.preserveY,
+		};
+	}
+
 	private clearHistoryTextureLayers(textureInfo: Texture): void {
 		if (!textureInfo.history) return;
 
 		const gl = this.gl;
-		const type = textureInfo.options?.type ?? gl.UNSIGNED_BYTE;
+		const { type, format } = textureInfo.options;
 		const size = textureInfo.width * textureInfo.height * 4;
 		const transparent =
 			type === gl.FLOAT
@@ -503,7 +521,7 @@ class ShaderPad {
 				textureInfo.width,
 				textureInfo.height,
 				1,
-				textureInfo.options?.format ?? gl.RGBA,
+				format,
 				type,
 				transparent
 			);
@@ -632,15 +650,24 @@ class ShaderPad {
 		const { options } = textureInfo;
 		this.gl.activeTexture(this.gl.TEXTURE0 + unitIndex);
 		this.gl.bindTexture(textureTarget, texture);
-		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_WRAP_S, options?.wrapS ?? this.gl.CLAMP_TO_EDGE);
-		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_WRAP_T, options?.wrapT ?? this.gl.CLAMP_TO_EDGE);
-		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_MIN_FILTER, options?.minFilter ?? this.gl.LINEAR);
-		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_MAG_FILTER, options?.magFilter ?? this.gl.LINEAR);
+		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_WRAP_S, options.wrapS);
+		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_WRAP_T, options.wrapT);
+		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_MIN_FILTER, options.minFilter);
+		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_MAG_FILTER, options.magFilter);
 		if (hasHistory) {
-			const type = options?.type ?? this.gl.UNSIGNED_BYTE;
-			const internalFormat =
-				options?.internalFormat ?? (type === this.gl.FLOAT ? this.gl.RGBA32F : this.gl.RGBA8);
-			this.gl.texStorage3D(textureTarget, 1, internalFormat, width, height, historyDepth);
+			this.gl.texStorage3D(textureTarget, 1, options.internalFormat, width, height, historyDepth);
+		} else if (name === INTERMEDIATE_TEXTURE_KEY) {
+			this.gl.texImage2D(
+				this.gl.TEXTURE_2D,
+				0,
+				options.internalFormat,
+				width,
+				height,
+				0,
+				options.format,
+				options.type,
+				null
+			);
 		}
 		return { texture, unitIndex };
 	}
@@ -662,7 +689,7 @@ class ShaderPad {
 		const textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> = {
 			width,
 			height,
-			options: textureOptions,
+			options: this.resolveTextureOptions(textureOptions),
 		};
 		if (historyDepth > 0) {
 			textureInfo.history = { depth: historyDepth, writeIndex: 0 };
@@ -737,8 +764,8 @@ class ShaderPad {
 					width,
 					height,
 					1,
-					info.options?.format ?? this.gl.RGBA,
-					info.options?.type ?? this.gl.UNSIGNED_BYTE,
+					info.options.format,
+					info.options.type,
 					((source as PartialCustomTexture).data ?? (source as Exclude<TextureSource, CustomTexture>)) as any
 				);
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
@@ -751,9 +778,6 @@ class ShaderPad {
 			this.gl.bindTexture(this.gl.TEXTURE_2D, info.texture);
 			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 
-			const format = info.options?.format ?? this.gl.RGBA;
-			const type = info.options?.type ?? this.gl.UNSIGNED_BYTE;
-
 			if (isPartial) {
 				this.gl.texSubImage2D(
 					this.gl.TEXTURE_2D,
@@ -762,23 +786,20 @@ class ShaderPad {
 					source.y ?? 0,
 					width,
 					height,
-					format,
-					type,
+					info.options.format,
+					info.options.type,
 					source.data
 				);
 			} else {
-				const internalFormat =
-					info.options?.internalFormat ??
-					(isTypedArray ? (type === this.gl.FLOAT ? this.gl.RGBA32F : this.gl.RGBA8) : this.gl.RGBA);
 				this.gl.texImage2D(
 					this.gl.TEXTURE_2D,
 					0,
-					internalFormat,
+					info.options.internalFormat,
 					width,
 					height,
 					0,
-					format,
-					type,
+					info.options.format,
+					info.options.type,
 					((source as PartialCustomTexture).data ?? (source as Exclude<TextureSource, CustomTexture>)) as any
 				);
 			}

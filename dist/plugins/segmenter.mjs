@@ -1,4 +1,4 @@
-import{a as M}from"../chunk-CRUQQQ46.mjs";var k={data:new Uint8Array(4),width:1,height:1};function _(a){let l=Array.from({length:a},(m,t)=>`uniform sampler2D u_confidenceMask${t};`).join(`
+import{a as M}from"../chunk-6C6DVCZI.mjs";var k={data:new Uint8Array(4),width:1,height:1};function _(a){let l=Array.from({length:a},(m,t)=>`uniform sampler2D u_confidenceMask${t};`).join(`
 `),u=Array.from({length:a},(m,t)=>`		${t>0?"else ":""}if (i == ${t}) c = texelFetch(u_confidenceMask${t}, texCoord, 0).r;`).join(`
 `);return`#version 300 es
 precision mediump float;
