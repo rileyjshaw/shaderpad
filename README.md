@@ -15,7 +15,6 @@ npm install shaderpad
 ```typescript
 import ShaderPad from 'shaderpad';
 
-// Your custom GLSL fragment shader code.
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
 
@@ -35,40 +34,21 @@ void main() {
   vec2 dotGrid = mod(uv, 50.) - 25.;
   float dotDist = length(dotGrid);
   float dot = step(dotDist, 5.);
-
   float cursorDist = distance(uv, u_cursor * u_resolution);
   float cursor = step(cursorDist, 25. + sin(u_time * 5.) * 5.);
-
   vec3 color = mix(vec3(0., 0., 1.), vec3(1.), dot);
   color = mix(color, u_cursorColor, cursor);
-
   outColor = vec4(color, 1.);
 }
 `;
 
-// Initialize the shader.
 const shader = new ShaderPad(fragmentShaderSrc /* , options */);
-
-// Add your own custom uniforms.
 const getColor = (time: number) =>
 	[time, time + (Math.PI * 2) / 3, time + (Math.PI * 4) / 3].map(x => 1 + Math.sin(x) / 2);
 shader.initializeUniform('u_cursorColor', 'float', getColor(0));
-
-// Start the render loop.
 shader.play(time => {
 	shader.updateUniforms({ u_cursorColor: getColor(time) });
 });
-
-// Optionally pause or reset the render loop.
-// shader.pause();
-// shader.reset();
-
-// ShaderPad also attaches a throttled resize observer that you can hook into.
-// It fires when the canvas size changes visually. If you supplied a custom
-// canvas, you may use this to update its `width` and `height` attributes.
-// shader.onResize = (width, height) => {
-// 	console.log('Canvas resized:', width, height);
-// };
 ```
 
 See the [`examples/` directory](./examples/) for more.
@@ -79,26 +59,26 @@ See the [`examples/` directory](./examples/) for more.
 
 #### `initializeUniform(name, type, value, options?)`
 
-Initialize a uniform variable. The uniform must be declared in your fragment shader.
+Initialize a uniform, which must be declared in your shader.
 
 ```typescript
-// Initialize a float uniform.
 shader.initializeUniform('u_speed', 'float', 1.5);
-
-// Initialize a vec3 uniform.
+// Vectors are passed as arrays. This is a vec3:
 shader.initializeUniform('u_color', 'float', [1.0, 0.5, 0.0]);
+// …but you can also pass an array. This is an array of floats:
+shader.initializeUniform('u_data', 'float', [1.0, 0.5, 0.0], { arrayLength: 3 });
 ```
 
 **Parameters:**
 
--   `name` (string): The name of the uniform as declared in your shader
--   `type` ('float' | 'int'): The uniform type
+-   `name` (string): Uniform name
+-   `type` ('float' | 'int'): Uniform type
 -   `value` (number | number[] | (number | number[])[]): Initial value(s)
--   `options` (optional): `{ arrayLength?: number }` - Required for uniform arrays
+-   `options` (optional): `{ arrayLength?: number }` - Required for arrays
 
 #### `updateUniforms(updates, options?)`
 
-Update one or more uniform values.
+Update uniform values.
 
 ```typescript
 shader.updateUniforms({
@@ -109,7 +89,7 @@ shader.updateUniforms({
 
 **Parameters:**
 
--   `updates` (Record<string, number | number[] | (number | number[])[]>): Object mapping uniform names to their new values
+-   `updates`: Object mapping uniform names to their new values
 -   `options` (optional): `{ startIndex?: number }` - Starting index for partial array updates
 
 #### Uniform arrays
@@ -125,12 +105,8 @@ shader.initializeUniform(
 		[0, 0],
 		[1, 1],
 		[2, 2],
-		[3, 3],
-		[4, 4],
 	],
-	{
-		arrayLength: 5,
-	}
+	{ arrayLength: 3 }
 );
 
 // Update all elements.
@@ -139,8 +115,6 @@ shader.updateUniforms({
 		[0.1, 0.2],
 		[1.1, 1.2],
 		[2.1, 2.2],
-		[3.1, 3.2],
-		[4.1, 4.2],
 	],
 });
 
@@ -178,25 +152,13 @@ shader.updateUniforms(
 
 #### `initializeTexture(name, source, options?)`
 
-Initialize a texture from an image, video, canvas element, or typed array.
+Initialize a texture from an image, video, canvas, or typed array.
 
 ```typescript
-// Initialize a texture from an image.
-const img = new Image();
-img.src = 'texture.png';
-img.onload = () => {
-	shader.initializeTexture('u_texture', img);
-};
-
-// Initialize a texture from a typed array (Float32Array, Uint8Array, etc.).
-const data = new Float32Array(width * height * 4); // RGBA data
+shader.initializeTexture('u_texture', img);
 shader.initializeTexture(
 	'u_custom',
-	{
-		data,
-		width,
-		height,
-	},
+	{ data: new Float32Array(width * height * 4), width, height },
 	{
 		internalFormat: gl.RGBA32F,
 		type: gl.FLOAT,
@@ -204,19 +166,15 @@ shader.initializeTexture(
 		magFilter: gl.NEAREST,
 	}
 );
-
-// Initialize a texture with history (stores previous frames).
 shader.initializeTexture('u_webcam', videoElement, { history: 30 });
-
-// Preserve Y orientation for DOM sources (don't flip vertically).
 shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 ```
 
 **Parameters:**
 
 -   `name` (string): The name of the texture uniform as declared in your shader
--   `source` (HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | CustomTexture): The texture source
 -   `options` (optional): Texture options (see below)
+-   `source`: Image, video, canvas, or `{ data, width, height }`
 
 **Texture Options:**
 
@@ -234,45 +192,24 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 
 #### `updateTextures(updates, options?)`
 
-Update one or more textures. Useful for updating video textures each frame.
-
 ```typescript
+shader.updateTextures({ u_webcam: videoElement, u_overlay: overlayCanvas });
 shader.updateTextures({
-	u_webcam: videoElement,
-	u_overlay: overlayCanvas,
-	u_custom: {
-		data: typedArray,
-		width,
-		height,
-	},
+	u_custom: { data: partialData, width, height, isPartial: true, x: offsetX, y: offsetY },
 });
-
-// Typed arrays can be partially updated.
-shader.updateTextures({
-	u_custom: {
-		data: partialData,
-		width: regionWidth,
-		height: regionHeight,
-		isPartial: true,
-		x: offsetX,
-		y: offsetY,
-	},
-});
-
-// Skip writing to history buffers for this update.
 shader.updateTextures({ u_camera: videoElement }, { skipHistoryWrite: true });
 ```
 
 **Parameters:**
 
--   `updates` (Record<string, TextureSource | PartialCustomTexture>): Object mapping texture names to their new sources
--   `options?` (optional): `{ skipHistoryWrite?: boolean }` - If `skipHistoryWrite` is `true`, history buffers for textures with history enabled are not updated
+-   `updates`: Object mapping texture names to updated sources
+-   `options?` (optional): `{ skipHistoryWrite?: boolean }`
 
 ### Lifecycle methods
 
 #### `play(onStepComplete?, setStepOptions?)`
 
-Start the render loop. The first callback (`onStepComplete`) is invoked after each frame completes with the current time and frame number. The second callback (`setStepOptions`) is invoked before each frame to optionally return `StepOptions` that control the rendering behavior.
+Start the render loop.
 
 ```typescript
 shader.play();
@@ -290,12 +227,12 @@ shader.play(null, (time, frame) => {
 
 **Parameters:**
 
--   `onStepComplete?` (optional): `(time: number, frame: number) => void` - Callback invoked after each frame completes
--   `setStepOptions?` (optional): `(time: number, frame: number) => StepOptions | void` - Callback invoked before each frame to return step options
+-   `onStepComplete?`: `(time: number, frame: number) => void` - Called after each frame
+-   `setStepOptions?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
 
 #### `step(time, options?)`
 
-Manually advance the shader by one frame. Updates uniforms (`u_time`, `u_frame`) and renders the shader. Useful for custom animation loops or when you need precise control over when frames are rendered.
+Manually advance one frame. Updates `u_time` and `u_frame`, then renders.
 
 ```typescript
 shader.step(5.0); // Render at 5 seconds.
@@ -308,10 +245,10 @@ shader.step(5.0); // Render at 5 seconds.
 
 #### `draw(options?)`
 
-Manually render the shader without updating uniforms or frame counter. This is useful when you want to render multiple times per frame or when using custom animation loops.
+Render without updating uniforms or frame counter.
 
 ```typescript
-shader.draw({ skipClear: true }); // Render without clearing the canvas.
+shader.draw({ skipClear: true });
 ```
 
 **Parameters:**
@@ -320,11 +257,9 @@ shader.draw({ skipClear: true }); // Render without clearing the canvas.
 
 #### `StepOptions`
 
-Options that control rendering behavior for `play()`, `step()`, and `draw()` methods.
-
 ```typescript
 interface StepOptions {
-	skipClear?: boolean; // Skip clearing the canvas before rendering
+	skipClear?: boolean; // Skip clearing canvas before rendering
 	skipHistoryWrite?: boolean; // Skip writing to history buffers
 }
 ```
@@ -366,7 +301,7 @@ shader.onResize = (width, height) => {
 
 ### history
 
-The `history` option enables framebuffer history, allowing you to access previous frames in your shader. Pass a number to specify how many frames to keep.
+Enable framebuffer history to access previous frames.
 
 ```typescript
 // Store the last 10 frames of shader output.
@@ -409,10 +344,10 @@ vec4 historyColor = texture(u_webcam, vec3(v_uv, zIndex));
 
 ### debug
 
-The `debug` option controls whether debug logging is enabled. When enabled, ShaderPad will log warnings when uniforms or textures are not found in the shader. Defaults to `true` in development (when `process.env.NODE_ENV !== 'production'`) and `false` in production builds.
+Enable debug logging. Defaults to `true` in development, `false` in production.
 
 ```typescript
-const shader = new ShaderPad(fragmentShaderSrc, { debug: true }); // Explicitly enable debug logging.
+const shader = new ShaderPad(fragmentShaderSrc, { debug: true });
 ```
 
 ### plugins
