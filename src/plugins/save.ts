@@ -24,23 +24,16 @@ function save() {
 				? new Promise(resolve => canvas.toBlob(resolve as BlobCallback, 'image/png'))
 				: canvas.convertToBlob({ type: 'image/png' }));
 
-			if ('ongesturechange' in window) {
-				// Mobile.
+			if (navigator.share) {
 				try {
 					const file = new File([blob], filename, { type: blob.type });
 					const shareData: ShareData = { files: [file] };
 					if (text) shareData.text = text;
-
-					if (navigator.canShare?.(shareData)) {
-						await navigator.share(shareData);
-						return;
-					}
-				} catch (error) {
-					console.warn('Web Share API failed:', error);
-				}
+					await navigator.share(shareData);
+					return;
+				} catch (_swallowedError) {}
 			}
 
-			// Desktop / mobile fallback.
 			downloadLink.download = filename;
 			downloadLink.href = URL.createObjectURL(blob);
 			downloadLink.click();
@@ -49,7 +42,6 @@ function save() {
 	};
 }
 
-// Type helper.
 export type WithSave<T extends ShaderPad> = T & {
 	save(filename: string, text?: string): Promise<void>;
 };
