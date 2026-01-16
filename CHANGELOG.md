@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.40
+
+### Patch Changes
+
+-   Improve save / dismiss behaviour on mobile
+
 ## 1.0.0-beta.39
 
 ### Patch Changes
