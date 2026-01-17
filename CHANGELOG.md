@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.41
+
+### Minor Changes
+
+-   Overhaul hook system and MediaPipe init order
+
 ## 1.0.0-beta.40
 
 ### Patch Changes
