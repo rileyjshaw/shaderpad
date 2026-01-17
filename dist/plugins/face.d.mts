@@ -1,5 +1,4 @@
 import ShaderPad, { PluginContext } from '../index.mjs';
-import { FaceLandmarkerResult } from '@mediapipe/tasks-vision';
 
 interface FacePluginOptions {
     modelPath?: string;
@@ -9,8 +8,6 @@ interface FacePluginOptions {
     minTrackingConfidence?: number;
     outputFaceBlendshapes?: boolean;
     outputFacialTransformationMatrixes?: boolean;
-    onReady?: () => void;
-    onResults?: (results: FaceLandmarkerResult) => void;
 }
 declare function face(config: {
     textureName: string;

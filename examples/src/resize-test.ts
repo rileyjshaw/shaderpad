@@ -15,6 +15,8 @@ let outputSize: 'small' | 'big' = 'big';
 const SMALL_SIZE = 32;
 const BIG_SIZE = 512;
 
+let interval: number;
+
 function createInputCanvas(sizeName: 'small' | 'big'): HTMLCanvasElement {
 	const canvas = document.createElement('canvas');
 	const size = sizeName === 'small' ? SMALL_SIZE : BIG_SIZE;
@@ -154,7 +156,7 @@ void main() {
 	// Initialize input texture with current input
 	shader.initializeTexture('u_input', currentInput === 'small' ? inputCanvasSmall! : inputCanvasBig!);
 
-	window.setInterval(() => {
+	interval = window.setInterval(() => {
 		shader!.updateTextures({
 			u_input: currentInput === 'small' ? inputCanvasSmall! : inputCanvasBig!,
 		});
@@ -163,6 +165,8 @@ void main() {
 }
 
 export function destroy() {
+	window.clearInterval(interval);
+
 	if (shader) {
 		shader.destroy();
 		shader = null;

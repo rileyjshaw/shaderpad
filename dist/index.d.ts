@@ -1,9 +1,3 @@
-interface Uniform {
-    type: 'float' | 'int';
-    length: 1 | 2 | 3 | 4;
-    location: WebGLUniformLocation;
-    arrayLength?: number;
-}
 interface TextureOptions {
     internalFormat?: number;
     format?: number;
@@ -13,18 +7,6 @@ interface TextureOptions {
     wrapS?: number;
     wrapT?: number;
     preserveY?: boolean;
-}
-type ResolvedTextureOptions = Required<Omit<TextureOptions, 'preserveY'>> & Pick<TextureOptions, 'preserveY'>;
-interface Texture {
-    texture: WebGLTexture;
-    unitIndex: number;
-    width: number;
-    height: number;
-    history?: {
-        depth: number;
-        writeIndex: number;
-    };
-    options: ResolvedTextureOptions;
 }
 interface CustomTexture {
     data: ArrayBufferView | null;
@@ -40,16 +22,12 @@ type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | O
 type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 interface PluginContext {
     gl: WebGL2RenderingContext;
-    uniforms: Map<string, Uniform>;
-    textures: Map<string | symbol, Texture>;
-    get program(): WebGLProgram | null;
     canvas: HTMLCanvasElement | OffscreenCanvas;
-    reserveTextureUnit: (name: string | symbol) => number;
-    releaseTextureUnit: (name: string | symbol) => void;
     injectGLSL: (code: string) => void;
+    emitHook: (name: LifecycleMethod, ...args: any[]) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
-type LifecycleMethod = 'init' | 'step' | 'afterStep' | 'destroy' | 'updateResolution' | 'reset' | 'initializeTexture' | 'updateTextures' | 'initializeUniform' | 'updateUniforms';
+type LifecycleMethod = 'init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'beforeStep' | 'afterStep' | 'beforeDraw' | 'afterDraw' | 'updateResolution' | 'resize' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
 interface Options extends Exclude<TextureOptions, 'preserveY'> {
     canvas?: HTMLCanvasElement | OffscreenCanvas | null;
     plugins?: Plugin[];
@@ -64,7 +42,6 @@ declare class ShaderPad {
     private isInternalCanvas;
     private isTouchDevice;
     private gl;
-    private fragmentShaderSrc;
     private uniforms;
     private textures;
     private textureUnitPool;
@@ -83,17 +60,16 @@ declare class ShaderPad {
     private clickPosition;
     private isMouseDown;
     canvas: HTMLCanvasElement | OffscreenCanvas;
-    onResize?: (width: number, height: number) => void;
     private hooks;
     private historyDepth;
     private textureOptions;
     private debug;
     private intermediateFbo;
     constructor(fragmentShaderSrc: string, { canvas, plugins, history, debug, ...textureOptions }?: Options);
-    registerHook(name: LifecycleMethod, fn: Function): void;
-    private init;
+    private emitHook;
+    on(name: LifecycleMethod, fn: Function): void;
+    off(name: LifecycleMethod, fn: Function): void;
     private createShader;
-    private setupBuffer;
     private throttledHandleResize;
     private handleResize;
     private addEventListeners;

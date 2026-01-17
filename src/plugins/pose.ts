@@ -7,8 +7,6 @@ export interface PosePluginOptions {
 	minPoseDetectionConfidence?: number;
 	minPosePresenceConfidence?: number;
 	minTrackingConfidence?: number;
-	onReady?: () => void;
-	onResults?: (results: PoseLandmarkerResult) => void;
 }
 
 const STANDARD_LANDMARK_COUNT = 33; // See https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model.
@@ -81,7 +79,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, gl } = context;
+		const { injectGLSL, gl, emitHook } = context;
 
 		let poseLandmarker: PoseLandmarker | null = null;
 		let vision: any = null;
@@ -98,7 +96,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		const sharedCanvas = new OffscreenCanvas(1, 1);
 		let maskShader: ShaderPad | null = null;
 
-		async function initializePoseLandmarker() {
+		async function initializeMediaPipe() {
 			try {
 				const { FilesetResolver, PoseLandmarker } = await import('@mediapipe/tasks-vision');
 				vision = await FilesetResolver.forVisionTasks(
@@ -118,10 +116,11 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					outputSegmentationMasks: true,
 				});
 			} catch (error) {
-				console.error('[Pose Plugin] Failed to initialize:', error);
+				console.error('[Pose Plugin] Failed to initialize MediaPipe:', error);
 				throw error;
 			}
 		}
+		const mediaPipeInitPromise = initializeMediaPipe();
 
 		function calculateBoundingBoxCenter(
 			landmarksDataArray: Float32Array,
@@ -237,45 +236,15 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			});
 		}
 
-		function processPoseResults(result: PoseLandmarkerResult) {
-			if (!result.landmarks || !landmarksDataArray) return;
-
-			// IMPORTANT: maskShader and MediaPipe share a WebGL context. MediaPipe needs to run at least once before
-			// ShaderPad is created on the same canvas, otherwise MediaPipe’s WebGL state gets corrupted.
-			if (!maskShader) {
-				maskShader = new ShaderPad(
-					`#version 300 es
-					precision mediump float;
-					in vec2 v_uv;
-					out vec4 outColor;
-					uniform sampler2D u_mask;
-					uniform float u_poseIndex;
-					void main() {
-						ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_mask, 0)));
-						float confidence = texelFetch(u_mask, texCoord, 0).r;
-						if (confidence < 0.01) discard;
-						outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
-					}`,
-					{ canvas: sharedCanvas }
-				);
-				maskShader.initializeTexture('u_mask', dummyTexture);
-				maskShader.initializeUniform('u_poseIndex', 'float', 0);
-			}
-
-			const nPoses = result.landmarks.length;
+		function processPoses(result?: PoseLandmarkerResult) {
+			if (!result?.landmarks || !landmarksDataArray) return;
 			updateLandmarksTexture(result.landmarks);
 			updateMaskTexture(result.segmentationMasks);
-			shaderPad.updateUniforms({ u_nPoses: nPoses });
-
-			options?.onResults?.(result);
+			shaderPad.updateUniforms({ u_nPoses: result.landmarks.length });
+			emitHook('pose:result', result);
 		}
 
-		shaderPad.registerHook('init', async () => {
-			shaderPad.initializeTexture('u_poseMask', dummyTexture, {
-				preserveY: true,
-				minFilter: gl.NEAREST,
-				magFilter: gl.NEAREST,
-			});
+		shaderPad.on('init', async () => {
 			shaderPad.initializeUniform('u_maxPoses', 'int', maxPoses);
 			shaderPad.initializeUniform('u_nPoses', 'int', 0);
 
@@ -298,48 +267,76 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					magFilter: gl.NEAREST,
 				}
 			);
-
-			await initializePoseLandmarker();
-			options?.onReady?.();
+			shaderPad.initializeTexture('u_poseMask', sharedCanvas, {
+				preserveY: true,
+				minFilter: gl.NEAREST,
+				magFilter: gl.NEAREST,
+			});
+			await mediaPipeInitPromise;
+			maskShader = new ShaderPad(
+				`#version 300 es
+precision mediump float;
+in vec2 v_uv;
+out vec4 outColor;
+uniform sampler2D u_mask;
+uniform float u_poseIndex;
+void main() {
+	ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_mask, 0)));
+	float confidence = texelFetch(u_mask, texCoord, 0).r;
+	if (confidence < 0.01) discard;
+	outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
+}`,
+				{ canvas: sharedCanvas }
+			);
+			maskShader.initializeTexture('u_mask', dummyTexture);
+			maskShader.initializeUniform('u_poseIndex', 'float', 0);
+			emitHook('pose:ready');
 		});
 
-		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {
+		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
+			if (name === textureName) detectPoses(source);
+		});
+
+		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
-			if (!source) return;
+			if (source) detectPoses(source);
+		});
+
+		// `detectPoses` may be called multiple times before MediaPipe is
+		// initialized. This ensures we only process the last call.
+		let nDetectionCalls = 0;
+		async function detectPoses(source: TextureSource) {
+			const callOrder = ++nDetectionCalls;
+			await mediaPipeInitPromise;
+			if (callOrder !== nDetectionCalls || !poseLandmarker) return;
 
 			const previousSource = textureSources.get(textureName);
-			if (previousSource !== source) {
-				lastVideoTime = -1;
-			}
-
+			if (previousSource !== source) lastVideoTime = -1;
 			textureSources.set(textureName, source);
-			if (!poseLandmarker) return;
 
 			try {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (runningMode !== requiredMode) {
 					runningMode = requiredMode;
-					await poseLandmarker.setOptions({ runningMode: runningMode });
+					await poseLandmarker.setOptions({ runningMode });
 				}
 
 				if (source instanceof HTMLVideoElement) {
 					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
 					if (source.currentTime !== lastVideoTime) {
 						lastVideoTime = source.currentTime;
-						const result = poseLandmarker.detectForVideo(source, performance.now());
-						processPoseResults(result);
+						processPoses(poseLandmarker.detectForVideo(source, performance.now()));
 					}
 				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
 					if (source.width === 0 || source.height === 0) return;
-					const result = poseLandmarker.detect(source);
-					processPoseResults(result);
+					processPoses(poseLandmarker.detect(source));
 				}
 			} catch (error) {
 				console.error('[Pose Plugin] Detection error:', error);
 			}
-		});
+		}
 
-		shaderPad.registerHook('destroy', () => {
+		shaderPad.on('destroy', () => {
 			if (poseLandmarker) {
 				poseLandmarker.close();
 				poseLandmarker = null;

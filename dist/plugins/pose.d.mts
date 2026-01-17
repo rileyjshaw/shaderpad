@@ -1,5 +1,4 @@
 import ShaderPad, { PluginContext } from '../index.mjs';
-import { PoseLandmarkerResult } from '@mediapipe/tasks-vision';
 
 interface PosePluginOptions {
     modelPath?: string;
@@ -7,8 +6,6 @@ interface PosePluginOptions {
     minPoseDetectionConfidence?: number;
     minPosePresenceConfidence?: number;
     minTrackingConfidence?: number;
-    onReady?: () => void;
-    onResults?: (results: PoseLandmarkerResult) => void;
 }
 declare function pose(config: {
     textureName: string;

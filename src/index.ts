@@ -4,8 +4,7 @@ out vec2 v_uv;
 void main() {
     v_uv = aPosition * 0.5 + 0.5;
     gl_Position = vec4(aPosition, 0.0, 1.0);
-}
-`;
+}`;
 const RESIZE_THROTTLE_INTERVAL = 1000 / 30;
 
 interface Uniform {
@@ -65,28 +64,30 @@ type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustom
 
 export interface PluginContext {
 	gl: WebGL2RenderingContext;
-	uniforms: Map<string, Uniform>;
-	textures: Map<string | symbol, Texture>;
-	get program(): WebGLProgram | null;
 	canvas: HTMLCanvasElement | OffscreenCanvas;
-	reserveTextureUnit: (name: string | symbol) => number;
-	releaseTextureUnit: (name: string | symbol) => void;
 	injectGLSL: (code: string) => void;
+	emitHook: (name: LifecycleMethod, ...args: any[]) => void;
 }
 
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 
 type LifecycleMethod =
 	| 'init'
-	| 'step'
-	| 'afterStep'
-	| 'destroy'
-	| 'updateResolution'
-	| 'reset'
 	| 'initializeTexture'
-	| 'updateTextures'
 	| 'initializeUniform'
-	| 'updateUniforms';
+	| 'updateTextures'
+	| 'updateUniforms'
+	| 'beforeStep'
+	| 'afterStep'
+	| 'beforeDraw'
+	| 'afterDraw'
+	| 'updateResolution'
+	| 'resize'
+	| 'play'
+	| 'pause'
+	| 'reset'
+	| 'destroy'
+	| `${string}:${string}`;
 
 export interface Options extends Exclude<TextureOptions, 'preserveY'> {
 	canvas?: HTMLCanvasElement | OffscreenCanvas | null;
@@ -143,7 +144,6 @@ class ShaderPad {
 	private isInternalCanvas = false;
 	private isTouchDevice = false;
 	private gl: WebGL2RenderingContext;
-	private fragmentShaderSrc: string;
 	private uniforms: Map<string, Uniform> = new Map();
 	private textures: Map<string | symbol, Texture> = new Map();
 	private textureUnitPool: TextureUnitPool;
@@ -162,7 +162,6 @@ class ShaderPad {
 	private clickPosition = [0.5, 0.5];
 	private isMouseDown = false;
 	public canvas: HTMLCanvasElement | OffscreenCanvas;
-	public onResize?: (width: number, height: number) => void;
 	private hooks: Map<LifecycleMethod, Function[]> = new Map();
 	private historyDepth = 0;
 	private textureOptions: TextureOptions;
@@ -183,29 +182,30 @@ class ShaderPad {
 			document.body.appendChild(htmlCanvas);
 		}
 
-		this.gl = this.canvas.getContext('webgl2', { antialias: false }) as WebGL2RenderingContext;
-		if (!this.gl) {
+		const gl = this.canvas.getContext('webgl2', { antialias: false }) as WebGL2RenderingContext;
+		if (!gl) {
 			throw new Error('WebGL2 not supported. Please use a browser that supports WebGL2.');
 		}
+		this.gl = gl;
 
 		this.textureUnitPool = {
 			free: [],
 			next: 0,
-			max: this.gl.getParameter(this.gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),
+			max: gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),
 		};
 		this.textureOptions = textureOptions;
 
 		const { internalFormat, type } = textureOptions;
 		const isFloatFormat =
-			type === this.gl.FLOAT ||
-			type === this.gl.HALF_FLOAT ||
-			internalFormat === this.gl.RGBA16F ||
-			internalFormat === this.gl.RGBA32F ||
-			internalFormat === this.gl.R16F ||
-			internalFormat === this.gl.R32F ||
-			internalFormat === this.gl.RG16F ||
-			internalFormat === this.gl.RG32F;
-		if (isFloatFormat && !this.gl.getExtension('EXT_color_buffer_float')) {
+			type === gl.FLOAT ||
+			type === gl.HALF_FLOAT ||
+			internalFormat === gl.RGBA16F ||
+			internalFormat === gl.RGBA32F ||
+			internalFormat === gl.R16F ||
+			internalFormat === gl.R32F ||
+			internalFormat === gl.RG16F ||
+			internalFormat === gl.RG32F;
+		if (isFloatFormat && !gl.getExtension('EXT_color_buffer_float')) {
 			console.warn('EXT_color_buffer_float not supported, falling back to RGBA8');
 			delete this.textureOptions?.internalFormat;
 			delete this.textureOptions?.format;
@@ -220,72 +220,56 @@ class ShaderPad {
 
 		const glslInjections: string[] = [];
 		if (plugins) {
-			const context: PluginContext = {
-				gl: this.gl,
-				uniforms: this.uniforms,
-				textures: this.textures,
-				canvas: this.canvas,
-				reserveTextureUnit: this.reserveTextureUnit.bind(this),
-				releaseTextureUnit: this.releaseTextureUnit.bind(this),
-				injectGLSL: (code: string) => {
-					glslInjections.push(code);
-				},
-			} as PluginContext;
-			// Define program as a getter so it always returns the current program.
-			Object.defineProperty(context, 'program', {
-				get: () => this.program,
-				enumerable: true,
-				configurable: true,
-			});
-			plugins.forEach(plugin => plugin(this, context));
+			plugins.forEach(plugin =>
+				plugin(this, {
+					gl,
+					canvas: this.canvas,
+					injectGLSL: (code: string) => {
+						glslInjections.push(code);
+					},
+					emitHook: this.emitHook.bind(this),
+				})
+			);
 		}
 
-		this.fragmentShaderSrc = combineShaderCode(fragmentShaderSrc, glslInjections);
-		this.init();
-		if (this.canvas instanceof HTMLCanvasElement) {
-			this.addEventListeners();
-		}
-	}
-
-	registerHook(name: LifecycleMethod, fn: Function) {
-		if (!this.hooks.has(name)) {
-			this.hooks.set(name, []);
-		}
-		this.hooks.get(name)!.push(fn);
-	}
-
-	private init() {
-		const vertexShaderSrc = DEFAULT_VERTEX_SHADER_SRC;
-
-		this.program = this.gl.createProgram();
-		if (!this.program) {
+		const program = this.gl.createProgram();
+		if (!program) {
 			throw new Error('Failed to create WebGL program');
 		}
-		const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexShaderSrc);
-		const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, this.fragmentShaderSrc);
+		this.program = program;
 
-		this.gl.attachShader(this.program, vertexShader);
-		this.gl.attachShader(this.program, fragmentShader);
-		this.gl.linkProgram(this.program);
-		this.gl.deleteShader(vertexShader);
-		this.gl.deleteShader(fragmentShader);
+		const vertexShader = this.createShader(this.gl.VERTEX_SHADER, DEFAULT_VERTEX_SHADER_SRC);
+		const fragmentShader = this.createShader(
+			gl.FRAGMENT_SHADER,
+			combineShaderCode(fragmentShaderSrc, glslInjections)
+		);
+		gl.attachShader(program, vertexShader);
+		gl.attachShader(program, fragmentShader);
+		gl.linkProgram(program);
+		gl.deleteShader(vertexShader);
+		gl.deleteShader(fragmentShader);
 
-		if (!this.gl.getProgramParameter(this.program, this.gl.LINK_STATUS)) {
-			console.error('Program link error:', this.gl.getProgramInfoLog(this.program));
-			this.gl.deleteProgram(this.program);
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+			console.error('Program link error:', gl.getProgramInfoLog(program));
+			gl.deleteProgram(program);
 			throw new Error('Failed to link WebGL program');
 		}
 
-		this.aPositionLocation = this.gl.getAttribLocation(this.program, 'aPosition');
-		this.setupBuffer();
+		this.aPositionLocation = gl.getAttribLocation(program, 'aPosition');
+		const quadVertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
+		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+		gl.enableVertexAttribArray(this.aPositionLocation);
+		gl.vertexAttribPointer(this.aPositionLocation, 2, gl.FLOAT, false, 0, 0);
 
-		this.gl.useProgram(this.program);
+		gl.useProgram(program);
 
 		if (this.canvas instanceof HTMLCanvasElement) {
 			this.resolutionObserver.observe(this.canvas, { attributes: true, attributeFilter: ['width', 'height'] });
 			this.resizeObserver.observe(this.canvas);
 		}
-
 		if (!this.isInternalCanvas) {
 			this.updateResolution();
 		}
@@ -293,7 +277,6 @@ class ShaderPad {
 		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]);
 		this.initializeUniform('u_time', 'float', 0);
 		this.initializeUniform('u_frame', 'int', 0);
-
 		if (this.historyDepth > 0) {
 			this._initializeTexture(INTERMEDIATE_TEXTURE_KEY, this.canvas, {
 				...this.textureOptions,
@@ -302,10 +285,30 @@ class ShaderPad {
 				history: this.historyDepth,
 				...this.textureOptions,
 			});
-			this.intermediateFbo = this.gl.createFramebuffer();
+			this.intermediateFbo = gl.createFramebuffer();
 		}
+		if (this.canvas instanceof HTMLCanvasElement) {
+			this.addEventListeners();
+		}
+		this.emitHook('init');
+	}
 
-		this.hooks.get('init')?.forEach(hook => hook.call(this));
+	private emitHook(name: LifecycleMethod, ...args: any[]) {
+		this.hooks.get(name)?.forEach(hook => hook.call(this, ...args));
+	}
+
+	on(name: LifecycleMethod, fn: Function) {
+		if (!this.hooks.has(name)) {
+			this.hooks.set(name, []);
+		}
+		this.hooks.get(name)!.push(fn);
+	}
+
+	off(name: LifecycleMethod, fn: Function) {
+		const hooks = this.hooks.get(name);
+		if (hooks) {
+			hooks.splice(hooks.indexOf(fn), 1);
+		}
 	}
 
 	private createShader(type: number, source: string): WebGLShader {
@@ -319,17 +322,6 @@ class ShaderPad {
 			throw new Error('Shader compilation failed');
 		}
 		return shader;
-	}
-
-	private setupBuffer() {
-		const quadVertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
-
-		this.buffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, quadVertices, this.gl.STATIC_DRAW);
-		this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-		this.gl.enableVertexAttribArray(this.aPositionLocation);
-		this.gl.vertexAttribPointer(this.aPositionLocation, 2, this.gl.FLOAT, false, 0, 0);
 	}
 
 	private throttledHandleResize() {
@@ -353,7 +345,7 @@ class ShaderPad {
 			this.canvas.width = width;
 			this.canvas.height = height;
 		}
-		this.onResize?.(width, height);
+		this.emitHook('resize', width, height);
 	}
 
 	private addEventListeners() {
@@ -445,7 +437,7 @@ class ShaderPad {
 			this.resizeTexture(HISTORY_TEXTURE_KEY, ...resolution);
 			this.resizeTexture(INTERMEDIATE_TEXTURE_KEY, ...resolution);
 		}
-		this.hooks.get('updateResolution')?.forEach(hook => hook.call(this));
+		this.emitHook('updateResolution', ...resolution);
 	}
 
 	private resizeTexture(name: string | symbol, width: number, height: number) {
@@ -550,7 +542,7 @@ class ShaderPad {
 			location = this.gl.getUniformLocation(this.program!, `${name}[0]`);
 		}
 		if (!location) {
-			this.log(`${name} not found in fragment shader. Skipping initialization.`);
+			this.log(`${name} not in shader. Skipping initialization.`);
 			return;
 		}
 
@@ -564,7 +556,7 @@ class ShaderPad {
 			this.uniforms.delete(name);
 			throw error;
 		}
-		this.hooks.get('initializeUniform')?.forEach(hook => hook.call(this, ...arguments));
+		this.emitHook('initializeUniform', ...arguments);
 	}
 
 	private log(...args: any[]) {
@@ -576,51 +568,51 @@ class ShaderPad {
 		options?: { startIndex?: number }
 	) {
 		this.gl.useProgram(this.program);
-		Object.entries(updates).forEach(([name, value]) => {
+		Object.entries(updates).forEach(([name, newValue]) => {
 			const uniform = this.uniforms.get(name);
 			if (!uniform) {
-				this.log(`${name} not found in fragment shader. Skipping update.`);
+				this.log(`${name} not in shader. Skipping update.`);
 				return;
 			}
 
 			let glFunctionName = `uniform${uniform.length}${uniform.type.charAt(0)}`; // e.g. uniform1f, uniform3i…
 			if (uniform.arrayLength) {
-				if (!Array.isArray(value)) {
+				if (!Array.isArray(newValue)) {
 					throw new Error(`${name} is an array, but the value passed to updateUniforms is not an array.`);
 				}
-				const nValues = value.length;
+				const nValues = newValue.length;
 				if (!nValues) return;
 				if (nValues > uniform.arrayLength) {
 					throw new Error(
 						`${name} received ${nValues} values, but maximum length is ${uniform.arrayLength}.`
 					);
 				}
-				if (value.some(item => (Array.isArray(item) ? item.length : 1) !== uniform.length)) {
+				if (newValue.some(item => (Array.isArray(item) ? item.length : 1) !== uniform.length)) {
 					throw new Error(
 						`Tried to update ${name} with some elements that are not length ${uniform.length}.`
 					);
 				}
-				const typedArray = new (uniform.type === 'float' ? Float32Array : Int32Array)(value.flat());
+				const typedArray = new (uniform.type === 'float' ? Float32Array : Int32Array)(newValue.flat());
 				let location = uniform.location;
 				if (options?.startIndex) {
 					const newLocation = this.gl.getUniformLocation(this.program!, `${name}[${options.startIndex}]`);
 					if (!newLocation) {
 						throw new Error(
-							`${name}[${options.startIndex}] not found in fragment shader. Did you pass an invalid startIndex?`
+							`${name}[${options.startIndex}] not in shader. Did you pass an invalid startIndex?`
 						);
 					}
 					location = newLocation;
 				}
 				(this.gl as any)[glFunctionName + 'v'](location, typedArray);
 			} else {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length !== uniform.length) {
-					throw new Error(`Invalid uniform value length: ${value.length}. Expected ${uniform.length}.`);
+				if (!Array.isArray(newValue)) newValue = [newValue];
+				if (newValue.length !== uniform.length) {
+					throw new Error(`Invalid uniform value length: ${newValue.length}. Expected ${uniform.length}.`);
 				}
-				(this.gl as any)[glFunctionName](uniform.location, ...value);
+				(this.gl as any)[glFunctionName](uniform.location, ...newValue);
 			}
 		});
-		this.hooks.get('updateUniforms')?.forEach(hook => hook.call(this, ...arguments));
+		this.emitHook('updateUniforms', ...arguments);
 	}
 
 	private createTexture(
@@ -712,14 +704,14 @@ class ShaderPad {
 
 	initializeTexture(name: string, source: TextureSource, options?: TextureOptions & { history?: number }) {
 		this._initializeTexture(name, source, options);
-		this.hooks.get('initializeTexture')?.forEach(hook => hook.call(this, ...arguments));
+		this.emitHook('initializeTexture', ...arguments);
 	}
 
 	updateTextures(updates: Record<string, UpdateTextureSource>, options?: { skipHistoryWrite?: boolean }) {
-		this.hooks.get('updateTextures')?.forEach(hook => hook.call(this, ...arguments));
 		Object.entries(updates).forEach(([name, source]) => {
 			this.updateTexture(name, source, options);
 		});
+		this.emitHook('updateTextures', ...arguments);
 	}
 
 	private updateTexture(
@@ -808,6 +800,7 @@ class ShaderPad {
 	}
 
 	draw(options?: StepOptions) {
+		this.emitHook('beforeDraw', ...arguments);
 		const gl = this.gl;
 		const w = gl.drawingBufferWidth;
 		const h = gl.drawingBufferHeight;
@@ -840,26 +833,24 @@ class ShaderPad {
 			gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
 			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		}
+		this.emitHook('afterDraw', ...arguments);
 	}
 
 	step(time: number, options?: StepOptions) {
+		this.emitHook('beforeStep', ...arguments);
 		const updates: Record<string, number> = {};
 		if (this.uniforms.has('u_time')) updates.u_time = time;
 		if (this.uniforms.has('u_frame')) updates.u_frame = this.frame;
 		this.updateUniforms(updates);
-		this.hooks.get('step')?.forEach(hook => hook.call(this, time, this.frame));
-
 		this.draw(options);
-
 		const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
 		if (historyInfo && !options?.skipHistoryWrite) {
 			const { writeIndex, depth } = historyInfo.history!;
 			this.updateUniforms({ [`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: writeIndex });
 			historyInfo.history!.writeIndex = (writeIndex + 1) % depth;
 		}
-
-		this.hooks.get('afterStep')?.forEach(hook => hook.call(this, time, this.frame));
 		++this.frame;
+		this.emitHook('afterStep', ...arguments);
 	}
 
 	play(
@@ -875,6 +866,7 @@ class ShaderPad {
 			onStepComplete?.(time, this.frame);
 		};
 		this.animationFrameId = requestAnimationFrame(loop);
+		this.emitHook('play');
 	}
 
 	pause() {
@@ -882,6 +874,7 @@ class ShaderPad {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
 		}
+		this.emitHook('pause');
 	}
 
 	reset() {
@@ -893,10 +886,11 @@ class ShaderPad {
 				this.clearHistoryTextureLayers(texture);
 			}
 		});
-		this.hooks.get('reset')?.forEach(hook => hook.call(this));
+		this.emitHook('reset');
 	}
 
 	destroy() {
+		this.emitHook('destroy');
 		if (this.animationFrameId) {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
@@ -929,8 +923,6 @@ class ShaderPad {
 			this.gl.deleteBuffer(this.buffer);
 			this.buffer = null;
 		}
-
-		this.hooks.get('destroy')?.forEach(hook => hook.call(this));
 
 		if (this.isInternalCanvas && this.canvas instanceof HTMLCanvasElement) {
 			this.canvas.remove();

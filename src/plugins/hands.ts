@@ -7,8 +7,6 @@ export interface HandsPluginOptions {
 	minHandDetectionConfidence?: number;
 	minHandPresenceConfidence?: number;
 	minTrackingConfidence?: number;
-	onReady?: () => void;
-	onResults?: (results: HandLandmarkerResult) => void;
 }
 
 const STANDARD_LANDMARK_COUNT = 21; // See https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models.
@@ -22,7 +20,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, gl } = context;
+		const { injectGLSL, gl, emitHook } = context;
 
 		let handLandmarker: HandLandmarker | null = null;
 		let vision: any = null;
@@ -35,30 +33,30 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		let landmarksTextureHeight = 0;
 		let landmarksDataArray: Float32Array | null = null;
 
-		async function initializeHandLandmarker() {
+		async function initializeMediaPipe() {
 			try {
 				const { FilesetResolver, HandLandmarker } = await import('@mediapipe/tasks-vision');
 				vision = await FilesetResolver.forVisionTasks(
 					'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
 				);
-
 				handLandmarker = await HandLandmarker.createFromOptions(vision, {
 					baseOptions: {
 						modelAssetPath: options?.modelPath || defaultModelPath,
 						delegate: 'GPU',
 					},
 					canvas: new OffscreenCanvas(1, 1),
-					runningMode: runningMode,
+					runningMode,
 					numHands: options?.maxHands ?? 2,
 					minHandDetectionConfidence: options?.minHandDetectionConfidence ?? 0.5,
 					minHandPresenceConfidence: options?.minHandPresenceConfidence ?? 0.5,
 					minTrackingConfidence: options?.minTrackingConfidence ?? 0.5,
 				});
 			} catch (error) {
-				console.error('[Hands Plugin] Failed to initialize:', error);
+				console.error('[Hands Plugin] Failed to initialize MediaPipe:', error);
 				throw error;
 			}
 		}
+		const mediaPipeInitPromise = initializeMediaPipe();
 
 		function calculateBoundingBoxCenter(
 			landmarksDataArray: Float32Array,
@@ -128,17 +126,16 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			});
 		}
 
-		function processHandResults(result: HandLandmarkerResult) {
+		function processHands(result: HandLandmarkerResult) {
 			if (!result.landmarks || !landmarksDataArray) return;
 
 			const nHands = result.landmarks.length;
 			updateLandmarksTexture(result.landmarks, result.handedness);
 			shaderPad.updateUniforms({ u_nHands: nHands });
-
-			options?.onResults?.(result);
+			emitHook('hands:result', result);
 		}
 
-		shaderPad.registerHook('init', async () => {
+		shaderPad.on('init', async () => {
 			shaderPad.initializeUniform('u_maxHands', 'int', maxHands);
 			shaderPad.initializeUniform('u_nHands', 'int', 0);
 
@@ -161,52 +158,54 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					magFilter: gl.NEAREST,
 				}
 			);
-
-			await initializeHandLandmarker();
-			options?.onReady?.();
+			await mediaPipeInitPromise;
+			emitHook('hands:ready');
 		});
 
-		shaderPad.registerHook('updateTextures', async (updates: Record<string, TextureSource>) => {
+		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
+			if (name === textureName) detectHands(source);
+		});
+
+		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
-			if (!source) return;
+			if (source) detectHands(source);
+		});
+
+		// `detectHands` may be called multiple times before MediaPipe is
+		// initialized. This ensures we only process the last call.
+		let nDetectionCalls = 0;
+		async function detectHands(source: TextureSource) {
+			const callOrder = ++nDetectionCalls;
+			await mediaPipeInitPromise;
+			if (callOrder !== nDetectionCalls || !handLandmarker) return;
 
 			const previousSource = textureSources.get(textureName);
-			if (previousSource !== source) {
-				lastVideoTime = -1;
-			}
-
+			if (previousSource !== source) lastVideoTime = -1;
 			textureSources.set(textureName, source);
-			if (!handLandmarker) return;
 
 			try {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (runningMode !== requiredMode) {
 					runningMode = requiredMode;
-					await handLandmarker.setOptions({ runningMode: runningMode });
+					await handLandmarker.setOptions({ runningMode });
 				}
 
 				if (source instanceof HTMLVideoElement) {
-					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) {
-						return;
-					}
+					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
 					if (source.currentTime !== lastVideoTime) {
 						lastVideoTime = source.currentTime;
-						const result = handLandmarker.detectForVideo(source, performance.now());
-						processHandResults(result);
+						processHands(handLandmarker.detectForVideo(source, performance.now()));
 					}
 				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
-					if (source.width === 0 || source.height === 0) {
-						return;
-					}
-					const result = handLandmarker.detect(source);
-					processHandResults(result);
+					if (source.width === 0 || source.height === 0) return;
+					processHands(handLandmarker.detect(source));
 				}
 			} catch (error) {
 				console.error('[Hands Plugin] Detection error:', error);
 			}
-		});
+		}
 
-		shaderPad.registerHook('destroy', () => {
+		shaderPad.on('destroy', () => {
 			if (handLandmarker) {
 				handLandmarker.close();
 				handLandmarker = null;

@@ -9,8 +9,6 @@ export interface FacePluginOptions {
 	minTrackingConfidence?: number;
 	outputFaceBlendshapes?: boolean;
 	outputFacialTransformationMatrixes?: boolean;
-	onReady?: () => void;
-	onResults?: (results: FaceLandmarkerResult) => void;
 }
 
 const STANDARD_LANDMARK_COUNT = 478;
@@ -74,7 +72,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, gl } = context;
+		const { injectGLSL, gl, emitHook } = context;
 
 		let faceLandmarker: FaceLandmarker | null = null;
 		let vision: any = null;
@@ -169,20 +167,19 @@ void main() { outColor = u_color; }`
 			maskGl.drawArrays(maskGl.TRIANGLES, 0, triangleIndices.length);
 		}
 
-		async function initializeFaceLandmarker() {
+		async function initializeMediaPipe() {
 			try {
 				const { FilesetResolver, FaceLandmarker } = await import('@mediapipe/tasks-vision');
 				vision = await FilesetResolver.forVisionTasks(
 					'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
 				);
-
 				faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
 					baseOptions: {
 						modelAssetPath: options?.modelPath || defaultModelPath,
 						delegate: 'GPU',
 					},
 					canvas: mediaPipeCanvas,
-					runningMode: runningMode,
+					runningMode,
 					numFaces: options?.maxFaces ?? 1,
 					minFaceDetectionConfidence: options?.minFaceDetectionConfidence ?? 0.5,
 					minFacePresenceConfidence: options?.minFacePresenceConfidence ?? 0.5,
@@ -206,10 +203,11 @@ void main() { outColor = u_color; }`
 
 				initMaskRenderer();
 			} catch (error) {
-				console.error('[Face Plugin] Failed to initialize:', error);
+				console.error('[Face Plugin] Failed to initialize MediaPipe:', error);
 				throw error;
 			}
 		}
+		const mediaPipeInitPromise = initializeMediaPipe();
 
 		function calculateBoundingBoxCenter(
 			data: Float32Array,
@@ -301,22 +299,27 @@ void main() { outColor = u_color; }`
 			shaderPad.updateTextures({ u_faceMask: maskCanvas });
 		}
 
-		function processFaceResults(result: FaceLandmarkerResult) {
+		function processFaces(result: FaceLandmarkerResult) {
 			if (!result.faceLandmarks || !landmarksDataArray) return;
 
 			const nFaces = result.faceLandmarks.length;
 			updateLandmarksTexture(result.faceLandmarks);
 			updateMaskTexture(nFaces);
 			shaderPad.updateUniforms({ u_nFaces: nFaces });
-
-			options?.onResults?.(result);
+			emitHook('face:result', result);
 		}
 
+		// `detectFaces` may be called multiple times before MediaPipe is
+		// initialized. This ensures we only process the last call.
+		let nDetectionCalls = 0;
 		async function detectFaces(source: TextureSource) {
+			const callOrder = ++nDetectionCalls;
+			await mediaPipeInitPromise;
+			if (callOrder !== nDetectionCalls || !faceLandmarker) return;
+
 			const previousSource = textureSources.get(textureName);
 			if (previousSource !== source) lastVideoTime = -1;
 			textureSources.set(textureName, source);
-			if (!faceLandmarker) return;
 
 			try {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
@@ -329,18 +332,18 @@ void main() { outColor = u_color; }`
 					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
 					if (source.currentTime !== lastVideoTime) {
 						lastVideoTime = source.currentTime;
-						processFaceResults(faceLandmarker.detectForVideo(source, performance.now()));
+						processFaces(faceLandmarker.detectForVideo(source, performance.now()));
 					}
 				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
 					if (source.width === 0 || source.height === 0) return;
-					processFaceResults(faceLandmarker.detect(source));
+					processFaces(faceLandmarker.detect(source));
 				}
 			} catch (error) {
 				console.error('[Face Plugin] Detection error:', error);
 			}
 		}
 
-		shaderPad.registerHook('init', async () => {
+		shaderPad.on('init', async () => {
 			shaderPad.initializeTexture('u_faceMask', maskCanvas, {
 				minFilter: gl.NEAREST,
 				magFilter: gl.NEAREST,
@@ -357,21 +360,20 @@ void main() { outColor = u_color; }`
 				{ data: landmarksDataArray, width: LANDMARKS_TEXTURE_WIDTH, height: landmarksTextureHeight },
 				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST }
 			);
-
-			await initializeFaceLandmarker();
-			options?.onReady?.();
+			await mediaPipeInitPromise;
+			emitHook('face:ready');
 		});
 
-		shaderPad.registerHook('initializeTexture', (name: string, source: TextureSource) => {
+		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
 			if (name === textureName) detectFaces(source);
 		});
 
-		shaderPad.registerHook('updateTextures', (updates: Record<string, TextureSource>) => {
+		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
 			if (source) detectFaces(source);
 		});
 
-		shaderPad.registerHook('destroy', () => {
+		shaderPad.on('destroy', () => {
 			faceLandmarker?.close();
 			faceLandmarker = null;
 			if (maskGl && maskProgram) {
