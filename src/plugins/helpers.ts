@@ -1,4 +1,4 @@
-import ShaderPad, { PluginContext } from '../index';
+import ShaderPad, { PluginContext, TextureSource } from '..';
 import helpersGLSL from './helpers.glsl';
 
 function helpers() {

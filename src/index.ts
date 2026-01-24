@@ -6,6 +6,7 @@ void main() {
     gl_Position = vec4(aPosition, 0.0, 1.0);
 }`;
 const RESIZE_THROTTLE_INTERVAL = 1000 / 30;
+const QUAD_VERTICES = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
 
 interface Uniform {
 	type: 'float' | 'int';
@@ -57,7 +58,8 @@ export type TextureSource =
 	| OffscreenCanvas
 	| ImageBitmap
 	| WebGLTexture
-	| CustomTexture;
+	| CustomTexture
+	| ShaderPad;
 
 // Custom textures allow partial updates starting from (x, y).
 type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
@@ -126,6 +128,9 @@ function getSourceDimensions(source: TextureSource): { width: number; height: nu
 	if (source instanceof WebGLTexture) {
 		return { width: 0, height: 0 }; // Invalid - dimensions not readable.
 	}
+	if (source instanceof ShaderPad) {
+		return { width: source.canvas.width, height: source.canvas.height };
+	}
 	if (source instanceof HTMLVideoElement) {
 		return { width: source.videoWidth, height: source.videoHeight };
 	}
@@ -180,6 +185,22 @@ class ShaderPad {
 			htmlCanvas.style.height = '100dvh';
 			htmlCanvas.style.width = '100dvw';
 			document.body.appendChild(htmlCanvas);
+		}
+		if (this.canvas instanceof OffscreenCanvas) {
+			const wrapDimension = (dimension: 'width' | 'height') => {
+				const descriptor = Object.getOwnPropertyDescriptor(OffscreenCanvas.prototype, dimension)!;
+				Object.defineProperty(this.canvas, dimension, {
+					get: () => descriptor.get!.call(this.canvas),
+					set: v => {
+						descriptor.set!.call(this.canvas, v);
+						this.updateResolution();
+					},
+					configurable: descriptor.configurable,
+					enumerable: descriptor.enumerable,
+				});
+			};
+			wrapDimension('width');
+			wrapDimension('height');
 		}
 
 		const gl = this.canvas.getContext('webgl2', { antialias: false }) as WebGL2RenderingContext;
@@ -256,10 +277,9 @@ class ShaderPad {
 		}
 
 		this.aPositionLocation = gl.getAttribLocation(program, 'aPosition');
-		const quadVertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
 		this.buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-		gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, QUAD_VERTICES, gl.STATIC_DRAW);
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 		gl.enableVertexAttribArray(this.aPositionLocation);
 		gl.vertexAttribPointer(this.aPositionLocation, 2, gl.FLOAT, false, 0, 0);
@@ -277,15 +297,17 @@ class ShaderPad {
 		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]);
 		this.initializeUniform('u_time', 'float', 0);
 		this.initializeUniform('u_frame', 'int', 0);
+
+		this._initializeTexture(INTERMEDIATE_TEXTURE_KEY, this.canvas, {
+			...this.textureOptions,
+		});
+		this.intermediateFbo = gl.createFramebuffer();
+
 		if (this.historyDepth > 0) {
-			this._initializeTexture(INTERMEDIATE_TEXTURE_KEY, this.canvas, {
-				...this.textureOptions,
-			});
 			this._initializeTexture(HISTORY_TEXTURE_KEY, this.canvas, {
 				history: this.historyDepth,
 				...this.textureOptions,
 			});
-			this.intermediateFbo = gl.createFramebuffer();
 		}
 		if (this.canvas instanceof HTMLCanvasElement) {
 			this.addEventListeners();
@@ -433,9 +455,9 @@ class ShaderPad {
 		} else {
 			this.initializeUniform('u_resolution', 'float', resolution);
 		}
+		this.resizeTexture(INTERMEDIATE_TEXTURE_KEY, ...resolution);
 		if (this.historyDepth > 0) {
 			this.resizeTexture(HISTORY_TEXTURE_KEY, ...resolution);
-			this.resizeTexture(INTERMEDIATE_TEXTURE_KEY, ...resolution);
 		}
 		this.emitHook('updateResolution', ...resolution);
 	}
@@ -489,18 +511,20 @@ class ShaderPad {
 		};
 	}
 
+	private getPixelArray(type: number, size: number): ArrayBufferView {
+		return type === this.gl.FLOAT
+			? new Float32Array(size)
+			: type === this.gl.HALF_FLOAT
+			? new Uint16Array(size)
+			: new Uint8Array(size);
+	}
+
 	private clearHistoryTextureLayers(textureInfo: Texture): void {
 		if (!textureInfo.history) return;
 
 		const gl = this.gl;
 		const { type, format } = textureInfo.options;
-		const size = textureInfo.width * textureInfo.height * 4;
-		const transparent =
-			type === gl.FLOAT
-				? new Float32Array(size)
-				: type === gl.HALF_FLOAT
-				? new Uint16Array(size)
-				: new Uint8Array(size);
+		const transparent = this.getPixelArray(type, textureInfo.width * textureInfo.height * 4);
 		gl.activeTexture(gl.TEXTURE0 + textureInfo.unitIndex);
 		gl.bindTexture(gl.TEXTURE_2D_ARRAY, textureInfo.texture);
 		for (let layer = 0; layer < textureInfo.history.depth; ++layer) {
@@ -728,17 +752,40 @@ class ShaderPad {
 			return;
 		}
 
+		let nonShaderPadSource = source as Exclude<UpdateTextureSource, ShaderPad>;
+		if (source instanceof ShaderPad) {
+			const sourceIntermediateInfo = source.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+
+			if (source.gl === this.gl) {
+				this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
+				this.gl.bindTexture(this.gl.TEXTURE_2D, sourceIntermediateInfo.texture);
+				return;
+			}
+
+			// Different contexts - transfer via readPixels to preserve precision.
+			const {
+				width,
+				height,
+				options: { format, type },
+			} = sourceIntermediateInfo;
+			const pixels = this.getPixelArray(type, width * height * 4);
+			source.gl.bindFramebuffer(source.gl.FRAMEBUFFER, source.intermediateFbo);
+			source.gl.readPixels(0, 0, width, height, format, type, pixels);
+			source.gl.bindFramebuffer(source.gl.FRAMEBUFFER, null);
+			nonShaderPadSource = { data: pixels, width, height };
+		}
+
 		// If dimensions changed, recreate the texture with new dimensions.
-		const { width, height } = getSourceDimensions(source);
+		const { width, height } = getSourceDimensions(nonShaderPadSource);
 		if (!width || !height) return;
 
-		const isPartial = 'isPartial' in source && source.isPartial;
+		const isPartial = 'isPartial' in nonShaderPadSource && nonShaderPadSource.isPartial;
 		if (!isPartial) {
 			this.resizeTexture(name, width, height);
 		}
 
 		// UNPACK_FLIP_Y_WEBGL only works for DOM element sources, not typed arrays.
-		const isTypedArray = 'data' in source && source.data;
+		const isTypedArray = 'data' in nonShaderPadSource && nonShaderPadSource.data;
 		const shouldFlipY = !isTypedArray && !info.options?.preserveY;
 		const previousFlipY = this.gl.getParameter(this.gl.UNPACK_FLIP_Y_WEBGL);
 
@@ -758,7 +805,8 @@ class ShaderPad {
 					1,
 					info.options.format,
 					info.options.type,
-					((source as PartialCustomTexture).data ?? (source as Exclude<TextureSource, CustomTexture>)) as any
+					((nonShaderPadSource as PartialCustomTexture).data ??
+						(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>)) as any
 				);
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
 				const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
@@ -771,16 +819,17 @@ class ShaderPad {
 			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 
 			if (isPartial) {
+				const partialSource = nonShaderPadSource as PartialCustomTexture;
 				this.gl.texSubImage2D(
 					this.gl.TEXTURE_2D,
 					0,
-					source.x ?? 0,
-					source.y ?? 0,
+					partialSource.x ?? 0,
+					partialSource.y ?? 0,
 					width,
 					height,
 					info.options.format,
 					info.options.type,
-					source.data
+					partialSource.data
 				);
 			} else {
 				this.gl.texImage2D(
@@ -792,7 +841,8 @@ class ShaderPad {
 					0,
 					info.options.format,
 					info.options.type,
-					((source as PartialCustomTexture).data ?? (source as Exclude<TextureSource, CustomTexture>)) as any
+					((nonShaderPadSource as PartialCustomTexture).data ??
+						(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>)) as any
 				);
 			}
 			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
@@ -804,15 +854,9 @@ class ShaderPad {
 		const gl = this.gl;
 		const w = gl.drawingBufferWidth;
 		const h = gl.drawingBufferHeight;
-		const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
-		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY);
-		const shouldStoreHistory = historyInfo && !options?.skipHistoryWrite;
-
-		if (shouldStoreHistory) {
-			// Render to intermediate texture to avoid feedback loop with history texture
-			gl.bindFramebuffer(gl.FRAMEBUFFER, this.intermediateFbo);
-			gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateInfo!.texture, 0);
-		}
+		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.intermediateFbo);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateInfo.texture, 0);
 
 		gl.useProgram(this.program);
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
@@ -822,17 +866,16 @@ class ShaderPad {
 		if (!options?.skipClear) gl.clear(gl.COLOR_BUFFER_BIT);
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-		if (shouldStoreHistory) {
-			// Copy to history layer
+		const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
+		if (historyInfo && !options?.skipHistoryWrite) {
 			gl.bindTexture(gl.TEXTURE_2D_ARRAY, historyInfo.texture);
 			gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, historyInfo.history!.writeIndex, 0, 0, w, h);
-
-			// Blit to screen
-			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
-			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-			gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
-			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		}
+
+		gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
+		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+		gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		this.emitHook('afterDraw', ...arguments);
 	}
 

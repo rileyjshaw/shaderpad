@@ -1,4 +1,11 @@
-import ShaderPad, { PluginContext, TextureSource } from '../index';
+import ShaderPad, { PluginContext, TextureSource } from '..';
+import {
+	calculateBoundingBoxCenter,
+	getSharedFileset,
+	hashOptions,
+	isMediaPipeSource,
+	MediaPipeSource,
+} from './mediapipe-common';
 import type { HandLandmarker, HandLandmarkerResult, NormalizedLandmark } from '@mediapipe/tasks-vision';
 
 export interface HandsPluginOptions {
@@ -13,206 +20,238 @@ const STANDARD_LANDMARK_COUNT = 21; // See https://ai.google.dev/edge/mediapipe/
 const CUSTOM_LANDMARK_COUNT = 1;
 const LANDMARK_COUNT = STANDARD_LANDMARK_COUNT + CUSTOM_LANDMARK_COUNT;
 const HAND_CENTER_LANDMARKS = [0, 0, 5, 9, 13, 17] as const; // Wrist + MCP joints, weighted toward wrist.
+const LANDMARKS_TEXTURE_WIDTH = 512;
+
+const DEFAULT_HANDS_OPTIONS: Required<HandsPluginOptions> = {
+	modelPath:
+		'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+	maxHands: 2,
+	minHandDetectionConfidence: 0.5,
+	minHandPresenceConfidence: 0.5,
+	minTrackingConfidence: 0.5,
+};
+
+interface Detector {
+	landmarker: HandLandmarker;
+	canvas: OffscreenCanvas;
+	subscribers: Map<() => void, boolean>;
+	state: {
+		runningMode: 'IMAGE' | 'VIDEO';
+		source: MediaPipeSource | null;
+		videoTime: number;
+		resultTimestamp: number;
+		result: HandLandmarkerResult | null;
+		pending: Promise<void>;
+		nHands: number;
+	};
+	landmarks: {
+		data: Float32Array;
+		textureHeight: number;
+	};
+}
+const sharedDetectors = new Map<string, Detector>();
+
+function updateLandmarksData(
+	detector: Detector,
+	hands: NormalizedLandmark[][],
+	handedness: { categoryName: string }[][]
+) {
+	const data = detector.landmarks.data;
+	const nHands = hands.length;
+
+	for (let handIdx = 0; handIdx < nHands; ++handIdx) {
+		const landmarks = hands[handIdx];
+		const isRightHand = handedness[handIdx]?.[0]?.categoryName === 'Right';
+		for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
+			const landmark = landmarks[lmIdx];
+			const dataIdx = (handIdx * LANDMARK_COUNT + lmIdx) * 4;
+			data[dataIdx] = landmark.x;
+			data[dataIdx + 1] = 1 - landmark.y;
+			data[dataIdx + 2] = landmark.z ?? 0;
+			data[dataIdx + 3] = isRightHand ? 1 : 0;
+		}
+
+		const handCenter = calculateBoundingBoxCenter(data, handIdx, HAND_CENTER_LANDMARKS, LANDMARK_COUNT);
+		const handCenterIdx = (handIdx * LANDMARK_COUNT + STANDARD_LANDMARK_COUNT) * 4;
+		data[handCenterIdx] = handCenter[0];
+		data[handCenterIdx + 1] = handCenter[1];
+		data[handCenterIdx + 2] = handCenter[2];
+		data[handCenterIdx + 3] = isRightHand ? 1 : 0;
+	}
+
+	detector.state.nHands = nHands;
+}
 
 function hands(config: { textureName: string; options?: HandsPluginOptions }) {
-	const { textureName, options } = config;
-	const defaultModelPath =
-		'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+	const { textureName, options: configOptions = {} } = config;
+	const options = { ...DEFAULT_HANDS_OPTIONS, ...configOptions };
+	const optionsKey = hashOptions({ ...options, textureName });
+
+	const nLandmarksMax = options.maxHands * LANDMARK_COUNT;
+	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
 		const { injectGLSL, gl, emitHook } = context;
 
-		let handLandmarker: HandLandmarker | null = null;
-		let vision: any = null;
-		let lastVideoTime = -1;
-		let runningMode: 'IMAGE' | 'VIDEO' = 'VIDEO';
-		const textureSources = new Map<string, TextureSource>();
-		const maxHands = options?.maxHands ?? 2;
+		const existingDetector = sharedDetectors.get(optionsKey);
+		const landmarksData =
+			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
+		let detector: Detector | null = null;
 
-		const LANDMARKS_TEXTURE_WIDTH = 512;
-		let landmarksTextureHeight = 0;
-		let landmarksDataArray: Float32Array | null = null;
-
-		async function initializeMediaPipe() {
-			try {
-				const { FilesetResolver, HandLandmarker } = await import('@mediapipe/tasks-vision');
-				vision = await FilesetResolver.forVisionTasks(
-					'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
-				);
-				handLandmarker = await HandLandmarker.createFromOptions(vision, {
-					baseOptions: {
-						modelAssetPath: options?.modelPath || defaultModelPath,
-						delegate: 'GPU',
-					},
-					canvas: new OffscreenCanvas(1, 1),
-					runningMode,
-					numHands: options?.maxHands ?? 2,
-					minHandDetectionConfidence: options?.minHandDetectionConfidence ?? 0.5,
-					minHandPresenceConfidence: options?.minHandPresenceConfidence ?? 0.5,
-					minTrackingConfidence: options?.minTrackingConfidence ?? 0.5,
-				});
-			} catch (error) {
-				console.error('[Hands Plugin] Failed to initialize MediaPipe:', error);
-				throw error;
-			}
-		}
-		const mediaPipeInitPromise = initializeMediaPipe();
-
-		function calculateBoundingBoxCenter(
-			landmarksDataArray: Float32Array,
-			handIdx: number,
-			landmarkIndices: readonly number[]
-		): [number, number, number, number] {
-			let minX = Infinity,
-				maxX = -Infinity,
-				minY = Infinity,
-				maxY = -Infinity,
-				avgZ = 0,
-				avgVisibility = 0;
-
-			for (const idx of landmarkIndices) {
-				const dataIdx = (handIdx * LANDMARK_COUNT + idx) * 4;
-				const x = landmarksDataArray[dataIdx];
-				const y = landmarksDataArray[dataIdx + 1];
-				minX = Math.min(minX, x);
-				maxX = Math.max(maxX, x);
-				minY = Math.min(minY, y);
-				maxY = Math.max(maxY, y);
-				avgZ += landmarksDataArray[dataIdx + 2];
-				avgVisibility += landmarksDataArray[dataIdx + 3];
-			}
-
-			const centerX = (minX + maxX) / 2;
-			const centerY = (minY + maxY) / 2;
-			const centerZ = avgZ / landmarkIndices.length;
-			const centerVisibility = avgVisibility / landmarkIndices.length;
-			return [centerX, centerY, centerZ, centerVisibility];
-		}
-
-		function updateLandmarksTexture(hands: NormalizedLandmark[][], handedness: { categoryName: string }[][]) {
-			if (!landmarksDataArray) return;
-
-			const nHands = hands.length;
-			const totalLandmarks = nHands * LANDMARK_COUNT;
-
-			for (let handIdx = 0; handIdx < nHands; ++handIdx) {
-				const landmarks = hands[handIdx];
-				const isRightHand = handedness[handIdx]?.[0]?.categoryName === 'Right';
-				for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
-					const landmark = landmarks[lmIdx];
-					const dataIdx = (handIdx * LANDMARK_COUNT + lmIdx) * 4;
-					landmarksDataArray[dataIdx] = landmark.x;
-					landmarksDataArray[dataIdx + 1] = 1 - landmark.y;
-					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0;
-					landmarksDataArray[dataIdx + 3] = isRightHand ? 1 : 0;
-				}
-
-				const handCenter = calculateBoundingBoxCenter(landmarksDataArray, handIdx, HAND_CENTER_LANDMARKS);
-				const handCenterIdx = (handIdx * LANDMARK_COUNT + STANDARD_LANDMARK_COUNT) * 4;
-				landmarksDataArray[handCenterIdx] = handCenter[0];
-				landmarksDataArray[handCenterIdx + 1] = handCenter[1];
-				landmarksDataArray[handCenterIdx + 2] = handCenter[2];
-				landmarksDataArray[handCenterIdx + 3] = isRightHand ? 1 : 0;
-			}
-
-			const rowsToUpdate = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
+		function onResult() {
+			if (!detector) return;
+			const { nHands } = detector.state;
+			const nLandmarks = nHands * LANDMARK_COUNT;
+			const rowsToUpdate = Math.ceil(nLandmarks / LANDMARKS_TEXTURE_WIDTH);
 			shaderPad.updateTextures({
 				u_handLandmarksTex: {
-					data: landmarksDataArray,
+					data: detector.landmarks.data,
 					width: LANDMARKS_TEXTURE_WIDTH,
 					height: rowsToUpdate,
-					isPartial: true,
+					isPartial: nHands !== options.maxHands,
 				},
 			});
-		}
-
-		function processHands(result: HandLandmarkerResult) {
-			if (!result.landmarks || !landmarksDataArray) return;
-
-			const nHands = result.landmarks.length;
-			updateLandmarksTexture(result.landmarks, result.handedness);
 			shaderPad.updateUniforms({ u_nHands: nHands });
-			emitHook('hands:result', result);
+			emitHook('hands:result', detector.state.result);
 		}
 
-		shaderPad.on('init', async () => {
-			shaderPad.initializeUniform('u_maxHands', 'int', maxHands);
+		async function initializeDetector() {
+			if (sharedDetectors.has(optionsKey)) {
+				detector = sharedDetectors.get(optionsKey)!;
+			} else {
+				const [mediaPipe, { HandLandmarker }] = await Promise.all([
+					getSharedFileset(),
+					import('@mediapipe/tasks-vision'),
+				]);
+				const mediapipeCanvas = new OffscreenCanvas(1, 1);
+				const handLandmarker = await HandLandmarker.createFromOptions(mediaPipe, {
+					baseOptions: {
+						modelAssetPath: options.modelPath,
+						delegate: 'GPU',
+					},
+					canvas: mediapipeCanvas,
+					runningMode: 'VIDEO',
+					numHands: options.maxHands,
+					minHandDetectionConfidence: options.minHandDetectionConfidence,
+					minHandPresenceConfidence: options.minHandPresenceConfidence,
+					minTrackingConfidence: options.minTrackingConfidence,
+				});
+
+				detector = {
+					landmarker: handLandmarker,
+					canvas: mediapipeCanvas,
+					subscribers: new Map(),
+					state: {
+						runningMode: 'VIDEO',
+						source: null,
+						videoTime: -1,
+						resultTimestamp: 0,
+						result: null,
+						pending: Promise.resolve(),
+						nHands: 0,
+					},
+					landmarks: {
+						data: landmarksData,
+						textureHeight,
+					},
+				};
+				sharedDetectors.set(optionsKey, detector);
+			}
+
+			detector.subscribers.set(onResult, false);
+		}
+		const initPromise = initializeDetector();
+
+		shaderPad.on('init', () => {
+			shaderPad.initializeUniform('u_maxHands', 'int', options.maxHands);
 			shaderPad.initializeUniform('u_nHands', 'int', 0);
-
-			const totalLandmarks = maxHands * LANDMARK_COUNT;
-			landmarksTextureHeight = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
-			const textureSize = LANDMARKS_TEXTURE_WIDTH * landmarksTextureHeight * 4;
-			landmarksDataArray = new Float32Array(textureSize);
-
 			shaderPad.initializeTexture(
 				'u_handLandmarksTex',
-				{
-					data: landmarksDataArray,
-					width: LANDMARKS_TEXTURE_WIDTH,
-					height: landmarksTextureHeight,
-				},
-				{
-					internalFormat: gl.RGBA32F,
-					type: gl.FLOAT,
-					minFilter: gl.NEAREST,
-					magFilter: gl.NEAREST,
-				}
+				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
+				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST }
 			);
-			await mediaPipeInitPromise;
-			emitHook('hands:ready');
+			initPromise.then(() => emitHook('hands:ready'));
 		});
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
-			if (name === textureName) detectHands(source);
+			if (name === textureName && isMediaPipeSource(source)) detectHands(source);
 		});
 
 		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
-			if (source) detectHands(source);
+			if (isMediaPipeSource(source)) detectHands(source);
 		});
 
-		// `detectHands` may be called multiple times before MediaPipe is
-		// initialized. This ensures we only process the last call.
 		let nDetectionCalls = 0;
-		async function detectHands(source: TextureSource) {
+		async function detectHands(source: MediaPipeSource) {
+			const now = performance.now();
 			const callOrder = ++nDetectionCalls;
-			await mediaPipeInitPromise;
-			if (callOrder !== nDetectionCalls || !handLandmarker) return;
+			await initPromise;
+			if (!detector) return;
 
-			const previousSource = textureSources.get(textureName);
-			if (previousSource !== source) lastVideoTime = -1;
-			textureSources.set(textureName, source);
+			detector.state.pending = detector.state.pending.then(async () => {
+				if (callOrder !== nDetectionCalls || !detector) return;
 
-			try {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
-				if (runningMode !== requiredMode) {
-					runningMode = requiredMode;
-					await handLandmarker.setOptions({ runningMode });
+				if (detector.state.runningMode !== requiredMode) {
+					detector.state.runningMode = requiredMode;
+					await detector.landmarker.setOptions({ runningMode: requiredMode });
 				}
 
-				if (source instanceof HTMLVideoElement) {
-					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
-					if (source.currentTime !== lastVideoTime) {
-						lastVideoTime = source.currentTime;
-						processHands(handLandmarker.detectForVideo(source, performance.now()));
+				let shouldDetect = false;
+
+				if (source !== detector.state.source) {
+					detector.state.source = source;
+					detector.state.videoTime = -1;
+					shouldDetect = true;
+				} else if (source instanceof HTMLVideoElement) {
+					if (source.currentTime !== detector.state.videoTime) {
+						detector.state.videoTime = source.currentTime;
+						shouldDetect = true;
 					}
-				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
-					if (source.width === 0 || source.height === 0) return;
-					processHands(handLandmarker.detect(source));
+				} else if (!(source instanceof HTMLImageElement)) {
+					if (now - detector.state.resultTimestamp > 2) {
+						shouldDetect = true;
+					}
 				}
-			} catch (error) {
-				console.error('[Hands Plugin] Detection error:', error);
-			}
+
+				if (shouldDetect) {
+					let result: HandLandmarkerResult | undefined;
+					if (source instanceof HTMLVideoElement) {
+						if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
+						result = detector.landmarker.detectForVideo(source, now);
+					} else {
+						if (source.width === 0 || source.height === 0) return;
+						result = detector.landmarker.detect(source);
+					}
+
+					if (result) {
+						detector.state.resultTimestamp = now;
+						detector.state.result = result;
+						updateLandmarksData(detector, result.landmarks, result.handedness);
+						for (const cb of detector.subscribers.keys()) {
+							cb();
+							detector.subscribers.set(cb, true);
+						}
+					}
+				} else if (detector.state.result && !detector.subscribers.get(onResult)) {
+					onResult();
+					detector.subscribers.set(onResult, true);
+				}
+			});
+
+			await detector.state.pending;
 		}
 
 		shaderPad.on('destroy', () => {
-			if (handLandmarker) {
-				handLandmarker.close();
-				handLandmarker = null;
+			if (detector) {
+				detector.subscribers.delete(onResult);
+				if (detector.subscribers.size === 0) {
+					detector.landmarker.close();
+					sharedDetectors.delete(optionsKey);
+				}
 			}
-			vision = null;
-			textureSources.clear();
-			landmarksDataArray = null;
+			detector = null;
 		});
 
 		injectGLSL(`

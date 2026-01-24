@@ -1,6 +1,6 @@
 import ShaderPad, { PluginContext } from '../index.js';
 
-declare module '../index' {
+declare module '..' {
     interface ShaderPad {
         save(filename: string, text?: string): Promise<void>;
     }

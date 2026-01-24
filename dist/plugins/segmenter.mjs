@@ -1,5 +1,5 @@
-import{a as y}from"../chunk-A3XQBYSC.mjs";var P={data:new Uint8Array(4),width:1,height:1};function z(a){let s=Array.from({length:a},(f,n)=>`uniform sampler2D u_confidenceMask${n};`).join(`
-`),u=Array.from({length:a},(f,n)=>`		${n>0?"else ":""}if (i == ${n}) c = texelFetch(u_confidenceMask${n}, texCoord, 0).r;`).join(`
+import{a as k}from"../chunk-5CBGNOA3.mjs";import{a as M,b as C,d as _}from"../chunk-IW3Y5DYQ.mjs";var P={data:new Uint8Array(4),width:1,height:1},D={modelPath:"https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite",outputCategoryMask:!1};function O(o){let s=Array.from({length:o},(a,n)=>`uniform sampler2D u_confidenceMask${n};`).join(`
+`),c=Array.from({length:o},(a,n)=>`		${n>0?"else ":""}if (i == ${n}) c = texelFetch(u_confidenceMask${n}, texCoord, 0).r;`).join(`
 `);return`#version 300 es
 precision mediump float;
 in vec2 v_uv;
@@ -11,9 +11,9 @@ void main() {
 	float maxConfidence = 0.0;
 	int maxIndex = 0;
 
-	for (int i = 0; i < ${a}; ++i) {
+	for (int i = 0; i < ${o}; ++i) {
 		float c = 0.0;
-${u}
+${c}
 		if (c > maxConfidence) {
 			maxConfidence = c;
 			maxIndex = i;
@@ -21,14 +21,14 @@ ${u}
 	}
 
 	// Normalize index: 0 = background, 1/(n-1) to 1 for foreground categories.
-	float normalizedIndex = float(maxIndex) / float(max(1, ${a-1}));
+	float normalizedIndex = float(maxIndex) / float(max(1, ${o-1}));
 	outColor = vec4(normalizedIndex, maxConfidence, 0.0, 1.0);
-}`}function A(a){let{textureName:s,options:u}=a,f="https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite";return function(n,_){let{injectGLSL:I,gl:v,emitHook:M}=_,i=null,d=null,p=-1,m="VIDEO",x=new Map,l=1,c=new OffscreenCanvas(1,1),o=null;async function w(){try{let{FilesetResolver:e,ImageSegmenter:t}=await import("@mediapipe/tasks-vision");d=await e.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"),i=await t.createFromOptions(d,{baseOptions:{modelAssetPath:u?.modelPath||f,delegate:"GPU"},canvas:c,runningMode:m,outputCategoryMask:u?.outputCategoryMask??!1,outputConfidenceMasks:!0})}catch(e){throw console.error("[Segmenter Plugin] Failed to initialize MediaPipe:",e),e}}let h=w();n.on("init",async()=>{n.initializeUniform("u_numCategories","int",l),n.initializeTexture("u_segmentMask",c,{preserveY:!0,minFilter:v.NEAREST,magFilter:v.NEAREST}),await h;let e=i.getLabels();e.length&&(l=e.length),o=new y(z(l),{canvas:c});for(let t=0;t<l;++t)o.initializeTexture(`u_confidenceMask${t}`,P);n.updateUniforms({u_numCategories:l}),M("segmenter:ready")}),n.on("initializeTexture",(e,t)=>{e===s&&C(t)}),n.on("updateTextures",e=>{let t=e[s];t&&C(t)});function E(e){if(!o)return;let t={};for(let r=0;r<e.length;++r)t[`u_confidenceMask${r}`]=e[r].getAsWebGLTexture();o.updateTextures(t),o.draw(),n.updateTextures({u_segmentMask:c}),e.forEach(r=>r.close())}function T(e){let{confidenceMasks:t}=e;!t||t.length===0||(E(t),M("segmenter:result",e))}let k=0;async function C(e){let t=++k;if(await h,t!==k||!i)return;x.get(s)!==e&&(p=-1),x.set(s,e);try{let g=e instanceof HTMLVideoElement?"VIDEO":"IMAGE";if(m!==g&&(m=g,await i.setOptions({runningMode:m})),e instanceof HTMLVideoElement){if(e.videoWidth===0||e.videoHeight===0||e.readyState<2)return;if(e.currentTime!==p){p=e.currentTime;let S=i.segmentForVideo(e,performance.now());T(S)}}else if(e instanceof HTMLImageElement||e instanceof HTMLCanvasElement){if(e.width===0||e.height===0)return;let S=i.segment(e);T(S)}}catch(g){console.error("[Segmenter Plugin] Segmentation error:",g)}}n.on("destroy",()=>{i&&(i.close(),i=null),o&&(o.destroy(),o=null),d=null,x.clear()}),I(`
+}`}var f=new Map;function w(o,s){let{mask:{shader:c}}=o,a={};for(let n=0;n<s.length;++n)a[`u_confidenceMask${n}`]=s[n].getAsWebGLTexture();c.updateTextures(a),c.draw(),s.forEach(n=>n.close())}function A(o){let{textureName:s,options:c={}}=o,a={...D,...c},n=C({...a,textureName:s});return function(u,I){let{injectGLSL:y,gl:v,emitHook:h}=I,p=f.get(n)?.canvas??new OffscreenCanvas(1,1),e=null;function d(){e&&(u.updateTextures({u_segmentMask:e.canvas}),h("segmenter:result",e.state.result))}async function E(){if(f.has(n))e=f.get(n);else{let[t,{ImageSegmenter:i}]=await Promise.all([_(),import("@mediapipe/tasks-vision")]),x=await i.createFromOptions(t,{baseOptions:{modelAssetPath:a.modelPath,delegate:"GPU"},canvas:p,runningMode:"VIDEO",outputCategoryMask:a.outputCategoryMask,outputConfidenceMasks:!0}),l=x.getLabels(),m=l.length||1,r=new k(O(m),{canvas:p});for(let g=0;g<m;++g)r.initializeTexture(`u_confidenceMask${g}`,P);e={segmenter:x,canvas:p,subscribers:new Map,state:{runningMode:"VIDEO",source:null,videoTime:-1,resultTimestamp:0,result:null,pending:Promise.resolve()},labels:l,numCategories:m,mask:{shader:r}},f.set(n,e)}e.subscribers.set(d,!1)}let S=E();u.on("init",()=>{u.initializeUniform("u_numCategories","int",1),u.initializeTexture("u_segmentMask",p,{preserveY:!0,minFilter:v.NEAREST,magFilter:v.NEAREST}),S.then(()=>{u.updateUniforms({u_numCategories:e.numCategories}),h("segmenter:ready")})}),u.on("initializeTexture",(t,i)=>{t===s&&M(i)&&T(i)}),u.on("updateTextures",t=>{let i=t[s];M(i)&&T(i)});let b=0;async function T(t){let i=performance.now(),x=++b;await S,e&&(e.state.pending=e.state.pending.then(async()=>{if(x!==b||!e)return;let l=t instanceof HTMLVideoElement?"VIDEO":"IMAGE";e.state.runningMode!==l&&(e.state.runningMode=l,await e.segmenter.setOptions({runningMode:l}));let m=!1;if(t!==e.state.source?(e.state.source=t,e.state.videoTime=-1,m=!0):t instanceof HTMLVideoElement?t.currentTime!==e.state.videoTime&&(e.state.videoTime=t.currentTime,m=!0):t instanceof HTMLImageElement||i-e.state.resultTimestamp>2&&(m=!0),m){let r;if(t instanceof HTMLVideoElement){if(t.videoWidth===0||t.videoHeight===0||t.readyState<2)return;r=e.segmenter.segmentForVideo(t,i)}else{if(t.width===0||t.height===0)return;r=e.segmenter.segment(t)}if(r?.confidenceMasks&&r.confidenceMasks.length>0){e.state.resultTimestamp=i,e.state.result=r,w(e,r.confidenceMasks);for(let g of e.subscribers.keys())g(),e.subscribers.set(g,!0)}}else e.state.result&&!e.subscribers.get(d)&&(d(),e.subscribers.set(d,!0))}),await e.state.pending)}u.on("destroy",()=>{e&&(e.subscribers.delete(d),e.subscribers.size===0&&(e.segmenter.close(),e.mask.shader?.destroy(),f.delete(n))),e=null}),y(`
 uniform sampler2D u_segmentMask;
 uniform int u_numCategories;
 
 vec2 segmentAt(vec2 pos) {
 	vec4 mask = texture(u_segmentMask, pos);
 	return vec2(mask.r, mask.g);
-}`)}}var b=A;export{b as default};
+}`)}}var G=A;export{G as default};
 //# sourceMappingURL=segmenter.mjs.map

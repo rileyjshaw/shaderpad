@@ -280,7 +280,6 @@ shader.destroy(); // Clean up resources.
 ### Properties
 
 -   `canvas` (HTMLCanvasElement): The canvas element used for rendering
--   `onResize?: (width: number, height: number) => void`: Callback fired when the canvas is resized
 
 ## Options
 
@@ -352,19 +351,15 @@ const shader = new ShaderPad(fragmentShaderSrc, { debug: true });
 
 ### plugins
 
-ShaderPad supports plugins to add additional functionality. Plugins are imported from separate paths to keep bundle sizes small.
+ShaderPad adds additional functionality through plugins, which keeps bundle sizes small.
 
 #### helpers
 
 The `helpers` plugin provides convenience functions and constants. See [helpers.glsl](./src/plugins/helpers.glsl) for the implementation.
 
 ```typescript
-import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
-
-const shader = new ShaderPad(fragmentShaderSrc, {
-	plugins: [helpers()],
-});
+const shader = new ShaderPad(fragmentShaderSrc, { plugins: [helpers()] });
 ```
 
 **Note:** The `helpers` plugin automatically injects the `u_resolution` uniform into your shader. Do not declare it yourself.
@@ -374,9 +369,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 The `save` plugin adds a `.save()` method to the shader that saves the current frame to a PNG file. It works on desktop and mobile.
 
 ```typescript
-import ShaderPad from 'shaderpad';
 import save, { WithSave } from 'shaderpad/plugins/save';
-
 const shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
 shader.save('filename', 'Optional mobile share text');
 ```
@@ -386,16 +379,9 @@ shader.save('filename', 'Optional mobile share text');
 The `face` plugin uses [MediaPipe](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) to detect faces in video or image textures.
 
 ```typescript
-import ShaderPad from 'shaderpad';
 import face from 'shaderpad/plugins/face';
-
 const shader = new ShaderPad(fragmentShaderSrc, {
-	plugins: [
-		face({
-			textureName: 'u_webcam',
-			options: { maxFaces: 3 },
-		}),
-	],
+	plugins: [face({ textureName: 'u_webcam', options: { maxFaces: 3 } })],
 });
 ```
 
@@ -477,9 +463,7 @@ for (int i = 0; i < u_nFaces; ++i) {
 The `pose` plugin uses [MediaPipe Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) to expose a flat array of 2D landmarks. Each pose contributes 39 landmarks (33 standard + 6 custom), enumerated below.
 
 ```typescript
-import ShaderPad from 'shaderpad';
 import pose from 'shaderpad/plugins/pose';
-
 const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [pose({ textureName: 'u_video', options: { maxPoses: 3 } })],
 });
@@ -571,9 +555,7 @@ for (int i = 0; i < u_maxPoses; ++i) {
 The `hands` plugin uses [MediaPipe Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) to expose a flat array of 2D landmarks. Each hand contributes 22 landmarks, enumerated below.
 
 ```typescript
-import ShaderPad from 'shaderpad';
 import hands from 'shaderpad/plugins/hands';
-
 const shader = new ShaderPad(fragmentShaderSrc, {
 	plugins: [hands({ textureName: 'u_video', options: { maxHands: 2 } })],
 });

@@ -18,5 +18,5 @@ float historyZ(highp sampler2DArray tex, int frameOffset, int framesAgo) {
 	int z = (historyDepth + frameOffset - framesAgo) % historyDepth;
 	return float(z);
 }
-`;function i(){return function(o,t){t.injectGLSL(e)}}var a=i;export{a as default};
+`;function o(){return function(i,t){t.injectGLSL(e)}}var c=o;export{c as default};
 //# sourceMappingURL=helpers.mjs.map

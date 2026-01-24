@@ -1,4 +1,4 @@
-"use strict";var o=Object.defineProperty;var a=Object.getOwnPropertyDescriptor;var c=Object.getOwnPropertyNames;var s=Object.prototype.hasOwnProperty;var x=(t,e)=>{for(var i in e)o(t,i,{get:e[i],enumerable:!0})},f=(t,e,i,u)=>{if(e&&typeof e=="object"||typeof e=="function")for(let r of c(e))!s.call(t,r)&&r!==i&&o(t,r,{get:()=>e[r],enumerable:!(u=a(e,r))||u.enumerable});return t};var l=t=>f(o({},"__esModule",{value:!0}),t);var p={};x(p,{default:()=>h});module.exports=l(p);var n=`uniform vec2 u_resolution;
+"use strict";var i=Object.defineProperty;var c=Object.getOwnPropertyDescriptor;var a=Object.getOwnPropertyNames;var s=Object.prototype.hasOwnProperty;var x=(t,e)=>{for(var o in e)i(t,o,{get:e[o],enumerable:!0})},f=(t,e,o,u)=>{if(e&&typeof e=="object"||typeof e=="function")for(let r of a(e))!s.call(t,r)&&r!==o&&i(t,r,{get:()=>e[r],enumerable:!(u=c(e,r))||u.enumerable});return t};var l=t=>f(i({},"__esModule",{value:!0}),t);var p={};x(p,{default:()=>h});module.exports=l(p);var n=`uniform vec2 u_resolution;
 
 // Apply aspect ratio correction (object-fit: contain)
 vec2 fitContain(vec2 uv, vec2 textureSize) {

@@ -18,7 +18,7 @@ interface PartialCustomTexture extends CustomTexture {
     x?: number;
     y?: number;
 }
-type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | WebGLTexture | CustomTexture;
+type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | WebGLTexture | CustomTexture | ShaderPad;
 type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 interface PluginContext {
     gl: WebGL2RenderingContext;
@@ -78,6 +78,7 @@ declare class ShaderPad {
     private reserveTextureUnit;
     private releaseTextureUnit;
     private resolveTextureOptions;
+    private getPixelArray;
     private clearHistoryTextureLayers;
     initializeUniform(name: string, type: 'float' | 'int', value: number | number[] | (number | number[])[], options?: {
         arrayLength?: number;

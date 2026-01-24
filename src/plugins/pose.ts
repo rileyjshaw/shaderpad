@@ -1,4 +1,11 @@
-import ShaderPad, { PluginContext, TextureSource } from '../index';
+import ShaderPad, { PluginContext, TextureSource } from '..';
+import {
+	calculateBoundingBoxCenter,
+	getSharedFileset,
+	hashOptions,
+	isMediaPipeSource,
+	MediaPipeSource,
+} from './mediapipe-common';
 import type { PoseLandmarker, PoseLandmarkerResult, NormalizedLandmark, MPMask } from '@mediapipe/tasks-vision';
 
 export interface PosePluginOptions {
@@ -72,283 +79,323 @@ const TORSO_INDICES = [
 	LANDMARK_INDICES.RIGHT_HIP,
 ];
 
+const LANDMARKS_TEXTURE_WIDTH = 512;
 const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
+
+const DEFAULT_POSE_OPTIONS: Required<PosePluginOptions> = {
+	modelPath:
+		'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+	maxPoses: 1,
+	minPoseDetectionConfidence: 0.5,
+	minPosePresenceConfidence: 0.5,
+	minTrackingConfidence: 0.5,
+};
+
+interface Detector {
+	landmarker: PoseLandmarker;
+	canvas: OffscreenCanvas;
+	subscribers: Map<() => void, boolean>;
+	maxPoses: number;
+	state: {
+		runningMode: 'IMAGE' | 'VIDEO';
+		source: MediaPipeSource | null;
+		videoTime: number;
+		resultTimestamp: number;
+		result: PoseLandmarkerResult | null;
+		pending: Promise<void>;
+		nPoses: number;
+	};
+	landmarks: {
+		data: Float32Array;
+		textureHeight: number;
+	};
+	mask: {
+		shader: ShaderPad;
+	};
+}
+const sharedDetectors = new Map<string, Detector>();
+
+function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) {
+	const data = detector.landmarks.data;
+	const nPoses = poses.length;
+
+	for (let poseIdx = 0; poseIdx < nPoses; ++poseIdx) {
+		const landmarks = poses[poseIdx];
+		for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
+			const landmark = landmarks[lmIdx];
+			const dataIdx = (poseIdx * LANDMARK_COUNT + lmIdx) * 4;
+			data[dataIdx] = landmark.x;
+			data[dataIdx + 1] = 1 - landmark.y;
+			data[dataIdx + 2] = landmark.z ?? 0;
+			data[dataIdx + 3] = landmark.visibility ?? 1;
+		}
+
+		const bodyCenter = calculateBoundingBoxCenter(data, poseIdx, ALL_STANDARD_INDICES, LANDMARK_COUNT);
+		const bodyCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.BODY_CENTER) * 4;
+		data[bodyCenterIdx] = bodyCenter[0];
+		data[bodyCenterIdx + 1] = bodyCenter[1];
+		data[bodyCenterIdx + 2] = bodyCenter[2];
+		data[bodyCenterIdx + 3] = bodyCenter[3];
+
+		const leftHandCenter = calculateBoundingBoxCenter(data, poseIdx, LEFT_HAND_INDICES, LANDMARK_COUNT);
+		const leftHandCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_HAND_CENTER) * 4;
+		data[leftHandCenterIdx] = leftHandCenter[0];
+		data[leftHandCenterIdx + 1] = leftHandCenter[1];
+		data[leftHandCenterIdx + 2] = leftHandCenter[2];
+		data[leftHandCenterIdx + 3] = leftHandCenter[3];
+
+		const rightHandCenter = calculateBoundingBoxCenter(data, poseIdx, RIGHT_HAND_INDICES, LANDMARK_COUNT);
+		const rightHandCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_HAND_CENTER) * 4;
+		data[rightHandCenterIdx] = rightHandCenter[0];
+		data[rightHandCenterIdx + 1] = rightHandCenter[1];
+		data[rightHandCenterIdx + 2] = rightHandCenter[2];
+		data[rightHandCenterIdx + 3] = rightHandCenter[3];
+
+		const leftFootCenter = calculateBoundingBoxCenter(data, poseIdx, LEFT_FOOT_INDICES, LANDMARK_COUNT);
+		const leftFootCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_FOOT_CENTER) * 4;
+		data[leftFootCenterIdx] = leftFootCenter[0];
+		data[leftFootCenterIdx + 1] = leftFootCenter[1];
+		data[leftFootCenterIdx + 2] = leftFootCenter[2];
+		data[leftFootCenterIdx + 3] = leftFootCenter[3];
+
+		const rightFootCenter = calculateBoundingBoxCenter(data, poseIdx, RIGHT_FOOT_INDICES, LANDMARK_COUNT);
+		const rightFootCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_FOOT_CENTER) * 4;
+		data[rightFootCenterIdx] = rightFootCenter[0];
+		data[rightFootCenterIdx + 1] = rightFootCenter[1];
+		data[rightFootCenterIdx + 2] = rightFootCenter[2];
+		data[rightFootCenterIdx + 3] = rightFootCenter[3];
+
+		const torsoCenter = calculateBoundingBoxCenter(data, poseIdx, TORSO_INDICES, LANDMARK_COUNT);
+		const torsoCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.TORSO_CENTER) * 4;
+		data[torsoCenterIdx] = torsoCenter[0];
+		data[torsoCenterIdx + 1] = torsoCenter[1];
+		data[torsoCenterIdx + 2] = torsoCenter[2];
+		data[torsoCenterIdx + 3] = torsoCenter[3];
+	}
+
+	detector.state.nPoses = nPoses;
+}
+
+function updateMaskCanvas(detector: Detector, segmentationMasks?: MPMask[]) {
+	if (!segmentationMasks || segmentationMasks.length === 0) return;
+	const {
+		mask: { shader },
+		maxPoses,
+	} = detector;
+
+	for (let i = 0; i < segmentationMasks.length; ++i) {
+		const segMask = segmentationMasks[i];
+		shader.updateTextures({ u_mask: segMask.getAsWebGLTexture() });
+		shader.updateUniforms({ u_poseIndex: (i + 1) / maxPoses });
+		shader.draw({ skipClear: i > 0 });
+		segMask.close();
+	}
+}
+
 function pose(config: { textureName: string; options?: PosePluginOptions }) {
-	const { textureName, options } = config;
-	const defaultModelPath =
-		'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+	const { textureName, options: configOptions = {} } = config;
+	const options = { ...DEFAULT_POSE_OPTIONS, ...configOptions };
+	const optionsKey = hashOptions({ ...options, textureName });
+
+	const nLandmarksMax = options.maxPoses * LANDMARK_COUNT;
+	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
 		const { injectGLSL, gl, emitHook } = context;
 
-		let poseLandmarker: PoseLandmarker | null = null;
-		let vision: any = null;
-		let lastVideoTime = -1;
-		let runningMode: 'IMAGE' | 'VIDEO' = 'VIDEO';
-		const textureSources = new Map<string, TextureSource>();
-		const maxPoses = options?.maxPoses ?? 1;
+		const existingDetector = sharedDetectors.get(optionsKey);
+		const landmarksData =
+			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
+		const sharedCanvas = existingDetector?.canvas ?? new OffscreenCanvas(1, 1);
+		let detector: Detector | null = null;
 
-		const LANDMARKS_TEXTURE_WIDTH = 512;
-		let landmarksTextureHeight = 0;
-		let landmarksDataArray: Float32Array | null = null;
-
-		// Shared canvas for MediaPipe and maskShader (same WebGL context).
-		const sharedCanvas = new OffscreenCanvas(1, 1);
-		let maskShader: ShaderPad | null = null;
-
-		async function initializeMediaPipe() {
-			try {
-				const { FilesetResolver, PoseLandmarker } = await import('@mediapipe/tasks-vision');
-				vision = await FilesetResolver.forVisionTasks(
-					'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
-				);
-				poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-					baseOptions: {
-						modelAssetPath: options?.modelPath || defaultModelPath,
-						delegate: 'GPU',
-					},
-					canvas: sharedCanvas,
-					runningMode,
-					numPoses: options?.maxPoses ?? 1,
-					minPoseDetectionConfidence: options?.minPoseDetectionConfidence ?? 0.5,
-					minPosePresenceConfidence: options?.minPosePresenceConfidence ?? 0.5,
-					minTrackingConfidence: options?.minTrackingConfidence ?? 0.5,
-					outputSegmentationMasks: true,
-				});
-			} catch (error) {
-				console.error('[Pose Plugin] Failed to initialize MediaPipe:', error);
-				throw error;
-			}
-		}
-		const mediaPipeInitPromise = initializeMediaPipe();
-
-		function calculateBoundingBoxCenter(
-			landmarksDataArray: Float32Array,
-			poseIdx: number,
-			landmarkIndices: number[]
-		): [number, number, number, number] {
-			let minX = Infinity,
-				maxX = -Infinity,
-				minY = Infinity,
-				maxY = -Infinity,
-				avgZ = 0,
-				avgVisibility = 0;
-
-			for (const idx of landmarkIndices) {
-				const dataIdx = (poseIdx * LANDMARK_COUNT + idx) * 4;
-				const x = landmarksDataArray[dataIdx];
-				const y = landmarksDataArray[dataIdx + 1];
-				minX = Math.min(minX, x);
-				maxX = Math.max(maxX, x);
-				minY = Math.min(minY, y);
-				maxY = Math.max(maxY, y);
-				avgZ += landmarksDataArray[dataIdx + 2];
-				avgVisibility += landmarksDataArray[dataIdx + 3];
-			}
-
-			const centerX = (minX + maxX) / 2;
-			const centerY = (minY + maxY) / 2;
-			const centerZ = avgZ / landmarkIndices.length;
-			const centerVisibility = avgVisibility / landmarkIndices.length;
-			return [centerX, centerY, centerZ, centerVisibility];
-		}
-
-		function updateMaskTexture(segmentationMasks?: MPMask[]) {
-			if (!segmentationMasks || segmentationMasks.length === 0 || !maskShader) return;
-			for (let i = 0; i < segmentationMasks.length; ++i) {
-				const mask = segmentationMasks[i];
-				maskShader.updateTextures({ u_mask: mask.getAsWebGLTexture() });
-				maskShader.updateUniforms({ u_poseIndex: (i + 1) / maxPoses });
-				maskShader.draw({ skipClear: i > 0 }); // Only clear on first mask.
-				mask.close();
-			}
-			shaderPad.updateTextures({ u_poseMask: sharedCanvas });
-		}
-
-		function updateLandmarksTexture(poses: NormalizedLandmark[][]) {
-			if (!landmarksDataArray) return;
-
-			const nPoses = poses.length;
-			const totalLandmarks = nPoses * LANDMARK_COUNT;
-
-			for (let poseIdx = 0; poseIdx < nPoses; ++poseIdx) {
-				const landmarks = poses[poseIdx];
-				for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
-					const landmark = landmarks[lmIdx];
-					const dataIdx = (poseIdx * LANDMARK_COUNT + lmIdx) * 4;
-					landmarksDataArray[dataIdx] = landmark.x;
-					landmarksDataArray[dataIdx + 1] = 1 - landmark.y;
-					landmarksDataArray[dataIdx + 2] = landmark.z ?? 0;
-					landmarksDataArray[dataIdx + 3] = landmark.visibility ?? 1;
-				}
-
-				const bodyCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, ALL_STANDARD_INDICES);
-				const bodyCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.BODY_CENTER) * 4;
-				landmarksDataArray[bodyCenterIdx] = bodyCenter[0];
-				landmarksDataArray[bodyCenterIdx + 1] = bodyCenter[1];
-				landmarksDataArray[bodyCenterIdx + 2] = bodyCenter[2];
-				landmarksDataArray[bodyCenterIdx + 3] = bodyCenter[3];
-
-				const leftHandCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, LEFT_HAND_INDICES);
-				const leftHandCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_HAND_CENTER) * 4;
-				landmarksDataArray[leftHandCenterIdx] = leftHandCenter[0];
-				landmarksDataArray[leftHandCenterIdx + 1] = leftHandCenter[1];
-				landmarksDataArray[leftHandCenterIdx + 2] = leftHandCenter[2];
-				landmarksDataArray[leftHandCenterIdx + 3] = leftHandCenter[3];
-
-				const rightHandCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, RIGHT_HAND_INDICES);
-				const rightHandCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_HAND_CENTER) * 4;
-				landmarksDataArray[rightHandCenterIdx] = rightHandCenter[0];
-				landmarksDataArray[rightHandCenterIdx + 1] = rightHandCenter[1];
-				landmarksDataArray[rightHandCenterIdx + 2] = rightHandCenter[2];
-				landmarksDataArray[rightHandCenterIdx + 3] = rightHandCenter[3];
-
-				const leftFootCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, LEFT_FOOT_INDICES);
-				const leftFootCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_FOOT_CENTER) * 4;
-				landmarksDataArray[leftFootCenterIdx] = leftFootCenter[0];
-				landmarksDataArray[leftFootCenterIdx + 1] = leftFootCenter[1];
-				landmarksDataArray[leftFootCenterIdx + 2] = leftFootCenter[2];
-				landmarksDataArray[leftFootCenterIdx + 3] = leftFootCenter[3];
-
-				const rightFootCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, RIGHT_FOOT_INDICES);
-				const rightFootCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_FOOT_CENTER) * 4;
-				landmarksDataArray[rightFootCenterIdx] = rightFootCenter[0];
-				landmarksDataArray[rightFootCenterIdx + 1] = rightFootCenter[1];
-				landmarksDataArray[rightFootCenterIdx + 2] = rightFootCenter[2];
-				landmarksDataArray[rightFootCenterIdx + 3] = rightFootCenter[3];
-
-				const torsoCenter = calculateBoundingBoxCenter(landmarksDataArray, poseIdx, TORSO_INDICES);
-				const torsoCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.TORSO_CENTER) * 4;
-				landmarksDataArray[torsoCenterIdx] = torsoCenter[0];
-				landmarksDataArray[torsoCenterIdx + 1] = torsoCenter[1];
-				landmarksDataArray[torsoCenterIdx + 2] = torsoCenter[2];
-				landmarksDataArray[torsoCenterIdx + 3] = torsoCenter[3];
-			}
-
-			const rowsToUpdate = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
+		function onResult() {
+			if (!detector) return;
+			const { nPoses } = detector.state;
+			const nLandmarks = nPoses * LANDMARK_COUNT;
+			const rowsToUpdate = Math.ceil(nLandmarks / LANDMARKS_TEXTURE_WIDTH);
 			shaderPad.updateTextures({
 				u_poseLandmarksTex: {
-					data: landmarksDataArray,
+					data: detector.landmarks.data,
 					width: LANDMARKS_TEXTURE_WIDTH,
 					height: rowsToUpdate,
 					isPartial: true,
 				},
+				u_poseMask: detector.canvas,
 			});
+			shaderPad.updateUniforms({ u_nPoses: nPoses });
+			emitHook('pose:result', detector.state.result);
 		}
 
-		function processPoses(result?: PoseLandmarkerResult) {
-			if (!result?.landmarks || !landmarksDataArray) return;
-			updateLandmarksTexture(result.landmarks);
-			updateMaskTexture(result.segmentationMasks);
-			shaderPad.updateUniforms({ u_nPoses: result.landmarks.length });
-			emitHook('pose:result', result);
-		}
+		async function initializeDetector() {
+			if (sharedDetectors.has(optionsKey)) {
+				detector = sharedDetectors.get(optionsKey)!;
+			} else {
+				const [mediaPipe, { PoseLandmarker }] = await Promise.all([
+					getSharedFileset(),
+					import('@mediapipe/tasks-vision'),
+				]);
+				const poseLandmarker = await PoseLandmarker.createFromOptions(mediaPipe, {
+					baseOptions: {
+						modelAssetPath: options.modelPath,
+						delegate: 'GPU',
+					},
+					canvas: sharedCanvas,
+					runningMode: 'VIDEO',
+					numPoses: options.maxPoses,
+					minPoseDetectionConfidence: options.minPoseDetectionConfidence,
+					minPosePresenceConfidence: options.minPosePresenceConfidence,
+					minTrackingConfidence: options.minTrackingConfidence,
+					outputSegmentationMasks: true,
+				});
 
-		shaderPad.on('init', async () => {
-			shaderPad.initializeUniform('u_maxPoses', 'int', maxPoses);
+				const maskShader = new ShaderPad(
+					`#version 300 es
+	precision mediump float;
+	in vec2 v_uv;
+	out vec4 outColor;
+	uniform sampler2D u_mask;
+	uniform float u_poseIndex;
+	void main() {
+		ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_mask, 0)));
+		float confidence = texelFetch(u_mask, texCoord, 0).r;
+		if (confidence < 0.01) discard;
+		outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
+	}`,
+					{ canvas: sharedCanvas }
+				);
+				maskShader.initializeTexture('u_mask', dummyTexture);
+				maskShader.initializeUniform('u_poseIndex', 'float', 0);
+
+				detector = {
+					landmarker: poseLandmarker,
+					canvas: sharedCanvas,
+					subscribers: new Map(),
+					maxPoses: options.maxPoses,
+					state: {
+						runningMode: 'VIDEO',
+						source: null,
+						videoTime: -1,
+						resultTimestamp: 0,
+						result: null,
+						pending: Promise.resolve(),
+						nPoses: 0,
+					},
+					landmarks: {
+						data: landmarksData,
+						textureHeight,
+					},
+					mask: {
+						shader: maskShader,
+					},
+				};
+				sharedDetectors.set(optionsKey, detector);
+			}
+
+			detector.subscribers.set(onResult, false);
+		}
+		const initPromise = initializeDetector();
+
+		shaderPad.on('init', () => {
+			shaderPad.initializeUniform('u_maxPoses', 'int', options.maxPoses);
 			shaderPad.initializeUniform('u_nPoses', 'int', 0);
-
-			const totalLandmarks = maxPoses * LANDMARK_COUNT;
-			landmarksTextureHeight = Math.ceil(totalLandmarks / LANDMARKS_TEXTURE_WIDTH);
-			const textureSize = LANDMARKS_TEXTURE_WIDTH * landmarksTextureHeight * 4;
-			landmarksDataArray = new Float32Array(textureSize);
-
 			shaderPad.initializeTexture(
 				'u_poseLandmarksTex',
-				{
-					data: landmarksDataArray,
-					width: LANDMARKS_TEXTURE_WIDTH,
-					height: landmarksTextureHeight,
-				},
-				{
-					internalFormat: gl.RGBA32F,
-					type: gl.FLOAT,
-					minFilter: gl.NEAREST,
-					magFilter: gl.NEAREST,
-				}
+				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
+				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST }
 			);
 			shaderPad.initializeTexture('u_poseMask', sharedCanvas, {
 				preserveY: true,
 				minFilter: gl.NEAREST,
 				magFilter: gl.NEAREST,
 			});
-			await mediaPipeInitPromise;
-			maskShader = new ShaderPad(
-				`#version 300 es
-precision mediump float;
-in vec2 v_uv;
-out vec4 outColor;
-uniform sampler2D u_mask;
-uniform float u_poseIndex;
-void main() {
-	ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_mask, 0)));
-	float confidence = texelFetch(u_mask, texCoord, 0).r;
-	if (confidence < 0.01) discard;
-	outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
-}`,
-				{ canvas: sharedCanvas }
-			);
-			maskShader.initializeTexture('u_mask', dummyTexture);
-			maskShader.initializeUniform('u_poseIndex', 'float', 0);
-			emitHook('pose:ready');
+			initPromise.then(() => emitHook('pose:ready'));
 		});
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
-			if (name === textureName) detectPoses(source);
+			if (name === textureName && isMediaPipeSource(source)) detectPoses(source);
 		});
 
 		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
-			if (source) detectPoses(source);
+			if (isMediaPipeSource(source)) detectPoses(source);
 		});
 
-		// `detectPoses` may be called multiple times before MediaPipe is
-		// initialized. This ensures we only process the last call.
 		let nDetectionCalls = 0;
-		async function detectPoses(source: TextureSource) {
+		async function detectPoses(source: MediaPipeSource) {
+			const now = performance.now();
 			const callOrder = ++nDetectionCalls;
-			await mediaPipeInitPromise;
-			if (callOrder !== nDetectionCalls || !poseLandmarker) return;
 
-			const previousSource = textureSources.get(textureName);
-			if (previousSource !== source) lastVideoTime = -1;
-			textureSources.set(textureName, source);
+			await initPromise;
+			if (!detector) return;
 
-			try {
+			detector.state.pending = detector.state.pending.then(async () => {
+				if (callOrder !== nDetectionCalls || !detector) return;
+
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
-				if (runningMode !== requiredMode) {
-					runningMode = requiredMode;
-					await poseLandmarker.setOptions({ runningMode });
+				if (detector.state.runningMode !== requiredMode) {
+					detector.state.runningMode = requiredMode;
+					await detector.landmarker.setOptions({ runningMode: requiredMode });
 				}
 
-				if (source instanceof HTMLVideoElement) {
-					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
-					if (source.currentTime !== lastVideoTime) {
-						lastVideoTime = source.currentTime;
-						processPoses(poseLandmarker.detectForVideo(source, performance.now()));
+				let shouldDetect = false;
+
+				if (source !== detector.state.source) {
+					detector.state.source = source;
+					detector.state.videoTime = -1;
+					shouldDetect = true;
+				} else if (source instanceof HTMLVideoElement) {
+					if (source.currentTime !== detector.state.videoTime) {
+						detector.state.videoTime = source.currentTime;
+						shouldDetect = true;
 					}
-				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
-					if (source.width === 0 || source.height === 0) return;
-					processPoses(poseLandmarker.detect(source));
+				} else if (!(source instanceof HTMLImageElement)) {
+					if (now - detector.state.resultTimestamp > 2) {
+						shouldDetect = true;
+					}
 				}
-			} catch (error) {
-				console.error('[Pose Plugin] Detection error:', error);
-			}
+
+				if (shouldDetect) {
+					let result: PoseLandmarkerResult | undefined;
+					if (source instanceof HTMLVideoElement) {
+						if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
+						result = detector.landmarker.detectForVideo(source, now);
+					} else {
+						if (source.width === 0 || source.height === 0) return;
+						result = detector.landmarker.detect(source);
+					}
+
+					if (result) {
+						detector.state.resultTimestamp = now;
+						detector.state.result = result;
+						updateLandmarksData(detector, result.landmarks);
+						updateMaskCanvas(detector, result.segmentationMasks);
+						for (const cb of detector.subscribers.keys()) {
+							cb();
+							detector.subscribers.set(cb, true);
+						}
+					}
+				} else if (detector.state.result && !detector.subscribers.get(onResult)) {
+					onResult();
+					detector.subscribers.set(onResult, true);
+				}
+			});
+
+			await detector.state.pending;
 		}
 
 		shaderPad.on('destroy', () => {
-			if (poseLandmarker) {
-				poseLandmarker.close();
-				poseLandmarker = null;
+			if (detector) {
+				detector.subscribers.delete(onResult);
+				if (detector.subscribers.size === 0) {
+					detector.landmarker.close();
+					detector.mask.shader?.destroy();
+					sharedDetectors.delete(optionsKey);
+				}
 			}
-			if (maskShader) {
-				maskShader.destroy();
-				maskShader = null;
-			}
-			vision = null;
-			textureSources.clear();
-			landmarksDataArray = null;
+			detector = null;
 		});
+
 		injectGLSL(`
 uniform int u_maxPoses;
 uniform int u_nPoses;

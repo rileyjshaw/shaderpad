@@ -12,3 +12,5 @@ declare namespace NodeJS {
 declare var process: {
 	env: NodeJS.ProcessEnv;
 } | undefined;
+
+declare const __MEDIAPIPE_TASKS_VISION_VERSION__: string;

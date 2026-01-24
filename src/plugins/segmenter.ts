@@ -1,4 +1,5 @@
-import ShaderPad, { PluginContext, TextureSource } from '../index';
+import ShaderPad, { PluginContext, TextureSource } from '..';
+import { getSharedFileset, hashOptions, isMediaPipeSource, MediaPipeSource } from './mediapipe-common';
 import type { ImageSegmenter, ImageSegmenterResult, MPMask } from '@mediapipe/tasks-vision';
 
 export interface SegmenterPluginOptions {
@@ -7,10 +8,16 @@ export interface SegmenterPluginOptions {
 }
 
 const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
+
+const DEFAULT_SEGMENTER_OPTIONS: Required<SegmenterPluginOptions> = {
+	modelPath:
+		'https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite',
+	outputCategoryMask: false,
+};
+
 function createMaskShaderSource(numMasks: number): string {
 	const uniforms = Array.from({ length: numMasks }, (_, i) => `uniform sampler2D u_confidenceMask${i};`).join('\n');
 
-	// GLSL doesn't allow dynamic indexing of samplers, so we need a switch-like construct.
 	const sampleByIndex = Array.from(
 		{ length: numMasks },
 		(_, i) => `\t\t${i > 0 ? 'else ' : ''}if (i == ${i}) c = texelFetch(u_confidenceMask${i}, texCoord, 0).r;`
@@ -42,146 +49,205 @@ ${sampleByIndex}
 }`;
 }
 
+interface SharedDetector {
+	segmenter: ImageSegmenter;
+	canvas: OffscreenCanvas;
+	subscribers: Map<() => void, boolean>;
+	state: {
+		runningMode: 'IMAGE' | 'VIDEO';
+		source: MediaPipeSource | null;
+		videoTime: number;
+		resultTimestamp: number;
+		result: ImageSegmenterResult | null;
+		pending: Promise<void>;
+	};
+	labels: string[];
+	numCategories: number;
+	mask: {
+		shader: ShaderPad;
+	};
+}
+const sharedDetectors = new Map<string, SharedDetector>();
+
+function updateMaskCanvas(detector: SharedDetector, confidenceMasks: MPMask[]) {
+	const {
+		mask: { shader },
+	} = detector;
+
+	const textures: Record<string, WebGLTexture> = {};
+	for (let i = 0; i < confidenceMasks.length; ++i) {
+		textures[`u_confidenceMask${i}`] = confidenceMasks[i].getAsWebGLTexture();
+	}
+	shader.updateTextures(textures);
+	shader.draw();
+	confidenceMasks.forEach(m => m.close());
+}
+
 function segmenter(config: { textureName: string; options?: SegmenterPluginOptions }) {
-	const { textureName, options } = config;
-	const defaultModelPath =
-		'https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite';
+	const { textureName, options: configOptions = {} } = config;
+	const options = { ...DEFAULT_SEGMENTER_OPTIONS, ...configOptions };
+	const optionsKey = hashOptions({ ...options, textureName });
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
 		const { injectGLSL, gl, emitHook } = context;
 
-		let imageSegmenter: ImageSegmenter | null = null;
-		let vision: any = null;
-		let lastVideoTime = -1;
-		let runningMode: 'IMAGE' | 'VIDEO' = 'VIDEO';
-		const textureSources = new Map<string, TextureSource>();
-		let numCategories = 1;
+		const existingDetector = sharedDetectors.get(optionsKey);
+		const sharedCanvas = existingDetector?.canvas ?? new OffscreenCanvas(1, 1);
+		let detector: SharedDetector | null = null;
 
-		// Shared canvas for MediaPipe and maskShader (same WebGL context).
-		const sharedCanvas = new OffscreenCanvas(1, 1);
-		let maskShader: ShaderPad | null = null;
-		async function initializeMediaPipe() {
-			try {
-				const { FilesetResolver, ImageSegmenter } = await import('@mediapipe/tasks-vision');
-				vision = await FilesetResolver.forVisionTasks(
-					'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
-				);
-				imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
+		function onResult() {
+			if (!detector) return;
+			shaderPad.updateTextures({ u_segmentMask: detector.canvas });
+			emitHook('segmenter:result', detector.state.result);
+		}
+
+		async function initializeDetector() {
+			if (sharedDetectors.has(optionsKey)) {
+				detector = sharedDetectors.get(optionsKey)!;
+			} else {
+				const [mediaPipe, { ImageSegmenter }] = await Promise.all([
+					getSharedFileset(),
+					import('@mediapipe/tasks-vision'),
+				]);
+				// Single shared canvas for MediaPipe and maskShader (same WebGL context required
+				// because maskShader uses textures from MediaPipe via getAsWebGLTexture).
+				const imageSegmenter = await ImageSegmenter.createFromOptions(mediaPipe, {
 					baseOptions: {
-						modelAssetPath: options?.modelPath || defaultModelPath,
+						modelAssetPath: options.modelPath,
 						delegate: 'GPU',
 					},
 					canvas: sharedCanvas,
-					runningMode: runningMode,
-					outputCategoryMask: options?.outputCategoryMask ?? false, // Better for perf, and category can be inferred from confidence mask index.
+					runningMode: 'VIDEO',
+					outputCategoryMask: options.outputCategoryMask,
 					outputConfidenceMasks: true,
 				});
-			} catch (error) {
-				console.error('[Segmenter Plugin] Failed to initialize MediaPipe:', error);
-				throw error;
-			}
-		}
-		const mediaPipeInitPromise = initializeMediaPipe();
 
-		shaderPad.on('init', async () => {
-			shaderPad.initializeUniform('u_numCategories', 'int', numCategories);
+				const labels = imageSegmenter.getLabels();
+				const numCategories = labels.length || 1;
+
+				const maskShader = new ShaderPad(createMaskShaderSource(numCategories), { canvas: sharedCanvas });
+				for (let i = 0; i < numCategories; ++i) {
+					maskShader.initializeTexture(`u_confidenceMask${i}`, dummyTexture);
+				}
+
+				detector = {
+					segmenter: imageSegmenter,
+					canvas: sharedCanvas,
+					subscribers: new Map(),
+					state: {
+						runningMode: 'VIDEO',
+						source: null,
+						videoTime: -1,
+						resultTimestamp: 0,
+						result: null,
+						pending: Promise.resolve(),
+					},
+					labels,
+					numCategories,
+					mask: {
+						shader: maskShader,
+					},
+				};
+				sharedDetectors.set(optionsKey, detector);
+			}
+
+			detector!.subscribers.set(onResult, false);
+		}
+		const initPromise = initializeDetector();
+
+		shaderPad.on('init', () => {
+			shaderPad.initializeUniform('u_numCategories', 'int', 1);
 			shaderPad.initializeTexture('u_segmentMask', sharedCanvas, {
 				preserveY: true,
 				minFilter: gl.NEAREST,
 				magFilter: gl.NEAREST,
 			});
-			await mediaPipeInitPromise;
-			const labels = imageSegmenter!.getLabels();
-			if (labels.length) numCategories = labels.length;
-			maskShader = new ShaderPad(createMaskShaderSource(numCategories), { canvas: sharedCanvas });
-			for (let i = 0; i < numCategories; ++i) {
-				maskShader.initializeTexture(`u_confidenceMask${i}`, dummyTexture);
-			}
-			shaderPad.updateUniforms({ u_numCategories: numCategories });
-			emitHook('segmenter:ready');
+			initPromise.then(() => {
+				shaderPad.updateUniforms({ u_numCategories: detector!.numCategories });
+				emitHook('segmenter:ready');
+			});
 		});
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
-			if (name === textureName) detectSegments(source);
+			if (name === textureName && isMediaPipeSource(source)) detectSegments(source);
 		});
 
 		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
 			const source = updates[textureName];
-			if (source) detectSegments(source);
+			if (isMediaPipeSource(source)) detectSegments(source);
 		});
 
-		function updateMaskTexture(confidenceMasks: MPMask[]) {
-			if (!maskShader) return;
-
-			const textures: Record<string, WebGLTexture> = {};
-			for (let i = 0; i < confidenceMasks.length; ++i) {
-				textures[`u_confidenceMask${i}`] = confidenceMasks[i].getAsWebGLTexture();
-			}
-			maskShader.updateTextures(textures);
-			maskShader.draw();
-			shaderPad.updateTextures({ u_segmentMask: sharedCanvas });
-			confidenceMasks.forEach(mask => mask.close());
-		}
-
-		function processSegments(result: ImageSegmenterResult) {
-			const { confidenceMasks } = result;
-			if (!confidenceMasks || confidenceMasks.length === 0) return;
-			updateMaskTexture(confidenceMasks);
-			emitHook('segmenter:result', result);
-		}
-
-		// `detectSegments` may be called multiple times before MediaPipe is
-		// initialized. This ensures we only process the last call.
 		let nDetectionCalls = 0;
-		async function detectSegments(source: TextureSource) {
+		async function detectSegments(source: MediaPipeSource) {
+			const now = performance.now();
 			const callOrder = ++nDetectionCalls;
-			await mediaPipeInitPromise;
-			if (callOrder !== nDetectionCalls || !imageSegmenter) return;
+			await initPromise;
+			if (!detector) return;
 
-			const previousSource = textureSources.get(textureName);
-			if (previousSource !== source) lastVideoTime = -1;
-			textureSources.set(textureName, source);
+			detector.state.pending = detector.state.pending.then(async () => {
+				if (callOrder !== nDetectionCalls || !detector) return;
 
-			try {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
-				if (runningMode !== requiredMode) {
-					runningMode = requiredMode;
-					await imageSegmenter.setOptions({ runningMode });
+				if (detector.state.runningMode !== requiredMode) {
+					detector.state.runningMode = requiredMode;
+					await detector.segmenter.setOptions({ runningMode: requiredMode });
 				}
 
-				if (source instanceof HTMLVideoElement) {
-					if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) {
-						return;
+				let shouldDetect = false;
+
+				if (source !== detector.state.source) {
+					detector.state.source = source;
+					detector.state.videoTime = -1;
+					shouldDetect = true;
+				} else if (source instanceof HTMLVideoElement) {
+					if (source.currentTime !== detector.state.videoTime) {
+						detector.state.videoTime = source.currentTime;
+						shouldDetect = true;
 					}
-					if (source.currentTime !== lastVideoTime) {
-						lastVideoTime = source.currentTime;
-						// TODO: I think segmentForVideo runs its own animation loop maybe? args are (source, startTime, callbackForVideo).
-						const result = imageSegmenter.segmentForVideo(source, performance.now());
-						processSegments(result);
+				} else if (!(source instanceof HTMLImageElement)) {
+					if (now - detector.state.resultTimestamp > 2) {
+						shouldDetect = true;
 					}
-				} else if (source instanceof HTMLImageElement || source instanceof HTMLCanvasElement) {
-					if (source.width === 0 || source.height === 0) {
-						return;
-					}
-					const result = imageSegmenter.segment(source);
-					processSegments(result);
 				}
-			} catch (error) {
-				console.error('[Segmenter Plugin] Segmentation error:', error);
-			}
+
+				if (shouldDetect) {
+					let result: ImageSegmenterResult | undefined;
+					if (source instanceof HTMLVideoElement) {
+						if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
+						result = detector.segmenter.segmentForVideo(source, now);
+					} else {
+						if (source.width === 0 || source.height === 0) return;
+						result = detector.segmenter.segment(source);
+					}
+
+					if (result?.confidenceMasks && result.confidenceMasks.length > 0) {
+						detector.state.resultTimestamp = now;
+						detector.state.result = result;
+						updateMaskCanvas(detector, result.confidenceMasks);
+						for (const cb of detector.subscribers.keys()) {
+							cb();
+							detector.subscribers.set(cb, true);
+						}
+					}
+				} else if (detector.state.result && !detector.subscribers.get(onResult)) {
+					onResult();
+					detector.subscribers.set(onResult, true);
+				}
+			});
+
+			await detector.state.pending;
 		}
 
 		shaderPad.on('destroy', () => {
-			if (imageSegmenter) {
-				imageSegmenter.close();
-				imageSegmenter = null;
+			if (detector) {
+				detector.subscribers.delete(onResult);
+				if (detector.subscribers.size === 0) {
+					detector.segmenter.close();
+					detector.mask.shader?.destroy();
+					sharedDetectors.delete(optionsKey);
+				}
 			}
-			if (maskShader) {
-				maskShader.destroy();
-				maskShader = null;
-			}
-			vision = null;
-			textureSources.clear();
+			detector = null;
 		});
 
 		injectGLSL(`
