@@ -281,6 +281,54 @@ shader.destroy(); // Clean up resources.
 
 -   `canvas` (HTMLCanvasElement): The canvas element used for rendering
 
+### Event Listeners
+
+#### `on(event, callback)`
+
+Register a callback for a lifecycle event.
+
+```typescript
+shader.on('resize', (width, height) => {
+	console.log(`Canvas resized to ${width}x${height}`);
+});
+```
+
+**Parameters:**
+
+-   `event` (string): The event name
+-   `callback` (Function): The callback function
+
+#### `off(event, callback)`
+
+Remove a previously registered callback.
+
+**Parameters:**
+
+-   `event` (string): The event name
+-   `callback` (Function): The callback function to remove
+
+#### Available Events
+
+| Event               | Callback Arguments                      | Description                                      |
+| ------------------- | --------------------------------------- | ------------------------------------------------ |
+| `init`              | none                                    | Fired after initialization is complete           |
+| `resize`            | `(width: number, height: number)`       | Fired when the canvas element is resized         |
+| `updateResolution`  | `(width: number, height: number)`       | Fired when the drawing buffer resolution changes |
+| `play`              | none                                    | Fired when the render loop starts                |
+| `pause`             | none                                    | Fired when the render loop is paused             |
+| `reset`             | none                                    | Fired when the shader is reset                   |
+| `destroy`           | none                                    | Fired when the shader is destroyed               |
+| `beforeStep`        | `(time: number, options?: StepOptions)` | Fired before each render step                    |
+| `afterStep`         | `(time: number, options?: StepOptions)` | Fired after each render step                     |
+| `beforeDraw`        | `(options?: StepOptions)`               | Fired before each draw call                      |
+| `afterDraw`         | `(options?: StepOptions)`               | Fired after each draw call                       |
+| `initializeTexture` | `(name, source, options?)`              | Fired after a texture is initialized             |
+| `initializeUniform` | `(name, type, value, options?)`         | Fired after a uniform is initialized             |
+| `updateTextures`    | `(updates, options?)`                   | Fired after textures are updated                 |
+| `updateUniforms`    | `(updates, options?)`                   | Fired after uniforms are updated                 |
+
+Plugins may emit additional namespaced events (e.g., `face:ready`, `pose:results`).
+
 ## Options
 
 ShaderPad’s constructor accepts an optional `options` object.
@@ -292,10 +340,10 @@ The `canvas` option allows you to pass in an existing canvas element. If not pro
 ```typescript
 const canvas = document.createElement('canvas');
 const shader = new ShaderPad(fragmentShaderSrc, { canvas });
-shader.onResize = (width, height) => {
+shader.on('resize', (width, height) => {
 	canvas.width = width;
 	canvas.height = height;
-};
+});
 ```
 
 ### history
@@ -385,10 +433,12 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
-**Options:**
+**Events:**
 
--   `onReady?: () => void` - Callback invoked when initialization is complete and the detection model is loaded
--   `onResults?: (results: FaceLandmarkerResult) => void` - Callback invoked with detection results each frame
+| Event         | Callback Arguments               | Description                              |
+| ------------- | -------------------------------- | ---------------------------------------- |
+| `face:ready`  | none                             | Fired when the detection model is loaded |
+| `face:result` | `(result: FaceLandmarkerResult)` | Fired with detection results each frame  |
 
 **Uniforms:**
 
@@ -469,10 +519,12 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
-**Options:**
+**Events:**
 
--   `onReady?: () => void` - Callback invoked when initialization is complete and the detection model is loaded
--   `onResults?: (results: PoseLandmarkerResult) => void` - Callback invoked with detection results each frame
+| Event         | Callback Arguments               | Description                              |
+| ------------- | -------------------------------- | ---------------------------------------- |
+| `pose:ready`  | none                             | Fired when the detection model is loaded |
+| `pose:result` | `(result: PoseLandmarkerResult)` | Fired with detection results each frame  |
 
 **Uniforms:**
 
@@ -561,10 +613,12 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
-**Options:**
+**Events:**
 
--   `onReady?: () => void` - Callback invoked when initialization is complete and the detection model is loaded
--   `onResults?: (results: HandLandmarkerResult) => void` - Callback invoked with detection results each frame
+| Event          | Callback Arguments               | Description                              |
+| -------------- | -------------------------------- | ---------------------------------------- |
+| `hands:ready`  | none                             | Fired when the detection model is loaded |
+| `hands:result` | `(result: HandLandmarkerResult)` | Fired with detection results each frame  |
 
 **Uniforms:**
 
@@ -637,19 +691,18 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 				modelPath:
 					'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
 				outputCategoryMask: true,
-				onReady: () => {
-					console.log('Selfie multiclass model: loading complete');
-				},
 			},
 		}),
 	],
 });
 ```
 
-**Options:**
+**Events:**
 
--   `onReady?: () => void` - Callback invoked when initialization is complete and the detection model is loaded
--   `onResults?: (results: ImageSegmenterResult) => void` - Callback invoked with segmentation results each frame
+| Event              | Callback Arguments               | Description                                 |
+| ------------------ | -------------------------------- | ------------------------------------------- |
+| `segmenter:ready`  | none                             | Fired when the segmentation model is loaded |
+| `segmenter:result` | `(result: ImageSegmenterResult)` | Fired with segmentation results each frame  |
 
 **Uniforms:**
 
