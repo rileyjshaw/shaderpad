@@ -29,9 +29,13 @@ function save() {
 					const file = new File([blob], filename, { type: blob.type });
 					const shareData: ShareData = { files: [file] };
 					if (text) shareData.text = text;
-					await navigator.share(shareData);
-					return;
-				} catch (_swallowedError) {}
+					if (!navigator.canShare || navigator.canShare(shareData)) {
+						await navigator.share(shareData);
+						return;
+					}
+				} catch (err: any) {
+					if (err?.name === 'AbortError') return;
+				}
 			}
 
 			downloadLink.download = filename;
