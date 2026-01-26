@@ -17,6 +17,8 @@ const demos = [
 	{ path: './pose', name: 'Pose Detection' },
 	{ path: './body-camo', name: 'Body Camo' },
 	{ path: './hands', name: 'Hands Detection' },
+	{ path: './hands-elastic', name: 'Hands - Elastic' },
+	{ path: './hands-finger-pens', name: 'Hands - Finger Pens' },
 	{ path: './segmenter', name: 'Segmenter' },
 	{ path: './resize-test', name: 'Resize Test' },
 	{ path: './god-rays', name: 'God rays' },
