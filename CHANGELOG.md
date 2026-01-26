@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.42
+
+### Minor Changes
+
+-   Allow ShaderPad texture sources, improve MediaPipe perf, add MediaPipe history
+
 ## 1.0.0-beta.41
 
 ### Minor Changes
