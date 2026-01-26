@@ -6,6 +6,7 @@ interface PosePluginOptions {
     minPoseDetectionConfidence?: number;
     minPosePresenceConfidence?: number;
     minTrackingConfidence?: number;
+    history?: number;
 }
 declare function pose(config: {
     textureName: string;

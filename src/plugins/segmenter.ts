@@ -1,15 +1,21 @@
 import ShaderPad, { PluginContext, TextureSource } from '..';
-import { getSharedFileset, hashOptions, isMediaPipeSource, MediaPipeSource } from './mediapipe-common';
+import {
+	generateGLSLFn,
+	dummyTexture,
+	getSharedFileset,
+	hashOptions,
+	isMediaPipeSource,
+	MediaPipeSource,
+} from './mediapipe-common';
 import type { ImageSegmenter, ImageSegmenterResult, MPMask } from '@mediapipe/tasks-vision';
 
 export interface SegmenterPluginOptions {
 	modelPath?: string;
 	outputCategoryMask?: boolean;
+	history?: number;
 }
 
-const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
-
-const DEFAULT_SEGMENTER_OPTIONS: Required<SegmenterPluginOptions> = {
+const DEFAULT_SEGMENTER_OPTIONS: Required<Omit<SegmenterPluginOptions, 'history'>> = {
 	modelPath:
 		'https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite',
 	outputCategoryMask: false,
@@ -84,8 +90,8 @@ function updateMaskCanvas(detector: SharedDetector, confidenceMasks: MPMask[]) {
 }
 
 function segmenter(config: { textureName: string; options?: SegmenterPluginOptions }) {
-	const { textureName, options: configOptions = {} } = config;
-	const options = { ...DEFAULT_SEGMENTER_OPTIONS, ...configOptions };
+	const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+	const options = { ...DEFAULT_SEGMENTER_OPTIONS, ...mediapipeOptions };
 	const optionsKey = hashOptions({ ...options, textureName });
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
@@ -94,10 +100,11 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const sharedCanvas = existingDetector?.canvas ?? new OffscreenCanvas(1, 1);
 		let detector: SharedDetector | null = null;
+		let skipHistoryWrite = false;
 
 		function onResult() {
 			if (!detector) return;
-			shaderPad.updateTextures({ u_segmentMask: detector.canvas });
+			shaderPad.updateTextures({ u_segmentMask: detector.canvas }, { skipHistoryWrite });
 			emitHook('segmenter:result', detector.state.result);
 		}
 
@@ -161,6 +168,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				preserveY: true,
 				minFilter: gl.NEAREST,
 				magFilter: gl.NEAREST,
+				history,
 			});
 			initPromise.then(() => {
 				shaderPad.updateUniforms({ u_numCategories: detector!.numCategories });
@@ -172,10 +180,16 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			if (name === textureName && isMediaPipeSource(source)) detectSegments(source);
 		});
 
-		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
-			const source = updates[textureName];
-			if (isMediaPipeSource(source)) detectSegments(source);
-		});
+		shaderPad.on(
+			'updateTextures',
+			(updates: Record<string, TextureSource>, options?: { skipHistoryWrite?: boolean }) => {
+				const source = updates[textureName];
+				if (isMediaPipeSource(source)) {
+					skipHistoryWrite = options?.skipHistoryWrite ?? false;
+					detectSegments(source);
+				}
+			}
+		);
 
 		let nDetectionCalls = 0;
 		async function detectSegments(source: MediaPipeSource) {
@@ -250,14 +264,28 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			detector = null;
 		});
 
+		const { fn } = generateGLSLFn(history);
+		const sampleMask = history
+			? `int layer = (u_segmentMaskFrameOffset - framesAgo + ${history}) % ${history};
+	vec4 mask = texture(u_segmentMask, vec3(pos, float(layer)));`
+			: `vec4 mask = texture(u_segmentMask, pos);`;
+
 		injectGLSL(`
-uniform sampler2D u_segmentMask;
+uniform sampler2D${history ? 'Array' : ''} u_segmentMask;${
+			history
+				? `
+uniform int u_segmentMaskFrameOffset;`
+				: ''
+		}
 uniform int u_numCategories;
 
-vec2 segmentAt(vec2 pos) {
-	vec4 mask = texture(u_segmentMask, pos);
-	return vec2(mask.r, mask.g);
-}`);
+${fn(
+	'vec2',
+	'segmentAt',
+	'vec2 pos',
+	`${sampleMask}
+	return vec2(mask.r, mask.g);`
+)}`);
 	};
 }
 

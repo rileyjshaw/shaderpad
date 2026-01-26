@@ -1,6 +1,8 @@
 import ShaderPad, { PluginContext, TextureSource } from '..';
 import {
 	calculateBoundingBoxCenter,
+	generateGLSLFn,
+	dummyTexture,
 	getSharedFileset,
 	hashOptions,
 	isMediaPipeSource,
@@ -14,6 +16,7 @@ export interface PosePluginOptions {
 	minPoseDetectionConfidence?: number;
 	minPosePresenceConfidence?: number;
 	minTrackingConfidence?: number;
+	history?: number;
 }
 
 const STANDARD_LANDMARK_COUNT = 33; // See https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model.
@@ -80,9 +83,9 @@ const TORSO_INDICES = [
 ];
 
 const LANDMARKS_TEXTURE_WIDTH = 512;
-const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
+const N_LANDMARK_METADATA_SLOTS = 1;
 
-const DEFAULT_POSE_OPTIONS: Required<PosePluginOptions> = {
+const DEFAULT_POSE_OPTIONS: Required<Omit<PosePluginOptions, 'history'>> = {
 	modelPath:
 		'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
 	maxPoses: 1,
@@ -119,54 +122,56 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 	const data = detector.landmarks.data;
 	const nPoses = poses.length;
 
+	data[0] = nPoses;
+
 	for (let poseIdx = 0; poseIdx < nPoses; ++poseIdx) {
 		const landmarks = poses[poseIdx];
 		for (let lmIdx = 0; lmIdx < STANDARD_LANDMARK_COUNT; ++lmIdx) {
 			const landmark = landmarks[lmIdx];
-			const dataIdx = (poseIdx * LANDMARK_COUNT + lmIdx) * 4;
+			const dataIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + lmIdx) * 4;
 			data[dataIdx] = landmark.x;
 			data[dataIdx + 1] = 1 - landmark.y;
 			data[dataIdx + 2] = landmark.z ?? 0;
 			data[dataIdx + 3] = landmark.visibility ?? 1;
 		}
 
-		const bodyCenter = calculateBoundingBoxCenter(data, poseIdx, ALL_STANDARD_INDICES, LANDMARK_COUNT);
-		const bodyCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.BODY_CENTER) * 4;
+		const bodyCenter = calculateBoundingBoxCenter(data, poseIdx, ALL_STANDARD_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
+		const bodyCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.BODY_CENTER) * 4;
 		data[bodyCenterIdx] = bodyCenter[0];
 		data[bodyCenterIdx + 1] = bodyCenter[1];
 		data[bodyCenterIdx + 2] = bodyCenter[2];
 		data[bodyCenterIdx + 3] = bodyCenter[3];
 
-		const leftHandCenter = calculateBoundingBoxCenter(data, poseIdx, LEFT_HAND_INDICES, LANDMARK_COUNT);
-		const leftHandCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_HAND_CENTER) * 4;
+		const leftHandCenter = calculateBoundingBoxCenter(data, poseIdx, LEFT_HAND_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
+		const leftHandCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_HAND_CENTER) * 4;
 		data[leftHandCenterIdx] = leftHandCenter[0];
 		data[leftHandCenterIdx + 1] = leftHandCenter[1];
 		data[leftHandCenterIdx + 2] = leftHandCenter[2];
 		data[leftHandCenterIdx + 3] = leftHandCenter[3];
 
-		const rightHandCenter = calculateBoundingBoxCenter(data, poseIdx, RIGHT_HAND_INDICES, LANDMARK_COUNT);
-		const rightHandCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_HAND_CENTER) * 4;
+		const rightHandCenter = calculateBoundingBoxCenter(data, poseIdx, RIGHT_HAND_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
+		const rightHandCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_HAND_CENTER) * 4;
 		data[rightHandCenterIdx] = rightHandCenter[0];
 		data[rightHandCenterIdx + 1] = rightHandCenter[1];
 		data[rightHandCenterIdx + 2] = rightHandCenter[2];
 		data[rightHandCenterIdx + 3] = rightHandCenter[3];
 
-		const leftFootCenter = calculateBoundingBoxCenter(data, poseIdx, LEFT_FOOT_INDICES, LANDMARK_COUNT);
-		const leftFootCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_FOOT_CENTER) * 4;
+		const leftFootCenter = calculateBoundingBoxCenter(data, poseIdx, LEFT_FOOT_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
+		const leftFootCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_FOOT_CENTER) * 4;
 		data[leftFootCenterIdx] = leftFootCenter[0];
 		data[leftFootCenterIdx + 1] = leftFootCenter[1];
 		data[leftFootCenterIdx + 2] = leftFootCenter[2];
 		data[leftFootCenterIdx + 3] = leftFootCenter[3];
 
-		const rightFootCenter = calculateBoundingBoxCenter(data, poseIdx, RIGHT_FOOT_INDICES, LANDMARK_COUNT);
-		const rightFootCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_FOOT_CENTER) * 4;
+		const rightFootCenter = calculateBoundingBoxCenter(data, poseIdx, RIGHT_FOOT_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
+		const rightFootCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_FOOT_CENTER) * 4;
 		data[rightFootCenterIdx] = rightFootCenter[0];
 		data[rightFootCenterIdx + 1] = rightFootCenter[1];
 		data[rightFootCenterIdx + 2] = rightFootCenter[2];
 		data[rightFootCenterIdx + 3] = rightFootCenter[3];
 
-		const torsoCenter = calculateBoundingBoxCenter(data, poseIdx, TORSO_INDICES, LANDMARK_COUNT);
-		const torsoCenterIdx = (poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.TORSO_CENTER) * 4;
+		const torsoCenter = calculateBoundingBoxCenter(data, poseIdx, TORSO_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
+		const torsoCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.TORSO_CENTER) * 4;
 		data[torsoCenterIdx] = torsoCenter[0];
 		data[torsoCenterIdx + 1] = torsoCenter[1];
 		data[torsoCenterIdx + 2] = torsoCenter[2];
@@ -193,11 +198,11 @@ function updateMaskCanvas(detector: Detector, segmentationMasks?: MPMask[]) {
 }
 
 function pose(config: { textureName: string; options?: PosePluginOptions }) {
-	const { textureName, options: configOptions = {} } = config;
-	const options = { ...DEFAULT_POSE_OPTIONS, ...configOptions };
+	const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+	const options = { ...DEFAULT_POSE_OPTIONS, ...mediapipeOptions };
 	const optionsKey = hashOptions({ ...options, textureName });
 
-	const nLandmarksMax = options.maxPoses * LANDMARK_COUNT;
+	const nLandmarksMax = options.maxPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
@@ -208,21 +213,25 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		const sharedCanvas = existingDetector?.canvas ?? new OffscreenCanvas(1, 1);
 		let detector: Detector | null = null;
+		let skipHistoryWrite = false;
 
 		function onResult() {
 			if (!detector) return;
 			const { nPoses } = detector.state;
-			const nLandmarks = nPoses * LANDMARK_COUNT;
-			const rowsToUpdate = Math.ceil(nLandmarks / LANDMARKS_TEXTURE_WIDTH);
-			shaderPad.updateTextures({
-				u_poseLandmarksTex: {
-					data: detector.landmarks.data,
-					width: LANDMARKS_TEXTURE_WIDTH,
-					height: rowsToUpdate,
-					isPartial: true,
+			const nSlots = nPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
+			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
+			shaderPad.updateTextures(
+				{
+					u_poseLandmarksTex: {
+						data: detector.landmarks.data,
+						width: LANDMARKS_TEXTURE_WIDTH,
+						height: rowsToUpdate,
+						isPartial: true,
+					},
+					u_poseMask: detector.canvas,
 				},
-				u_poseMask: detector.canvas,
-			});
+				{ skipHistoryWrite }
+			);
 			shaderPad.updateUniforms({ u_nPoses: nPoses });
 			emitHook('pose:result', detector.state.result);
 		}
@@ -302,12 +311,13 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			shaderPad.initializeTexture(
 				'u_poseLandmarksTex',
 				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
-				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST }
+				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST, history }
 			);
 			shaderPad.initializeTexture('u_poseMask', sharedCanvas, {
 				preserveY: true,
 				minFilter: gl.NEAREST,
 				magFilter: gl.NEAREST,
+				history,
 			});
 			initPromise.then(() => emitHook('pose:ready'));
 		});
@@ -316,10 +326,16 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			if (name === textureName && isMediaPipeSource(source)) detectPoses(source);
 		});
 
-		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
-			const source = updates[textureName];
-			if (isMediaPipeSource(source)) detectPoses(source);
-		});
+		shaderPad.on(
+			'updateTextures',
+			(updates: Record<string, TextureSource>, options?: { skipHistoryWrite?: boolean }) => {
+				const source = updates[textureName];
+				if (isMediaPipeSource(source)) {
+					skipHistoryWrite = options?.skipHistoryWrite ?? false;
+					detectPoses(source);
+				}
+			}
+		);
 
 		let nDetectionCalls = 0;
 		async function detectPoses(source: MediaPipeSource) {
@@ -396,11 +412,27 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			detector = null;
 		});
 
+		const { fn, historyParams } = generateGLSLFn(history);
+		const sampleMask = history
+			? `int layer = (u_poseMaskFrameOffset - framesAgo + ${history}) % ${history};
+	vec4 mask = texture(u_poseMask, vec3(pos, float(layer)));`
+			: `vec4 mask = texture(u_poseMask, pos);`;
+
 		injectGLSL(`
 uniform int u_maxPoses;
 uniform int u_nPoses;
-uniform sampler2D u_poseLandmarksTex;
-uniform sampler2D u_poseMask;
+uniform highp sampler2D${history ? 'Array' : ''} u_poseLandmarksTex;${
+			history
+				? `
+uniform int u_poseLandmarksTexFrameOffset;`
+				: ''
+		}
+uniform sampler2D${history ? 'Array' : ''} u_poseMask;${
+			history
+				? `
+uniform int u_poseMaskFrameOffset;`
+				: ''
+		}
 
 #define POSE_LANDMARK_LEFT_EYE ${LANDMARK_INDICES.LEFT_EYE}
 #define POSE_LANDMARK_RIGHT_EYE ${LANDMARK_INDICES.RIGHT_EYE}
@@ -419,23 +451,41 @@ uniform sampler2D u_poseMask;
 #define POSE_LANDMARK_RIGHT_FOOT_CENTER ${LANDMARK_INDICES.RIGHT_FOOT_CENTER}
 #define POSE_LANDMARK_TORSO_CENTER ${LANDMARK_INDICES.TORSO_CENTER}
 
-vec4 poseLandmark(int poseIndex, int landmarkIndex) {
-	int i = poseIndex * ${LANDMARK_COUNT} + landmarkIndex;
+${fn(
+	'int',
+	'nPosesAt',
+	'',
+	history
+		? `
+	int layer = (u_poseLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	return int(texelFetch(u_poseLandmarksTex, ivec3(0, 0, layer), 0).r + 0.5);`
+		: `
+	return int(texelFetch(u_poseLandmarksTex, ivec2(0, 0), 0).r + 0.5);`
+)}
+${fn(
+	'vec4',
+	'poseLandmark',
+	'int poseIndex, int landmarkIndex',
+	`int i = ${N_LANDMARK_METADATA_SLOTS} + poseIndex * ${LANDMARK_COUNT} + landmarkIndex;
 	int x = i % ${LANDMARKS_TEXTURE_WIDTH};
-	int y = i / ${LANDMARKS_TEXTURE_WIDTH};
-	return texelFetch(u_poseLandmarksTex, ivec2(x, y), 0);
-}
-
-vec2 poseAt(vec2 pos) {
-	vec4 mask = texture(u_poseMask, pos);
+	int y = i / ${LANDMARKS_TEXTURE_WIDTH};${
+		history
+			? `
+	int layer = (u_poseLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	return texelFetch(u_poseLandmarksTex, ivec3(x, y, layer), 0);`
+			: `
+	return texelFetch(u_poseLandmarksTex, ivec2(x, y), 0);`
+	}`
+)}
+${fn(
+	'vec2',
+	'poseAt',
+	'vec2 pos',
+	`${sampleMask}
 	float poseIndex = floor(mask.b * float(u_maxPoses) + 0.5) - 1.0;
-	return vec2(mask.g, poseIndex);
-}
-	
-float inPose(vec2 pos) {
-	float pose = poseAt(pos).x;
-	return step(0.0, pose);
-}`);
+	return vec2(mask.g, poseIndex);`
+)}
+${fn('float', 'inPose', 'vec2 pos', `return step(0.0, poseAt(pos${historyParams}).x);`)}`);
 	};
 }
 

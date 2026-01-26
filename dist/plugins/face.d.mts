@@ -8,6 +8,7 @@ interface FacePluginOptions {
     minTrackingConfidence?: number;
     outputFaceBlendshapes?: boolean;
     outputFacialTransformationMatrixes?: boolean;
+    history?: number;
 }
 declare function face(config: {
     textureName: string;

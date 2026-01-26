@@ -433,6 +433,11 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
+**Options:**
+
+-   `maxFaces?: number` - Maximum faces to detect (default: 1)
+-   `history?: number` - Frames of history to store for landmarks and mask textures
+
 **Events:**
 
 | Event         | Callback Arguments               | Description                              |
@@ -442,16 +447,16 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform              | Type      | Description                                                                 |
-| -------------------- | --------- | --------------------------------------------------------------------------- |
-| `u_maxFaces`         | int       | Maximum number of faces to detect                                           |
-| `u_nFaces`           | int       | Current number of detected faces                                            |
-| `u_faceLandmarksTex` | sampler2D | Raw landmark data texture (use `faceLandmark()` to access)                  |
-| `u_faceMask`         | sampler2D | Face mask texture (R: region type, G: confidence, B: normalized face index) |
+| Uniform              | Type                          | Description                                                                 |
+| -------------------- | ----------------------------- | --------------------------------------------------------------------------- |
+| `u_maxFaces`         | int                           | Maximum number of faces to detect                                           |
+| `u_nFaces`           | int                           | Current number of detected faces                                            |
+| `u_faceLandmarksTex` | sampler2D (or sampler2DArray) | Raw landmark data texture (use `faceLandmark()` to access)                  |
+| `u_faceMask`         | sampler2D (or sampler2DArray) | Face mask texture (R: region type, G: confidence, B: normalized face index) |
 
 **Helper functions:**
 
-All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexed (-1 = no face).
+All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexed (-1 = no face). When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
 -   `faceLandmark(int faceIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(faceLandmark(...))` to get just the screen position.
 -   `leftEyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in left eyebrow, `vec2(0.0, -1.0)` otherwise.
@@ -519,6 +524,11 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
+**Options:**
+
+-   `maxPoses?: number` - Maximum poses to detect (default: 1)
+-   `history?: number` - Frames of history to store for landmarks and mask textures
+
 **Events:**
 
 | Event         | Callback Arguments               | Description                              |
@@ -528,14 +538,16 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform              | Type      | Description                                                                   |
-| -------------------- | --------- | ----------------------------------------------------------------------------- |
-| `u_maxPoses`         | int       | Maximum number of poses to track                                              |
-| `u_nPoses`           | int       | Current number of detected poses                                              |
-| `u_poseLandmarksTex` | sampler2D | Raw landmark data texture (RGBA: x, y, z, visibility)                         |
-| `u_poseMask`         | sampler2D | Pose mask texture (R: body detected, G: confidence, B: normalized pose index) |
+| Uniform              | Type                          | Description                                                                   |
+| -------------------- | ----------------------------- | ----------------------------------------------------------------------------- |
+| `u_maxPoses`         | int                           | Maximum number of poses to track                                              |
+| `u_nPoses`           | int                           | Current number of detected poses                                              |
+| `u_poseLandmarksTex` | sampler2D (or sampler2DArray) | Raw landmark data texture (RGBA: x, y, z, visibility)                         |
+| `u_poseMask`         | sampler2D (or sampler2DArray) | Pose mask texture (R: body detected, G: confidence, B: normalized pose index) |
 
 **Helper functions:**
+
+When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
 -   `poseLandmark(int poseIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(poseLandmark(...))` to get just the screen position.
 -   `poseAt(vec2 pos) -> vec2` - Returns `vec2(confidence, poseIndex)`. poseIndex is 0-indexed (-1 = no pose), confidence is the segmentation confidence.
@@ -613,6 +625,11 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
+**Options:**
+
+-   `maxHands?: number` - Maximum hands to detect (default: 2)
+-   `history?: number` - Frames of history to store for landmarks texture
+
 **Events:**
 
 | Event          | Callback Arguments               | Description                              |
@@ -622,13 +639,15 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform              | Type      | Description                                           |
-| -------------------- | --------- | ----------------------------------------------------- |
-| `u_maxHands`         | int       | Maximum number of hands to track                      |
-| `u_nHands`           | int       | Current number of detected hands                      |
-| `u_handLandmarksTex` | sampler2D | Raw landmark data texture (RGBA: x, y, z, handedness) |
+| Uniform              | Type                          | Description                                           |
+| -------------------- | ----------------------------- | ----------------------------------------------------- |
+| `u_maxHands`         | int                           | Maximum number of hands to track                      |
+| `u_nHands`           | int                           | Current number of detected hands                      |
+| `u_handLandmarksTex` | sampler2D (or sampler2DArray) | Raw landmark data texture (RGBA: x, y, z, handedness) |
 
 **Helper functions:**
+
+When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
 -   `handLandmark(int handIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, handedness)`. Use `vec2(handLandmark(...))` to get just the screen position. Handedness: 0.0 = left hand, 1.0 = right hand.
 -   `isRightHand(int handIndex) -> float` - Returns 1.0 if the hand is a right hand, 0.0 if left.
@@ -697,6 +716,10 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
+**Options:**
+
+-   `history?: number` - Frames of history to store for mask texture
+
 **Events:**
 
 | Event              | Callback Arguments               | Description                                 |
@@ -706,12 +729,14 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform           | Type      | Description                                                             |
-| ----------------- | --------- | ----------------------------------------------------------------------- |
-| `u_segmentMask`   | sampler2D | Segment mask texture (R: normalized category, G: confidence, B: unused) |
-| `u_numCategories` | int       | Number of segmentation categories (including background)                |
+| Uniform           | Type                          | Description                                                             |
+| ----------------- | ----------------------------- | ----------------------------------------------------------------------- |
+| `u_segmentMask`   | sampler2D (or sampler2DArray) | Segment mask texture (R: normalized category, G: confidence, B: unused) |
+| `u_numCategories` | int                           | Number of segmentation categories (including background)                |
 
 **Helper functions:**
+
+When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
 -   `segmentAt(vec2 pos) -> vec2` - Returns `vec2(confidence, categoryIndex)`. categoryIndex is 0-indexed (-1 = background). confidence is the segmentation confidence (0-1).
 

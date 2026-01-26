@@ -6,6 +6,7 @@ interface HandsPluginOptions {
     minHandDetectionConfidence?: number;
     minHandPresenceConfidence?: number;
     minTrackingConfidence?: number;
+    history?: number;
 }
 declare function hands(config: {
     textureName: string;

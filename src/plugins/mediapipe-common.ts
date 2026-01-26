@@ -1,5 +1,7 @@
 import { TextureSource } from '..';
 
+export const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
+
 export type MediaPipeSource = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas;
 
 export function isMediaPipeSource(source: TextureSource): source is MediaPipeSource {
@@ -19,7 +21,8 @@ export function calculateBoundingBoxCenter(
 	data: Float32Array,
 	entityIdx: number,
 	landmarkIndices: readonly number[] | number[],
-	landmarkCount: number
+	landmarkCount: number,
+	offset: number = 0
 ): [number, number, number, number] {
 	let minX = Infinity,
 		maxX = -Infinity,
@@ -29,7 +32,7 @@ export function calculateBoundingBoxCenter(
 		avgVisibility = 0;
 
 	for (const idx of landmarkIndices) {
-		const dataIdx = (entityIdx * landmarkCount + idx) * 4;
+		const dataIdx = (offset + entityIdx * landmarkCount + idx) * 4;
 		const x = data[dataIdx];
 		const y = data[dataIdx + 1];
 		minX = Math.min(minX, x);
@@ -58,4 +61,19 @@ export function getSharedFileset(): Promise<any> {
 		);
 	}
 	return filesetPromise;
+}
+
+export function generateGLSLFn(history: number | undefined) {
+	const historyParams = history ? ', framesAgo' : '';
+	const fn = history
+		? (returnType: string, name: string, args: string, body: string) => {
+				const argsOnly = args.replace(/\w+ /g, '');
+				const historyArgs = args ? `${args}, int framesAgo` : 'int framesAgo';
+				const callArgs = argsOnly ? `${argsOnly}, 0` : '0';
+				return `${returnType} ${name}(${historyArgs}) {\n${body}\n}
+${returnType} ${name}(${args}) { return ${name}(${callArgs}); }`;
+		  }
+		: (returnType: string, name: string, args: string, body: string) =>
+				`${returnType} ${name}(${args}) {\n${body}\n}`;
+	return { historyParams, fn };
 }

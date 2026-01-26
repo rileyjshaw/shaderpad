@@ -1,6 +1,8 @@
 import ShaderPad, { PluginContext, TextureSource } from '..';
 import {
 	calculateBoundingBoxCenter,
+	generateGLSLFn,
+	dummyTexture,
 	getSharedFileset,
 	hashOptions,
 	isMediaPipeSource,
@@ -16,6 +18,7 @@ export interface FacePluginOptions {
 	minTrackingConfidence?: number;
 	outputFaceBlendshapes?: boolean;
 	outputFacialTransformationMatrixes?: boolean;
+	history?: number;
 }
 
 const MASK_VERTEX_SHADER = `#version 300 es
@@ -31,6 +34,7 @@ const STANDARD_LANDMARK_COUNT = 478;
 const CUSTOM_LANDMARK_COUNT = 2;
 const LANDMARK_COUNT = STANDARD_LANDMARK_COUNT + CUSTOM_LANDMARK_COUNT;
 const LANDMARKS_TEXTURE_WIDTH = 512;
+const N_LANDMARK_METADATA_SLOTS = 1;
 
 const LEFT_EYEBROW_INDICES = [336, 296, 334, 293, 300, 276, 283, 282, 295, 285] as const;
 const LEFT_EYE_INDICES = [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382] as const;
@@ -74,7 +78,7 @@ const RED_CHANNEL_VALUES = Object.fromEntries(REGION_NAMES.map((name, i) => [nam
 >;
 const HALF_GAP = 0.5 / nFaceRegions;
 
-const DEFAULT_FACE_OPTIONS: Required<FacePluginOptions> = {
+const DEFAULT_FACE_OPTIONS: Required<Omit<FacePluginOptions, 'history'>> = {
 	modelPath:
 		'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',
 	maxFaces: 1,
@@ -191,7 +195,7 @@ function drawTriangles(detector: Detector, faceRegion: FaceRegion, faceIdx: numb
 	const { data: landmarksDataArray } = landmarks;
 
 	for (let i = 0; i < triangles.length; ++i) {
-		const landmarkIdx = (faceIdx * LANDMARK_COUNT + triangles[i]) * 4;
+		const landmarkIdx = (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + triangles[i]) * 4;
 		vertices[i * 2] = landmarksDataArray[landmarkIdx];
 		vertices[i * 2 + 1] = landmarksDataArray[landmarkIdx + 1];
 	}
@@ -204,23 +208,33 @@ function drawTriangles(detector: Detector, faceRegion: FaceRegion, faceIdx: numb
 function updateLandmarksData(detector: Detector, faces: NormalizedLandmark[][]) {
 	const data = detector.landmarks.data;
 	const nFaces = faces.length;
+	data[0] = nFaces;
 
 	for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
 		const landmarks = faces[faceIdx];
 		for (let landmarkIdx = 0; landmarkIdx < STANDARD_LANDMARK_COUNT; ++landmarkIdx) {
 			const landmark = landmarks[landmarkIdx];
-			const dataIdx = (faceIdx * LANDMARK_COUNT + landmarkIdx) * 4;
+			const dataIdx = (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + landmarkIdx) * 4;
 			data[dataIdx] = landmark.x;
 			data[dataIdx + 1] = 1 - landmark.y;
 			data[dataIdx + 2] = landmark.z ?? 0;
 			data[dataIdx + 3] = landmark.visibility ?? 1;
 		}
 
-		const faceCenter = calculateBoundingBoxCenter(data, faceIdx, ALL_STANDARD_INDICES, LANDMARK_COUNT);
-		data.set(faceCenter, (faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.FACE_CENTER) * 4);
+		const faceCenter = calculateBoundingBoxCenter(
+			data,
+			faceIdx,
+			ALL_STANDARD_INDICES,
+			LANDMARK_COUNT,
+			N_LANDMARK_METADATA_SLOTS
+		);
+		data.set(faceCenter, (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.FACE_CENTER) * 4);
 
-		const mouthCenter = calculateBoundingBoxCenter(data, faceIdx, INNER_MOUTH_INDICES, LANDMARK_COUNT);
-		data.set(mouthCenter, (faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.MOUTH_CENTER) * 4);
+		const mouthCenter = calculateBoundingBoxCenter(data, faceIdx, INNER_MOUTH_INDICES, LANDMARK_COUNT, 1);
+		data.set(
+			mouthCenter,
+			(N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.MOUTH_CENTER) * 4
+		);
 	}
 
 	detector.state.nFaces = nFaces;
@@ -260,11 +274,11 @@ function updateMaskCanvas(detector: Detector) {
 }
 
 function face(config: { textureName: string; options?: FacePluginOptions }) {
-	const { textureName, options: configOptions = {} } = config;
-	const options = { ...DEFAULT_FACE_OPTIONS, ...configOptions };
+	const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+	const options = { ...DEFAULT_FACE_OPTIONS, ...mediapipeOptions };
 	const optionsKey = hashOptions({ ...options, textureName });
 
-	const nLandmarksMax = options.maxFaces * LANDMARK_COUNT;
+	const nLandmarksMax = options.maxFaces * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
@@ -275,21 +289,25 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		const maskCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
 		let detector: Detector | null = null;
+		let skipHistoryWrite = false;
 
 		function onResult() {
 			if (!detector) return;
 			const nFaces = detector.state.nFaces;
-			const nLandmarks = nFaces * LANDMARK_COUNT;
-			const rowsToUpdate = Math.ceil(nLandmarks / LANDMARKS_TEXTURE_WIDTH);
-			shaderPad.updateTextures({
-				u_faceLandmarksTex: {
-					data: detector.landmarks.data,
-					width: LANDMARKS_TEXTURE_WIDTH,
-					height: rowsToUpdate,
-					isPartial: nFaces < options.maxFaces,
+			const nSlots = nFaces * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
+			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
+			shaderPad.updateTextures(
+				{
+					u_faceLandmarksTex: {
+						data: detector.landmarks.data,
+						width: LANDMARKS_TEXTURE_WIDTH,
+						height: rowsToUpdate,
+						isPartial: true,
+					},
+					u_faceMask: detector.mask.canvas,
 				},
-				u_faceMask: detector.mask.canvas,
-			});
+				{ skipHistoryWrite }
+			);
 			shaderPad.updateUniforms({ u_nFaces: nFaces });
 			emitHook('face:result', detector.state.result);
 		}
@@ -419,11 +437,12 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			shaderPad.initializeTexture(
 				'u_faceLandmarksTex',
 				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
-				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST }
+				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST, history }
 			);
 			shaderPad.initializeTexture('u_faceMask', maskCanvas, {
 				minFilter: gl.NEAREST,
 				magFilter: gl.NEAREST,
+				history,
 			});
 			initPromise.then(() => emitHook('face:ready'));
 		});
@@ -432,10 +451,16 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			if (name === textureName && isMediaPipeSource(source)) detectFaces(source);
 		});
 
-		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
-			const source = updates[textureName];
-			if (isMediaPipeSource(source)) detectFaces(source);
-		});
+		shaderPad.on(
+			'updateTextures',
+			(updates: Record<string, TextureSource>, options?: { skipHistoryWrite?: boolean }) => {
+				const source = updates[textureName];
+				if (isMediaPipeSource(source)) {
+					skipHistoryWrite = options?.skipHistoryWrite ?? false;
+					detectFaces(source);
+				}
+			}
+		);
 
 		shaderPad.on('destroy', () => {
 			if (detector) {
@@ -450,21 +475,43 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			detector = null;
 		});
 
+		const { fn, historyParams } = generateGLSLFn(history);
+		const sampleMask = history ? `_sampleFaceMask(pos, framesAgo)` : `texture(u_faceMask, pos)`;
+
 		const checkAt = (
 			regionMin: keyof typeof RED_CHANNEL_VALUES,
 			regionMax: keyof typeof RED_CHANNEL_VALUES = regionMin
 		) =>
-			`vec4 mask = texture(u_faceMask, pos);
+			`vec4 mask = ${sampleMask};
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
 	return (mask.r > ${(RED_CHANNEL_VALUES[regionMin] - HALF_GAP).toFixed(4)} && mask.r < ${(
 				RED_CHANNEL_VALUES[regionMax] + HALF_GAP
 			).toFixed(4)}) ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`;
 
+		const checkMaskG = (threshold: number) =>
+			`vec4 mask = ${sampleMask};
+	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
+	return mask.g > ${threshold.toFixed(2)} ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`;
+
+		const combineLeftRight = (leftFn: string, rightFn: string) =>
+			`vec2 left = ${leftFn}(pos${historyParams});
+	return left.x > 0.0 ? left : ${rightFn}(pos${historyParams});`;
+
 		injectGLSL(`
 uniform int u_maxFaces;
 uniform int u_nFaces;
-uniform sampler2D u_faceLandmarksTex;
-uniform sampler2D u_faceMask;
+uniform highp sampler2D${history ? 'Array' : ''} u_faceLandmarksTex;${
+			history
+				? `
+uniform int u_faceLandmarksTexFrameOffset;`
+				: ''
+		}
+uniform sampler2D${history ? 'Array' : ''} u_faceMask;${
+			history
+				? `
+uniform int u_faceMaskFrameOffset;`
+				: ''
+		}
 
 #define FACE_LANDMARK_L_EYE_CENTER ${LANDMARK_INDICES.LEFT_EYE_CENTER}
 #define FACE_LANDMARK_R_EYE_CENTER ${LANDMARK_INDICES.RIGHT_EYE_CENTER}
@@ -472,70 +519,59 @@ uniform sampler2D u_faceMask;
 #define FACE_LANDMARK_FACE_CENTER ${LANDMARK_INDICES.FACE_CENTER}
 #define FACE_LANDMARK_MOUTH_CENTER ${LANDMARK_INDICES.MOUTH_CENTER}
 
-vec4 faceLandmark(int faceIndex, int landmarkIndex) {
-	int i = faceIndex * ${LANDMARK_COUNT} + landmarkIndex;
+${fn(
+	'int',
+	'nFacesAt',
+	'',
+	history
+		? `
+	int layer = (u_faceLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	return int(texelFetch(u_faceLandmarksTex, ivec3(0, 0, layer), 0).r + 0.5);`
+		: `
+	return int(texelFetch(u_faceLandmarksTex, ivec2(0, 0), 0).r + 0.5);`
+)}
+${fn(
+	'vec4',
+	'faceLandmark',
+	'int faceIndex, int landmarkIndex',
+	`int i = ${N_LANDMARK_METADATA_SLOTS} + faceIndex * ${LANDMARK_COUNT} + landmarkIndex;
 	int x = i % ${LANDMARKS_TEXTURE_WIDTH};
-	int y = i / ${LANDMARKS_TEXTURE_WIDTH};
-	return texelFetch(u_faceLandmarksTex, ivec2(x, y), 0);
+	int y = i / ${LANDMARKS_TEXTURE_WIDTH};${
+		history
+			? `
+	int layer = (u_faceLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	return texelFetch(u_faceLandmarksTex, ivec3(x, y, layer), 0);`
+			: `
+	return texelFetch(u_faceLandmarksTex, ivec2(x, y), 0);`
+	}`
+)}
+${
+	history
+		? `
+vec4 _sampleFaceMask(vec2 pos, int framesAgo) {
+	int layer = (u_faceMaskFrameOffset - framesAgo + ${history}) % ${history};
+	return texture(u_faceMask, vec3(pos, float(layer)));
 }
-
-vec2 leftEyebrowAt(vec2 pos) {
-	${checkAt('LEFT_EYEBROW')}
+`
+		: ''
 }
-
-vec2 rightEyebrowAt(vec2 pos) {
-	${checkAt('RIGHT_EYEBROW')}
-}
-
-vec2 leftEyeAt(vec2 pos) {
-	${checkAt('LEFT_EYE')}
-}
-
-vec2 rightEyeAt(vec2 pos) {
-	${checkAt('RIGHT_EYE')}
-}
-
-vec2 lipsAt(vec2 pos) {
-	${checkAt('OUTER_MOUTH')}
-}
-
-vec2 outerMouthAt(vec2 pos) {
-	${checkAt('OUTER_MOUTH', 'INNER_MOUTH')}
-}
-
-vec2 innerMouthAt(vec2 pos) {
-	${checkAt('INNER_MOUTH')}
-}
-
-vec2 faceOvalAt(vec2 pos) {
-	vec4 mask = texture(u_faceMask, pos);
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return mask.g > 0.75 ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);
-}
-
-// Includes face mesh and oval.
-vec2 faceAt(vec2 pos) {
-	vec4 mask = texture(u_faceMask, pos);
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return mask.g > 0.25 ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);
-}
-
-vec2 eyeAt(vec2 pos) {
-	vec2 left = leftEyeAt(pos);
-	return left.x > 0.0 ? left : rightEyeAt(pos);
-}
-
-vec2 eyebrowAt(vec2 pos) {
-	vec2 left = leftEyebrowAt(pos);
-	return left.x > 0.0 ? left : rightEyebrowAt(pos);
-}
-
-float inEyebrow(vec2 pos) { return eyebrowAt(pos).x; }
-float inEye(vec2 pos) { return eyeAt(pos).x; }
-float inOuterMouth(vec2 pos) { return outerMouthAt(pos).x; }
-float inInnerMouth(vec2 pos) { return innerMouthAt(pos).x; }
-float inLips(vec2 pos) { return lipsAt(pos).x; }
-float inFace(vec2 pos) { return faceAt(pos).x; }`);
+${fn('vec2', 'leftEyebrowAt', 'vec2 pos', checkAt('LEFT_EYEBROW'))}
+${fn('vec2', 'rightEyebrowAt', 'vec2 pos', checkAt('RIGHT_EYEBROW'))}
+${fn('vec2', 'leftEyeAt', 'vec2 pos', checkAt('LEFT_EYE'))}
+${fn('vec2', 'rightEyeAt', 'vec2 pos', checkAt('RIGHT_EYE'))}
+${fn('vec2', 'lipsAt', 'vec2 pos', checkAt('OUTER_MOUTH'))}
+${fn('vec2', 'outerMouthAt', 'vec2 pos', checkAt('OUTER_MOUTH', 'INNER_MOUTH'))}
+${fn('vec2', 'innerMouthAt', 'vec2 pos', checkAt('INNER_MOUTH'))}
+${fn('vec2', 'faceOvalAt', 'vec2 pos', checkMaskG(0.75))}
+${fn('vec2', 'faceAt', 'vec2 pos', checkMaskG(0.25))}
+${fn('vec2', 'eyeAt', 'vec2 pos', combineLeftRight('leftEyeAt', 'rightEyeAt'))}
+${fn('vec2', 'eyebrowAt', 'vec2 pos', combineLeftRight('leftEyebrowAt', 'rightEyebrowAt'))}
+${fn('float', 'inEyebrow', 'vec2 pos', `return eyebrowAt(pos${historyParams}).x;`)}
+${fn('float', 'inEye', 'vec2 pos', `return eyeAt(pos${historyParams}).x;`)}
+${fn('float', 'inOuterMouth', 'vec2 pos', `return outerMouthAt(pos${historyParams}).x;`)}
+${fn('float', 'inInnerMouth', 'vec2 pos', `return innerMouthAt(pos${historyParams}).x;`)}
+${fn('float', 'inLips', 'vec2 pos', `return lipsAt(pos${historyParams}).x;`)}
+${fn('float', 'inFace', 'vec2 pos', `return faceAt(pos${historyParams}).x;`)}`);
 	};
 }
 
