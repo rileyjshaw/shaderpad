@@ -5,6 +5,8 @@
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 import save, { WithSave } from 'shaderpad/plugins/save';
+import autosize from 'shaderpad/plugins/autosize';
+import { createFullscreenCanvas } from 'shaderpad/util';
 
 async function getWebcamStream(): Promise<HTMLVideoElement> {
 	const video = document.createElement('video');
@@ -26,6 +28,7 @@ async function getWebcamStream(): Promise<HTMLVideoElement> {
 let shader: WithSave<ShaderPad> | null = null;
 let video: HTMLVideoElement | null = null;
 let saveButton: HTMLButtonElement | null = null;
+let canvas: HTMLCanvasElement | null = null;
 
 export async function init() {
 	const fragmentShaderSrc = `#version 300 es
@@ -41,9 +44,11 @@ void main() {
 }`;
 
 	video = await getWebcamStream();
-	shader = new ShaderPad(fragmentShaderSrc, { plugins: [helpers(), save()] }) as WithSave<ShaderPad>;
-	shader.canvas.width = video.videoWidth;
-	shader.canvas.height = video.videoHeight;
+	canvas = createFullscreenCanvas();
+	shader = new ShaderPad(fragmentShaderSrc, {
+		canvas,
+		plugins: [helpers(), save(), autosize()],
+	}) as WithSave<ShaderPad>;
 
 	saveButton = document.createElement('button');
 	saveButton.textContent = 'Save';
@@ -67,6 +72,11 @@ export function destroy() {
 	if (shader) {
 		shader.destroy();
 		shader = null;
+	}
+
+	if (canvas) {
+		canvas.remove();
+		canvas = null;
 	}
 
 	if (video) {

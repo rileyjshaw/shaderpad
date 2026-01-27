@@ -135,43 +135,84 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 			data[dataIdx + 3] = landmark.visibility ?? 1;
 		}
 
-		const bodyCenter = calculateBoundingBoxCenter(data, poseIdx, ALL_STANDARD_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
+		const bodyCenter = calculateBoundingBoxCenter(
+			data,
+			poseIdx,
+			ALL_STANDARD_INDICES,
+			LANDMARK_COUNT,
+			N_LANDMARK_METADATA_SLOTS
+		);
 		const bodyCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.BODY_CENTER) * 4;
 		data[bodyCenterIdx] = bodyCenter[0];
 		data[bodyCenterIdx + 1] = bodyCenter[1];
 		data[bodyCenterIdx + 2] = bodyCenter[2];
 		data[bodyCenterIdx + 3] = bodyCenter[3];
 
-		const leftHandCenter = calculateBoundingBoxCenter(data, poseIdx, LEFT_HAND_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
-		const leftHandCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_HAND_CENTER) * 4;
+		const leftHandCenter = calculateBoundingBoxCenter(
+			data,
+			poseIdx,
+			LEFT_HAND_INDICES,
+			LANDMARK_COUNT,
+			N_LANDMARK_METADATA_SLOTS
+		);
+		const leftHandCenterIdx =
+			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_HAND_CENTER) * 4;
 		data[leftHandCenterIdx] = leftHandCenter[0];
 		data[leftHandCenterIdx + 1] = leftHandCenter[1];
 		data[leftHandCenterIdx + 2] = leftHandCenter[2];
 		data[leftHandCenterIdx + 3] = leftHandCenter[3];
 
-		const rightHandCenter = calculateBoundingBoxCenter(data, poseIdx, RIGHT_HAND_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
-		const rightHandCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_HAND_CENTER) * 4;
+		const rightHandCenter = calculateBoundingBoxCenter(
+			data,
+			poseIdx,
+			RIGHT_HAND_INDICES,
+			LANDMARK_COUNT,
+			N_LANDMARK_METADATA_SLOTS
+		);
+		const rightHandCenterIdx =
+			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_HAND_CENTER) * 4;
 		data[rightHandCenterIdx] = rightHandCenter[0];
 		data[rightHandCenterIdx + 1] = rightHandCenter[1];
 		data[rightHandCenterIdx + 2] = rightHandCenter[2];
 		data[rightHandCenterIdx + 3] = rightHandCenter[3];
 
-		const leftFootCenter = calculateBoundingBoxCenter(data, poseIdx, LEFT_FOOT_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
-		const leftFootCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_FOOT_CENTER) * 4;
+		const leftFootCenter = calculateBoundingBoxCenter(
+			data,
+			poseIdx,
+			LEFT_FOOT_INDICES,
+			LANDMARK_COUNT,
+			N_LANDMARK_METADATA_SLOTS
+		);
+		const leftFootCenterIdx =
+			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_FOOT_CENTER) * 4;
 		data[leftFootCenterIdx] = leftFootCenter[0];
 		data[leftFootCenterIdx + 1] = leftFootCenter[1];
 		data[leftFootCenterIdx + 2] = leftFootCenter[2];
 		data[leftFootCenterIdx + 3] = leftFootCenter[3];
 
-		const rightFootCenter = calculateBoundingBoxCenter(data, poseIdx, RIGHT_FOOT_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
-		const rightFootCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_FOOT_CENTER) * 4;
+		const rightFootCenter = calculateBoundingBoxCenter(
+			data,
+			poseIdx,
+			RIGHT_FOOT_INDICES,
+			LANDMARK_COUNT,
+			N_LANDMARK_METADATA_SLOTS
+		);
+		const rightFootCenterIdx =
+			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_FOOT_CENTER) * 4;
 		data[rightFootCenterIdx] = rightFootCenter[0];
 		data[rightFootCenterIdx + 1] = rightFootCenter[1];
 		data[rightFootCenterIdx + 2] = rightFootCenter[2];
 		data[rightFootCenterIdx + 3] = rightFootCenter[3];
 
-		const torsoCenter = calculateBoundingBoxCenter(data, poseIdx, TORSO_INDICES, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
-		const torsoCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.TORSO_CENTER) * 4;
+		const torsoCenter = calculateBoundingBoxCenter(
+			data,
+			poseIdx,
+			TORSO_INDICES,
+			LANDMARK_COUNT,
+			N_LANDMARK_METADATA_SLOTS
+		);
+		const torsoCenterIdx =
+			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.TORSO_CENTER) * 4;
 		data[torsoCenterIdx] = torsoCenter[0];
 		data[torsoCenterIdx + 1] = torsoCenter[1];
 		data[torsoCenterIdx + 2] = torsoCenter[2];
@@ -206,7 +247,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, gl, emitHook } = context;
+		const { injectGLSL, emitHook } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
@@ -311,12 +352,12 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			shaderPad.initializeTexture(
 				'u_poseLandmarksTex',
 				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
-				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST, history }
+				{ internalFormat: 'RGBA32F', type: 'FLOAT', minFilter: 'NEAREST', magFilter: 'NEAREST', history }
 			);
 			shaderPad.initializeTexture('u_poseMask', sharedCanvas, {
 				preserveY: true,
-				minFilter: gl.NEAREST,
-				magFilter: gl.NEAREST,
+				minFilter: 'NEAREST',
+				magFilter: 'NEAREST',
 				history,
 			});
 			initPromise.then(() => emitHook('pose:ready'));

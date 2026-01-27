@@ -5,7 +5,6 @@ void main() {
     v_uv = aPosition * 0.5 + 0.5;
     gl_Position = vec4(aPosition, 0.0, 1.0);
 }`;
-const RESIZE_THROTTLE_INTERVAL = 1000 / 30;
 const QUAD_VERTICES = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
 
 interface Uniform {
@@ -15,17 +14,37 @@ interface Uniform {
 	arrayLength?: number;
 }
 
+type GLInternalFormatChannels = 'R' | 'RG' | 'RGB' | 'RGBA';
+type GLInternalFormatDepth = '8' | '16F' | '32F';
+export type GLInternalFormatString = `${GLInternalFormatChannels}${GLInternalFormatDepth}`;
+
+export type GLFormatString = 'RED' | 'RG' | 'RGB' | 'RGBA';
+export type GLTypeString = 'UNSIGNED_BYTE' | 'FLOAT' | 'HALF_FLOAT';
+export type GLFilterString = 'LINEAR' | 'NEAREST';
+export type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
+
+type GLConstantString = GLInternalFormatString | GLFormatString | GLTypeString | GLFilterString | GLWrapString;
+
 export interface TextureOptions {
-	internalFormat?: number;
-	format?: number;
-	type?: number;
-	minFilter?: number;
-	magFilter?: number;
-	wrapS?: number;
-	wrapT?: number;
+	internalFormat?: GLInternalFormatString;
+	format?: GLFormatString;
+	type?: GLTypeString;
+	minFilter?: GLFilterString;
+	magFilter?: GLFilterString;
+	wrapS?: GLWrapString;
+	wrapT?: GLWrapString;
 	preserveY?: boolean;
 }
-type ResolvedTextureOptions = Required<Omit<TextureOptions, 'preserveY'>> & Pick<TextureOptions, 'preserveY'>;
+type ResolvedTextureOptions = {
+	type: number;
+	format: number;
+	internalFormat: number;
+	minFilter: number;
+	magFilter: number;
+	wrapS: number;
+	wrapT: number;
+	preserveY?: boolean;
+};
 
 interface Texture {
 	texture: WebGLTexture;
@@ -84,7 +103,6 @@ type LifecycleMethod =
 	| 'beforeDraw'
 	| 'afterDraw'
 	| 'updateResolution'
-	| 'resize'
 	| 'play'
 	| 'pause'
 	| 'reset'
@@ -92,7 +110,7 @@ type LifecycleMethod =
 	| `${string}:${string}`;
 
 export interface Options extends Exclude<TextureOptions, 'preserveY'> {
-	canvas?: HTMLCanvasElement | OffscreenCanvas | null;
+	canvas?: HTMLCanvasElement | OffscreenCanvas | { width: number; height: number } | null;
 	plugins?: Plugin[];
 	history?: number;
 	debug?: boolean;
@@ -146,7 +164,7 @@ function stringFrom(name: string | symbol) {
 }
 
 class ShaderPad {
-	private isInternalCanvas = false;
+	private isHeadless = false;
 	private isTouchDevice = false;
 	private gl: WebGL2RenderingContext;
 	private uniforms: Map<string, Uniform> = new Map();
@@ -156,10 +174,6 @@ class ShaderPad {
 	private program: WebGLProgram | null = null;
 	private aPositionLocation = 0;
 	private animationFrameId: number | null;
-	private resolutionObserver: MutationObserver;
-	private resizeObserver: ResizeObserver;
-	private resizeTimeout: ReturnType<typeof setTimeout> = null as unknown as ReturnType<typeof setTimeout>;
-	private lastResizeTime = -Infinity;
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;
 	private startTime = 0;
@@ -167,6 +181,7 @@ class ShaderPad {
 	private clickPosition = [0.5, 0.5];
 	private isMouseDown = false;
 	public canvas: HTMLCanvasElement | OffscreenCanvas;
+	private resolutionObserver: MutationObserver | null = null;
 	private hooks: Map<LifecycleMethod, Function[]> = new Map();
 	private historyDepth = 0;
 	private textureOptions: TextureOptions;
@@ -176,31 +191,12 @@ class ShaderPad {
 	private intermediateFbo: WebGLFramebuffer | null = null;
 
 	constructor(fragmentShaderSrc: string, { canvas, plugins, history, debug, ...textureOptions }: Options = {}) {
-		this.canvas = canvas || document.createElement('canvas');
-		if (!canvas) {
-			this.isInternalCanvas = true;
-			const htmlCanvas = this.canvas as HTMLCanvasElement;
-			htmlCanvas.style.position = 'fixed';
-			htmlCanvas.style.inset = '0';
-			htmlCanvas.style.height = '100dvh';
-			htmlCanvas.style.width = '100dvw';
-			document.body.appendChild(htmlCanvas);
-		}
-		if (this.canvas instanceof OffscreenCanvas) {
-			const wrapDimension = (dimension: 'width' | 'height') => {
-				const descriptor = Object.getOwnPropertyDescriptor(OffscreenCanvas.prototype, dimension)!;
-				Object.defineProperty(this.canvas, dimension, {
-					get: () => descriptor.get!.call(this.canvas),
-					set: v => {
-						descriptor.set!.call(this.canvas, v);
-						this.updateResolution();
-					},
-					configurable: descriptor.configurable,
-					enumerable: descriptor.enumerable,
-				});
-			};
-			wrapDimension('width');
-			wrapDimension('height');
+		if (canvas && 'getContext' in canvas) {
+			this.canvas = canvas;
+		} else {
+			const { width = 1, height = 1 } = canvas || {};
+			this.canvas = new OffscreenCanvas(width, height);
+			this.isHeadless = true;
 		}
 
 		const gl = this.canvas.getContext('webgl2', { antialias: false }) as WebGL2RenderingContext;
@@ -216,28 +212,9 @@ class ShaderPad {
 		};
 		this.textureOptions = textureOptions;
 
-		const { internalFormat, type } = textureOptions;
-		const isFloatFormat =
-			type === gl.FLOAT ||
-			type === gl.HALF_FLOAT ||
-			internalFormat === gl.RGBA16F ||
-			internalFormat === gl.RGBA32F ||
-			internalFormat === gl.R16F ||
-			internalFormat === gl.R32F ||
-			internalFormat === gl.RG16F ||
-			internalFormat === gl.RG32F;
-		if (isFloatFormat && !gl.getExtension('EXT_color_buffer_float')) {
-			console.warn('EXT_color_buffer_float not supported, falling back to RGBA8');
-			delete this.textureOptions?.internalFormat;
-			delete this.textureOptions?.format;
-			delete this.textureOptions?.type;
-		}
-
 		if (history) this.historyDepth = history;
 		this.debug = debug ?? (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production');
 		this.animationFrameId = null;
-		this.resolutionObserver = new MutationObserver(() => this.updateResolution());
-		this.resizeObserver = new ResizeObserver(() => this.throttledHandleResize());
 
 		const glslInjections: string[] = [];
 		if (plugins) {
@@ -287,12 +264,26 @@ class ShaderPad {
 		gl.useProgram(program);
 
 		if (this.canvas instanceof HTMLCanvasElement) {
+			this.resolutionObserver = new MutationObserver(() => this.updateResolution());
 			this.resolutionObserver.observe(this.canvas, { attributes: true, attributeFilter: ['width', 'height'] });
-			this.resizeObserver.observe(this.canvas);
+		} else {
+			const wrapDimension = (dimension: 'width' | 'height') => {
+				const descriptor = Object.getOwnPropertyDescriptor(OffscreenCanvas.prototype, dimension)!;
+				Object.defineProperty(this.canvas, dimension, {
+					get: () => descriptor.get!.call(this.canvas),
+					set: v => {
+						descriptor.set!.call(this.canvas, v);
+						this.updateResolution();
+					},
+					configurable: descriptor.configurable,
+					enumerable: descriptor.enumerable,
+				});
+			};
+			wrapDimension('width');
+			wrapDimension('height');
 		}
-		if (!this.isInternalCanvas) {
-			this.updateResolution();
-		}
+		this.updateResolution();
+
 		this.initializeUniform('u_cursor', 'float', this.cursorPosition);
 		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]);
 		this.initializeUniform('u_time', 'float', 0);
@@ -313,6 +304,14 @@ class ShaderPad {
 			this.addEventListeners();
 		}
 		this.emitHook('init');
+	}
+
+	private resolveGLConstant(value: GLConstantString): number {
+		const resolved = this.gl[value];
+		if (resolved === undefined) {
+			throw new Error(`Unknown GL constant: ${value}`);
+		}
+		return resolved;
 	}
 
 	private emitHook(name: LifecycleMethod, ...args: any[]) {
@@ -344,30 +343,6 @@ class ShaderPad {
 			throw new Error('Shader compilation failed');
 		}
 		return shader;
-	}
-
-	private throttledHandleResize() {
-		clearTimeout(this.resizeTimeout);
-		const now = performance.now();
-		const timeUntilNextResize = this.lastResizeTime + RESIZE_THROTTLE_INTERVAL - now;
-		if (timeUntilNextResize <= 0) {
-			this.lastResizeTime = now;
-			this.handleResize();
-		} else {
-			this.resizeTimeout = setTimeout(() => this.throttledHandleResize(), timeUntilNextResize);
-		}
-	}
-
-	private handleResize() {
-		if (!(this.canvas instanceof HTMLCanvasElement)) return;
-		const pixelRatio = window.devicePixelRatio || 1;
-		const width = this.canvas.clientWidth * pixelRatio;
-		const height = this.canvas.clientHeight * pixelRatio;
-		if (this.isInternalCanvas && (this.canvas.width !== width || this.canvas.height !== height)) {
-			this.canvas.width = width;
-			this.canvas.height = height;
-		}
-		this.emitHook('resize', width, height);
 	}
 
 	private addEventListeners() {
@@ -447,7 +422,7 @@ class ShaderPad {
 		});
 	}
 
-	private updateResolution() {
+	updateResolution() {
 		const resolution: [number, number] = [this.gl.drawingBufferWidth, this.gl.drawingBufferHeight];
 		this.gl.viewport(0, 0, ...resolution);
 		if (this.uniforms.has('u_resolution')) {
@@ -489,17 +464,18 @@ class ShaderPad {
 
 	private resolveTextureOptions(options?: TextureOptions): ResolvedTextureOptions {
 		const { gl } = this;
-		const type = options?.type ?? gl.UNSIGNED_BYTE;
+		const type = this.resolveGLConstant(options?.type ?? 'UNSIGNED_BYTE');
 		return {
 			type,
-			format: options?.format ?? gl.RGBA,
-			internalFormat:
+			format: this.resolveGLConstant(options?.format ?? 'RGBA'),
+			internalFormat: this.resolveGLConstant(
 				options?.internalFormat ??
-				(type === gl.FLOAT ? gl.RGBA32F : type === gl.HALF_FLOAT ? gl.RGBA16F : gl.RGBA8),
-			minFilter: options?.minFilter ?? gl.LINEAR,
-			magFilter: options?.magFilter ?? gl.LINEAR,
-			wrapS: options?.wrapS ?? gl.CLAMP_TO_EDGE,
-			wrapT: options?.wrapT ?? gl.CLAMP_TO_EDGE,
+					(type === gl.FLOAT ? 'RGBA32F' : type === gl.HALF_FLOAT ? 'RGBA16F' : 'RGBA8')
+			),
+			minFilter: this.resolveGLConstant(options?.minFilter ?? 'LINEAR'),
+			magFilter: this.resolveGLConstant(options?.magFilter ?? 'LINEAR'),
+			wrapS: this.resolveGLConstant(options?.wrapS ?? 'CLAMP_TO_EDGE'),
+			wrapT: this.resolveGLConstant(options?.wrapT ?? 'CLAMP_TO_EDGE'),
 			preserveY: options?.preserveY,
 		};
 	}
@@ -865,10 +841,12 @@ class ShaderPad {
 			gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, historyInfo.history!.writeIndex, 0, 0, w, h);
 		}
 
-		gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
-		gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-		gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		if (!this.isHeadless) {
+			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
+			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+			gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		}
 		this.emitHook('afterDraw', ...arguments);
 	}
 
@@ -932,15 +910,16 @@ class ShaderPad {
 			this.animationFrameId = null;
 		}
 
-		clearTimeout(this.resizeTimeout);
-
-		this.resolutionObserver.disconnect();
-		this.resizeObserver.disconnect();
 		if (this.canvas instanceof HTMLCanvasElement) {
 			this.eventListeners.forEach((listener, event) => {
 				this.canvas.removeEventListener(event, listener);
 			});
 			this.eventListeners.clear();
+		}
+
+		if (this.resolutionObserver) {
+			this.resolutionObserver.disconnect();
+			this.resolutionObserver = null;
 		}
 
 		if (this.program) {
@@ -967,10 +946,6 @@ class ShaderPad {
 
 		this.uniforms.clear();
 		this.hooks.clear();
-
-		if (this.isInternalCanvas && this.canvas instanceof HTMLCanvasElement) {
-			this.canvas.remove();
-		}
 	}
 }
 

@@ -95,7 +95,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 	const optionsKey = hashOptions({ ...options, textureName });
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, gl, emitHook } = context;
+		const { injectGLSL, emitHook } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const sharedCanvas = existingDetector?.canvas ?? new OffscreenCanvas(1, 1);
@@ -166,8 +166,8 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			shaderPad.initializeUniform('u_numCategories', 'int', 1);
 			shaderPad.initializeTexture('u_segmentMask', sharedCanvas, {
 				preserveY: true,
-				minFilter: gl.NEAREST,
-				magFilter: gl.NEAREST,
+				minFilter: 'NEAREST',
+				magFilter: 'NEAREST',
 				history,
 			});
 			initPromise.then(() => {

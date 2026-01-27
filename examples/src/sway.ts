@@ -3,6 +3,8 @@
  * with arrow keys. Uses custom uniforms and u_time.
  */
 import ShaderPad from 'shaderpad';
+import autosize from 'shaderpad/plugins/autosize';
+import { createFullscreenCanvas } from 'shaderpad/util';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
@@ -163,9 +165,14 @@ let shader: ShaderPad | null = null;
 let isPlaying = true;
 let variantIdx = 0;
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+let canvas: HTMLCanvasElement | null = null;
 
 export async function init() {
-	shader = new ShaderPad(fragmentShaderSrc);
+	canvas = createFullscreenCanvas();
+	shader = new ShaderPad(fragmentShaderSrc, {
+		canvas,
+		plugins: [autosize()],
+	});
 
 	Object.entries(variants[0]).forEach(([key, value]) => {
 		shader!.initializeUniform(key, 'float', value);
@@ -196,6 +203,11 @@ export function destroy() {
 	if (shader) {
 		shader.destroy();
 		shader = null;
+	}
+
+	if (canvas) {
+		canvas.remove();
+		canvas = null;
 	}
 
 	if (keydownHandler) {

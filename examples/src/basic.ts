@@ -4,6 +4,8 @@
  */
 import ShaderPad from 'shaderpad';
 import save, { WithSave } from 'shaderpad/plugins/save';
+import autosize from 'shaderpad/plugins/autosize';
+import { createFullscreenCanvas } from 'shaderpad/util';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
@@ -45,11 +47,14 @@ void main() {
 
 let shader: WithSave<ShaderPad> | null = null;
 let isPlaying = true;
+let canvas: HTMLCanvasElement | null = null;
 
 export async function init() {
 	// Initialize the shader.
+	canvas = createFullscreenCanvas();
 	shader = new ShaderPad(fragmentShaderSrc, {
-		plugins: [save()],
+		plugins: [save(), autosize()],
+		canvas,
 	}) as WithSave<ShaderPad>;
 
 	// Add your own custom uniforms.
@@ -81,6 +86,10 @@ export function destroy() {
 	if (shader) {
 		shader.destroy();
 		shader = null;
+	}
+	if (canvas) {
+		canvas.remove();
+		canvas = null;
 	}
 	isPlaying = true;
 }

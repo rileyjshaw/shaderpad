@@ -77,7 +77,13 @@ function updateLandmarksData(
 			data[dataIdx + 3] = isRightHand ? 1 : 0;
 		}
 
-		const handCenter = calculateBoundingBoxCenter(data, handIdx, HAND_CENTER_LANDMARKS, LANDMARK_COUNT, N_LANDMARK_METADATA_SLOTS);
+		const handCenter = calculateBoundingBoxCenter(
+			data,
+			handIdx,
+			HAND_CENTER_LANDMARKS,
+			LANDMARK_COUNT,
+			N_LANDMARK_METADATA_SLOTS
+		);
 		const handCenterIdx = (N_LANDMARK_METADATA_SLOTS + handIdx * LANDMARK_COUNT + STANDARD_LANDMARK_COUNT) * 4;
 		data[handCenterIdx] = handCenter[0];
 		data[handCenterIdx + 1] = handCenter[1];
@@ -97,7 +103,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, gl, emitHook } = context;
+		const { injectGLSL, emitHook } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
@@ -179,7 +185,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			shaderPad.initializeTexture(
 				'u_handLandmarksTex',
 				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
-				{ internalFormat: gl.RGBA32F, type: gl.FLOAT, minFilter: gl.NEAREST, magFilter: gl.NEAREST, history }
+				{ internalFormat: 'RGBA32F', type: 'FLOAT', minFilter: 'NEAREST', magFilter: 'NEAREST', history }
 			);
 			initPromise.then(() => emitHook('hands:ready'));
 		});

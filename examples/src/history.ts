@@ -48,6 +48,7 @@ let canvas: HTMLCanvasElement | null = null;
 
 export async function init() {
 	canvas = document.createElement('canvas');
+	// Any bigger starts to run into memory issues.
 	canvas.width = 1000;
 	canvas.height = 1000;
 	canvas.style.position = 'fixed';

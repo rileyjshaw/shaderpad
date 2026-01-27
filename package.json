@@ -39,6 +39,14 @@
 		"./plugins/segmenter": {
 			"import": "./dist/plugins/segmenter.mjs",
 			"require": "./dist/plugins/segmenter.js"
+		},
+		"./plugins/autosize": {
+			"import": "./dist/plugins/autosize.mjs",
+			"require": "./dist/plugins/autosize.js"
+		},
+		"./util": {
+			"import": "./dist/util.mjs",
+			"require": "./dist/util.js"
 		}
 	},
 	"typesVersions": {
@@ -60,6 +68,12 @@
 			],
 			"plugins/segmenter": [
 				"dist/plugins/segmenter.d.ts"
+			],
+			"plugins/autosize": [
+				"dist/plugins/autosize.d.ts"
+			],
+			"util": [
+				"dist/util.d.ts"
 			]
 		}
 	},
@@ -68,7 +82,7 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "tsup src/index.ts src/plugins/*.ts"
+		"build": "tsup src/index.ts src/plugins/*.ts src/util.ts"
 	},
 	"devDependencies": {
 		"@changesets/changelog-github": "^0.5.2",

@@ -3,6 +3,7 @@
  * for animation. Spacebar to pause/play.
  */
 import ShaderPad from 'shaderpad';
+import autosize from 'shaderpad/plugins/autosize';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
@@ -35,12 +36,16 @@ void main() {
 let shader: ShaderPad | null = null;
 let isPlaying = true;
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+let canvas: HTMLCanvasElement | null = null;
 
 export async function init() {
-	shader = new ShaderPad(fragmentShaderSrc);
-	shader.canvas.style.height = shader.canvas.style.width = '512px';
-	shader.canvas.style.left = shader.canvas.style.top = '50%';
-	shader.canvas.style.transform = 'translate(-50%, -50%)';
+	canvas = document.createElement('canvas');
+	canvas.style.position = 'fixed';
+	canvas.height = canvas.width = 512;
+	canvas.style.left = canvas.style.top = '50%';
+	canvas.style.transform = 'translate(-50%, -50%)';
+	document.body.appendChild(canvas);
+	shader = new ShaderPad(fragmentShaderSrc, { canvas });
 	shader.play();
 
 	keydownHandler = (e: KeyboardEvent) => {
@@ -56,6 +61,11 @@ export function destroy() {
 	if (shader) {
 		shader.destroy();
 		shader = null;
+	}
+
+	if (canvas) {
+		canvas.remove();
+		canvas = null;
 	}
 
 	if (keydownHandler) {

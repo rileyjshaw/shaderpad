@@ -1,11 +1,18 @@
+type GLInternalFormatChannels = 'R' | 'RG' | 'RGB' | 'RGBA';
+type GLInternalFormatDepth = '8' | '16F' | '32F';
+type GLInternalFormatString = `${GLInternalFormatChannels}${GLInternalFormatDepth}`;
+type GLFormatString = 'RED' | 'RG' | 'RGB' | 'RGBA';
+type GLTypeString = 'UNSIGNED_BYTE' | 'FLOAT' | 'HALF_FLOAT';
+type GLFilterString = 'LINEAR' | 'NEAREST';
+type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
 interface TextureOptions {
-    internalFormat?: number;
-    format?: number;
-    type?: number;
-    minFilter?: number;
-    magFilter?: number;
-    wrapS?: number;
-    wrapT?: number;
+    internalFormat?: GLInternalFormatString;
+    format?: GLFormatString;
+    type?: GLTypeString;
+    minFilter?: GLFilterString;
+    magFilter?: GLFilterString;
+    wrapS?: GLWrapString;
+    wrapT?: GLWrapString;
     preserveY?: boolean;
 }
 interface CustomTexture {
@@ -27,9 +34,12 @@ interface PluginContext {
     emitHook: (name: LifecycleMethod, ...args: any[]) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
-type LifecycleMethod = 'init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'beforeStep' | 'afterStep' | 'beforeDraw' | 'afterDraw' | 'updateResolution' | 'resize' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
+type LifecycleMethod = 'init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'beforeStep' | 'afterStep' | 'beforeDraw' | 'afterDraw' | 'updateResolution' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
 interface Options extends Exclude<TextureOptions, 'preserveY'> {
-    canvas?: HTMLCanvasElement | OffscreenCanvas | null;
+    canvas?: HTMLCanvasElement | OffscreenCanvas | {
+        width: number;
+        height: number;
+    } | null;
     plugins?: Plugin[];
     history?: number;
     debug?: boolean;
@@ -39,7 +49,7 @@ interface StepOptions {
     skipHistoryWrite?: boolean;
 }
 declare class ShaderPad {
-    private isInternalCanvas;
+    private isHeadless;
     private isTouchDevice;
     private gl;
     private uniforms;
@@ -49,10 +59,6 @@ declare class ShaderPad {
     private program;
     private aPositionLocation;
     private animationFrameId;
-    private resolutionObserver;
-    private resizeObserver;
-    private resizeTimeout;
-    private lastResizeTime;
     private eventListeners;
     private frame;
     private startTime;
@@ -60,23 +66,22 @@ declare class ShaderPad {
     private clickPosition;
     private isMouseDown;
     canvas: HTMLCanvasElement | OffscreenCanvas;
+    private resolutionObserver;
     private hooks;
     private historyDepth;
     private textureOptions;
     private debug;
     private intermediateFbo;
     constructor(fragmentShaderSrc: string, { canvas, plugins, history, debug, ...textureOptions }?: Options);
+    private resolveGLConstant;
     private emitHook;
     on(name: LifecycleMethod, fn: Function): void;
     off(name: LifecycleMethod, fn: Function): void;
     private createShader;
-    private throttledHandleResize;
-    private handleResize;
     private addEventListeners;
-    private updateResolution;
+    updateResolution(): void;
     private resizeTexture;
     private reserveTextureUnit;
-    private releaseTextureUnit;
     private resolveTextureOptions;
     private getPixelArray;
     private clearHistoryTextureLayers;
@@ -104,4 +109,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { type CustomTexture, type Options, type PartialCustomTexture, type PluginContext, type StepOptions, type TextureOptions, type TextureSource, ShaderPad as default };
+export { type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type Options, type PartialCustomTexture, type PluginContext, type StepOptions, type TextureOptions, type TextureSource, ShaderPad as default };

@@ -3,6 +3,7 @@ let currentDemo: { init: () => Promise<void>; destroy: () => void } | null = nul
 const demos = [
 	{ path: './basic', name: 'Basic' },
 	{ path: './webcam', name: 'Webcam' },
+	{ path: './webcam-bw', name: 'Webcam B/W' },
 	{ path: './sway', name: 'Sway' },
 	{ path: './save', name: 'Save' },
 	{ path: './history', name: 'History' },

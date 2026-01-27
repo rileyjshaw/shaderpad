@@ -4,6 +4,8 @@
  */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
+import autosize from 'shaderpad/plugins/autosize';
+import { createFullscreenCanvas } from 'shaderpad/util';
 
 const FRAME_DELAY_PER_ECHO = 20;
 const N_ECHOES = 8;
@@ -38,7 +40,7 @@ async function getWebcamStream() {
 
 let shader: ShaderPad | null = null;
 let video: HTMLVideoElement | null = null;
-let outputCanvas: HTMLCanvasElement | null = null;
+let canvas: HTMLCanvasElement | null = null;
 
 export async function init() {
 	const fragmentShaderSrc = `#version 300 es
@@ -69,7 +71,11 @@ void main() {
 
 	video = await getWebcamStream();
 
-	shader = new ShaderPad(fragmentShaderSrc, { plugins: [helpers()] });
+	canvas = createFullscreenCanvas();
+	shader = new ShaderPad(fragmentShaderSrc, {
+		canvas,
+		plugins: [helpers(), autosize()],
+	});
 	shader.initializeTexture('u_webcam', video, { history: maxFrameDelay });
 
 	shader.play(() => {
@@ -89,8 +95,8 @@ export function destroy() {
 		video = null;
 	}
 
-	if (outputCanvas) {
-		outputCanvas.remove();
-		outputCanvas = null;
+	if (canvas) {
+		canvas.remove();
+		canvas = null;
 	}
 }

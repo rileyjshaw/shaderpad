@@ -160,10 +160,10 @@ shader.initializeTexture(
 	'u_custom',
 	{ data: new Float32Array(width * height * 4), width, height },
 	{
-		internalFormat: gl.RGBA32F,
-		type: gl.FLOAT,
-		minFilter: gl.NEAREST,
-		magFilter: gl.NEAREST,
+		internalFormat: 'RGBA32F',
+		type: 'FLOAT',
+		minFilter: 'NEAREST',
+		magFilter: 'NEAREST',
 	}
 );
 shader.initializeTexture('u_webcam', videoElement, { history: 30 });
@@ -180,13 +180,13 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 
 -   `history?: number` - Number of previous frames to store (creates a `sampler2DArray`)
 -   `preserveY?: boolean` - For DOM sources only: if `true`, don't flip vertically (default: `false`, flips to match WebGL's bottom-up convention)
--   `internalFormat?: number` - Storage format in GPU memory (e.g., `gl.RGBA8`, `gl.RGBA32F`). Defaults to `gl.RGBA8` for 8-bit, or `gl.RGBA32F` if `type` is `gl.FLOAT`
--   `format?: number` - Source data layout (default: `gl.RGBA`). Describes the channels in your input data (e.g., `gl.RGBA`, `gl.RGB`, `gl.R8UI`)
--   `type?: number` - Source data type (default: `gl.UNSIGNED_BYTE` for DOM sources, must be specified for typed arrays). Examples: `gl.UNSIGNED_BYTE`, `gl.FLOAT`
--   `minFilter?: number` - Minification filter (default: `gl.LINEAR`)
--   `magFilter?: number` - Magnification filter (default: `gl.LINEAR`)
--   `wrapS?: number` - Wrap mode for S coordinate (default: `gl.CLAMP_TO_EDGE`)
--   `wrapT?: number` - Wrap mode for T coordinate (default: `gl.CLAMP_TO_EDGE`)
+-   `internalFormat?: string` - Storage format in GPU memory (e.g., `'RGBA8'`, `'RGBA32F'`, `'R8'`). Defaults to `'RGBA8'` for 8-bit, or `'RGBA32F'` if `type` is `'FLOAT'`
+-   `format?: string` - Source data layout (default: `'RGBA'`). Describes the channels in your input data (e.g., `'RGBA'`, `'RGB'`, `'RED'`)
+-   `type?: string` - Source data type (default: `'UNSIGNED_BYTE'` for DOM sources, must be specified for typed arrays). Examples: `'UNSIGNED_BYTE'`, `'FLOAT'`, `'HALF_FLOAT'`
+-   `minFilter?: string` - Minification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
+-   `magFilter?: string` - Magnification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
+-   `wrapS?: string` - Wrap mode for S coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
+-   `wrapT?: string` - Wrap mode for T coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
 
 **Note:** For typed array sources (`CustomTexture`), you must provide data in bottom-up orientation (WebGL convention). The `preserveY` option is ignored for typed arrays.
 
@@ -276,7 +276,7 @@ shader.destroy(); // Clean up resources.
 
 ### Properties
 
--   `canvas` (HTMLCanvasElement): The canvas element used for rendering
+-   `canvas` (HTMLCanvasElement | OffscreenCanvas): The canvas element used for rendering
 
 ### Event Listeners
 
@@ -285,8 +285,8 @@ shader.destroy(); // Clean up resources.
 Register a callback for a lifecycle event.
 
 ```typescript
-shader.on('resize', (width, height) => {
-	console.log(`Canvas resized to ${width}x${height}`);
+shader.on('updateResolution', (width, height) => {
+	console.log(`New resolution: ${width}x${height}`);
 });
 ```
 
@@ -332,15 +332,19 @@ ShaderPad’s constructor accepts an optional `options` object.
 
 ### canvas
 
-The `canvas` option allows you to pass in an existing canvas element. If not provided, ShaderPad will create a new canvas element and append it to the document body.
+The `canvas` option allows you to pass in an existing canvas element, dimensions object, or `null` for headless mode.
 
 ```typescript
 const canvas = document.createElement('canvas');
 const shader = new ShaderPad(fragmentShaderSrc, { canvas });
-shader.on('resize', (width, height) => {
-	canvas.width = width;
-	canvas.height = height;
-});
+
+// Use utilities for a fullscreen canvas.
+import { autosize } from 'shaderpad/plugins/autosize';
+import { createFullscreenCanvas } from 'shaderpad/util';
+const shader = new ShaderPad(fragmentShaderSrc, { canvas: createFullscreenCanvas(), plugins: [autosize()] });
+
+// Create a headless ShaderPad for intermediate processing with initial dimensions.
+const shader = new ShaderPad(fragmentShaderSrc, { canvas: { width: 640, height: 480 } });
 ```
 
 ### history
@@ -363,8 +367,8 @@ const shader = new ShaderPad(fragmentShaderSrc, { history: 10 });
 // For 32-bit float precision (requires EXT_color_buffer_float extension):
 const shader = new ShaderPad(fragmentShaderSrc, {
 	history: 60,
-	internalFormat: gl.RGBA32F,
-	type: gl.FLOAT,
+	internalFormat: 'RGBA32F',
+	type: 'FLOAT',
 });
 ```
 
@@ -751,6 +755,16 @@ if (category >= 0.0) {
 ```
 
 **Note:** The segmenter plugin requires `@mediapipe/tasks-vision` as a peer dependency.
+
+#### autosize
+
+The `autosize` plugin handles automatic canvas resolution updates with ResizeObserver.
+
+**Options:**
+
+-   `ignorePixelRatio?: boolean` - If `true`, don't scale with devicePixelRatio (default: `false`)
+-   `target?: Element | Window` - What to observe for resize (default: canvas itself for HTMLCanvasElement, window for OffscreenCanvas)
+-   `throttle?: number` - Throttle interval in milliseconds (default: 33ms)
 
 ## Contributing
 
