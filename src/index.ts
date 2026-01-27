@@ -939,16 +939,20 @@ class ShaderPad {
 			this.animationFrameId = null;
 		}
 
+		clearTimeout(this.resizeTimeout);
+
 		this.resolutionObserver.disconnect();
 		this.resizeObserver.disconnect();
 		if (this.canvas instanceof HTMLCanvasElement) {
 			this.eventListeners.forEach((listener, event) => {
 				this.canvas.removeEventListener(event, listener);
 			});
+			this.eventListeners.clear();
 		}
 
 		if (this.program) {
 			this.gl.deleteProgram(this.program);
+			this.program = null;
 		}
 
 		if (this.intermediateFbo) {
@@ -959,6 +963,7 @@ class ShaderPad {
 		this.textures.forEach(texture => {
 			this.gl.deleteTexture(texture.texture);
 		});
+		this.textures.clear();
 		this.textureUnitPool.free = [];
 		this.textureUnitPool.next = 0;
 
@@ -966,6 +971,9 @@ class ShaderPad {
 			this.gl.deleteBuffer(this.buffer);
 			this.buffer = null;
 		}
+
+		this.uniforms.clear();
+		this.hooks.clear();
 
 		if (this.isInternalCanvas && this.canvas instanceof HTMLCanvasElement) {
 			this.canvas.remove();
