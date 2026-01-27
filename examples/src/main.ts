@@ -14,6 +14,7 @@ const demos = [
 	{ path: './history-webcam-grid', name: 'History - webcam grid' },
 	{ path: './face', name: 'Face Detection' },
 	{ path: './face-camo', name: 'Face Camo' },
+	{ path: './face-dual', name: 'Face Dual' },
 	{ path: './pose', name: 'Pose Detection' },
 	{ path: './body-camo', name: 'Body Camo' },
 	{ path: './hands', name: 'Hands Detection' },
