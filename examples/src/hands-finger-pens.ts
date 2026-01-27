@@ -220,7 +220,7 @@ void main() {
 
 	shader.initializeTexture('u_webcam', video);
 
-	shader.play(undefined, (_time, frame) => {
+	shader.play((_time, frame) => {
 		const options = { skipHistoryWrite: !!(frame % 5) };
 		shader!.updateTextures({ u_webcam: video! }, options);
 		return options;

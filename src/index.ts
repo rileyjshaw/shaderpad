@@ -897,16 +897,16 @@ class ShaderPad {
 	}
 
 	play(
-		onStepComplete?: (time: number, frame: number) => void,
-		setStepOptions?: (time: number, frame: number) => StepOptions | void
+		onBeforeStep?: (time: number, frame: number) => StepOptions | void,
+		onAfterStep?: (time: number, frame: number) => void
 	) {
 		this.pause(); // Prevent double play.
 		const loop = (time: number) => {
 			time = (time - this.startTime) / 1000; // Convert from milliseconds to seconds.
-			const options = setStepOptions?.(time, this.frame) ?? undefined;
+			const options = onBeforeStep?.(time, this.frame) ?? undefined;
 			this.step(time, options);
 			this.animationFrameId = requestAnimationFrame(loop);
-			onStepComplete?.(time, this.frame);
+			onAfterStep?.(time, this.frame);
 		};
 		this.animationFrameId = requestAnimationFrame(loop);
 		this.emitHook('play');

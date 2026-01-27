@@ -207,7 +207,7 @@ shader.updateTextures({ u_camera: videoElement }, { skipHistoryWrite: true });
 
 ### Lifecycle methods
 
-#### `play(onStepComplete?, setStepOptions?)`
+#### `play(onBeforeStep?, onAfterStep?)`
 
 Start the render loop.
 
@@ -215,11 +215,8 @@ Start the render loop.
 shader.play();
 
 // With per-frame callbacks.
-shader.play((time, frame) => {
+shader.play(() => {
 	shader.updateTextures({ u_webcam: videoElement });
-});
-
-shader.play(null, (time, frame) => {
 	// Only save every 10th frame to history.
 	return { skipHistoryWrite: frame % 10 === 0 };
 });
@@ -227,8 +224,8 @@ shader.play(null, (time, frame) => {
 
 **Parameters:**
 
--   `onStepComplete?`: `(time: number, frame: number) => void` - Called after each frame
--   `setStepOptions?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
+-   `onBeforeStep?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
+-   `onAfterStep?`: `(time: number, frame: number) => void` - Called after each frame
 
 #### `step(time, options?)`
 

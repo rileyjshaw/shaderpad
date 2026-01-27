@@ -98,7 +98,7 @@ declare class ShaderPad {
     private updateTexture;
     draw(options?: StepOptions): void;
     step(time: number, options?: StepOptions): void;
-    play(onStepComplete?: (time: number, frame: number) => void, setStepOptions?: (time: number, frame: number) => StepOptions | void): void;
+    play(onBeforeStep?: (time: number, frame: number) => StepOptions | void, onAfterStep?: (time: number, frame: number) => void): void;
     pause(): void;
     reset(): void;
     destroy(): void;
