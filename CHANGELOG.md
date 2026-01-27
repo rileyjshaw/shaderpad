@@ -1,5 +1,13 @@
 # shaderpad
 
+## 1.0.0-beta.46
+
+### Minor Changes
+
+-   Enable headless ShaderPads
+
+    This version also migrates some canvas-specific code out of the core package into `plugins/autosize` and `util/createFullscreenCanvas`.
+
 ## 1.0.0-beta.45
 
 ### Patch Changes
