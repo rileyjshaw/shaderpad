@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.45
+
+### Patch Changes
+
+-   Improve destroy()
+
 ## 1.0.0-beta.44
 
 ### Minor Changes
