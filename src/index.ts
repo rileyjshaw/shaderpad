@@ -487,13 +487,6 @@ class ShaderPad {
 		return this.textureUnitPool.next++;
 	}
 
-	private releaseTextureUnit(name: string | symbol) {
-		const existing = this.textures.get(name);
-		if (existing) {
-			this.textureUnitPool.free.push(existing.unitIndex);
-		}
-	}
-
 	private resolveTextureOptions(options?: TextureOptions): ResolvedTextureOptions {
 		const { gl } = this;
 		const type = options?.type ?? gl.UNSIGNED_BYTE;
