@@ -94,9 +94,23 @@ const DEFAULT_POSE_OPTIONS: Required<Omit<PosePluginOptions, 'history'>> = {
 	minTrackingConfidence: 0.5,
 };
 
+const MASK_SHADER_SRC = `#version 300 es
+precision mediump float;
+in vec2 v_uv;
+out vec4 outColor;
+uniform sampler2D u_mask;
+uniform float u_poseIndex;
+void main() {
+	ivec2 texCoord = ivec2(vec2(v_uv.x, 1.0 - v_uv.y) * vec2(textureSize(u_mask, 0)));
+	float confidence = texelFetch(u_mask, texCoord, 0).r;
+	if (confidence < 0.01) discard;
+	outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
+}`;
+
 interface Detector {
 	landmarker: PoseLandmarker;
-	canvas: OffscreenCanvas;
+	mediapipeCanvas: OffscreenCanvas;
+	maskShader: ShaderPad;
 	subscribers: Map<() => void, boolean>;
 	maxPoses: number;
 	state: {
@@ -111,9 +125,6 @@ interface Detector {
 	landmarks: {
 		data: Float32Array;
 		textureHeight: number;
-	};
-	mask: {
-		shader: ShaderPad;
 	};
 }
 const sharedDetectors = new Map<string, Detector>();
@@ -222,18 +233,15 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 	detector.state.nPoses = nPoses;
 }
 
-function updateMaskCanvas(detector: Detector, segmentationMasks?: MPMask[]) {
+function updateMask(detector: Detector, segmentationMasks?: MPMask[]) {
 	if (!segmentationMasks || segmentationMasks.length === 0) return;
-	const {
-		mask: { shader },
-		maxPoses,
-	} = detector;
+	const { maskShader, maxPoses } = detector;
 
 	for (let i = 0; i < segmentationMasks.length; ++i) {
 		const segMask = segmentationMasks[i];
-		shader.updateTextures({ u_mask: segMask.getAsWebGLTexture() });
-		shader.updateUniforms({ u_poseIndex: (i + 1) / maxPoses });
-		shader.draw({ skipClear: i > 0 });
+		maskShader.updateTextures({ u_mask: segMask.getAsWebGLTexture() });
+		maskShader.updateUniforms({ u_poseIndex: (i + 1) / maxPoses });
+		maskShader.draw({ skipClear: i > 0 });
 		segMask.close();
 	}
 }
@@ -252,7 +260,16 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
 			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
-		const sharedCanvas = existingDetector?.canvas ?? new OffscreenCanvas(1, 1);
+		const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
+		const maskShader =
+			existingDetector?.maskShader ??
+			(() => {
+				const shader = new ShaderPad(MASK_SHADER_SRC, { canvas: mediapipeCanvas });
+				shader.initializeTexture('u_mask', dummyTexture);
+				shader.initializeUniform('u_poseIndex', 'float', 0);
+				return shader;
+			})();
+
 		let detector: Detector | null = null;
 		let skipHistoryWrite = false;
 
@@ -269,7 +286,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 						height: rowsToUpdate,
 						isPartial: true,
 					},
-					u_poseMask: detector.canvas,
+					u_poseMask: maskShader,
 				},
 				{ skipHistoryWrite }
 			);
@@ -290,7 +307,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 						modelAssetPath: options.modelPath,
 						delegate: 'GPU',
 					},
-					canvas: sharedCanvas,
+					canvas: mediapipeCanvas,
 					runningMode: 'VIDEO',
 					numPoses: options.maxPoses,
 					minPoseDetectionConfidence: options.minPoseDetectionConfidence,
@@ -299,27 +316,10 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					outputSegmentationMasks: true,
 				});
 
-				const maskShader = new ShaderPad(
-					`#version 300 es
-	precision mediump float;
-	in vec2 v_uv;
-	out vec4 outColor;
-	uniform sampler2D u_mask;
-	uniform float u_poseIndex;
-	void main() {
-		ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_mask, 0)));
-		float confidence = texelFetch(u_mask, texCoord, 0).r;
-		if (confidence < 0.01) discard;
-		outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
-	}`,
-					{ canvas: sharedCanvas }
-				);
-				maskShader.initializeTexture('u_mask', dummyTexture);
-				maskShader.initializeUniform('u_poseIndex', 'float', 0);
-
 				detector = {
 					landmarker: poseLandmarker,
-					canvas: sharedCanvas,
+					mediapipeCanvas,
+					maskShader,
 					subscribers: new Map(),
 					maxPoses: options.maxPoses,
 					state: {
@@ -334,9 +334,6 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					landmarks: {
 						data: landmarksData,
 						textureHeight,
-					},
-					mask: {
-						shader: maskShader,
 					},
 				};
 				sharedDetectors.set(optionsKey, detector);
@@ -354,8 +351,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
 				{ internalFormat: 'RGBA32F', type: 'FLOAT', minFilter: 'NEAREST', magFilter: 'NEAREST', history }
 			);
-			shaderPad.initializeTexture('u_poseMask', sharedCanvas, {
-				preserveY: true,
+			shaderPad.initializeTexture('u_poseMask', maskShader, {
 				minFilter: 'NEAREST',
 				magFilter: 'NEAREST',
 				history,
@@ -426,7 +422,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 						detector.state.resultTimestamp = now;
 						detector.state.result = result;
 						updateLandmarksData(detector, result.landmarks);
-						updateMaskCanvas(detector, result.segmentationMasks);
+						updateMask(detector, result.segmentationMasks);
 						for (const cb of detector.subscribers.keys()) {
 							cb();
 							detector.subscribers.set(cb, true);
@@ -446,7 +442,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				detector.subscribers.delete(onResult);
 				if (detector.subscribers.size === 0) {
 					detector.landmarker.close();
-					detector.mask.shader?.destroy();
+					detector.maskShader.destroy();
 					sharedDetectors.delete(optionsKey);
 				}
 			}

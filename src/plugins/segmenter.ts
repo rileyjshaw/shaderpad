@@ -36,7 +36,7 @@ out vec4 outColor;
 ${uniforms}
 
 void main() {
-	ivec2 texCoord = ivec2(v_uv * vec2(textureSize(u_confidenceMask0, 0)));
+	ivec2 texCoord = ivec2(vec2(v_uv.x, 1.0 - v_uv.y) * vec2(textureSize(u_confidenceMask0, 0)));
 	float maxConfidence = 0.0;
 	int maxIndex = 0;
 
@@ -57,7 +57,8 @@ ${sampleByIndex}
 
 interface SharedDetector {
 	segmenter: ImageSegmenter;
-	canvas: OffscreenCanvas;
+	mediapipeCanvas: OffscreenCanvas;
+	maskShader: ShaderPad;
 	subscribers: Map<() => void, boolean>;
 	state: {
 		runningMode: 'IMAGE' | 'VIDEO';
@@ -69,23 +70,18 @@ interface SharedDetector {
 	};
 	labels: string[];
 	numCategories: number;
-	mask: {
-		shader: ShaderPad;
-	};
 }
 const sharedDetectors = new Map<string, SharedDetector>();
 
-function updateMaskCanvas(detector: SharedDetector, confidenceMasks: MPMask[]) {
-	const {
-		mask: { shader },
-	} = detector;
+function updateMask(detector: SharedDetector, confidenceMasks: MPMask[]) {
+	const { maskShader } = detector;
 
 	const textures: Record<string, WebGLTexture> = {};
 	for (let i = 0; i < confidenceMasks.length; ++i) {
 		textures[`u_confidenceMask${i}`] = confidenceMasks[i].getAsWebGLTexture();
 	}
-	shader.updateTextures(textures);
-	shader.draw();
+	maskShader.updateTextures(textures);
+	maskShader.draw();
 	confidenceMasks.forEach(m => m.close());
 }
 
@@ -98,13 +94,13 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		const { injectGLSL, emitHook } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
-		const sharedCanvas = existingDetector?.canvas ?? new OffscreenCanvas(1, 1);
+		const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
 		let detector: SharedDetector | null = null;
 		let skipHistoryWrite = false;
 
 		function onResult() {
 			if (!detector) return;
-			shaderPad.updateTextures({ u_segmentMask: detector.canvas }, { skipHistoryWrite });
+			shaderPad.updateTextures({ u_segmentMask: detector.maskShader }, { skipHistoryWrite });
 			emitHook('segmenter:result', detector.state.result);
 		}
 
@@ -123,7 +119,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 						modelAssetPath: options.modelPath,
 						delegate: 'GPU',
 					},
-					canvas: sharedCanvas,
+					canvas: mediapipeCanvas,
 					runningMode: 'VIDEO',
 					outputCategoryMask: options.outputCategoryMask,
 					outputConfidenceMasks: true,
@@ -132,14 +128,15 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				const labels = imageSegmenter.getLabels();
 				const numCategories = labels.length || 1;
 
-				const maskShader = new ShaderPad(createMaskShaderSource(numCategories), { canvas: sharedCanvas });
+				const maskShader = new ShaderPad(createMaskShaderSource(numCategories), { canvas: mediapipeCanvas });
 				for (let i = 0; i < numCategories; ++i) {
 					maskShader.initializeTexture(`u_confidenceMask${i}`, dummyTexture);
 				}
 
 				detector = {
 					segmenter: imageSegmenter,
-					canvas: sharedCanvas,
+					mediapipeCanvas,
+					maskShader,
 					subscribers: new Map(),
 					state: {
 						runningMode: 'VIDEO',
@@ -151,9 +148,6 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					},
 					labels,
 					numCategories,
-					mask: {
-						shader: maskShader,
-					},
 				};
 				sharedDetectors.set(optionsKey, detector);
 			}
@@ -164,8 +158,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 
 		shaderPad.on('init', () => {
 			shaderPad.initializeUniform('u_numCategories', 'int', 1);
-			shaderPad.initializeTexture('u_segmentMask', sharedCanvas, {
-				preserveY: true,
+			shaderPad.initializeTexture('u_segmentMask', mediapipeCanvas, {
 				minFilter: 'NEAREST',
 				magFilter: 'NEAREST',
 				history,
@@ -237,7 +230,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					if (result?.confidenceMasks && result.confidenceMasks.length > 0) {
 						detector.state.resultTimestamp = now;
 						detector.state.result = result;
-						updateMaskCanvas(detector, result.confidenceMasks);
+						updateMask(detector, result.confidenceMasks);
 						for (const cb of detector.subscribers.keys()) {
 							cb();
 							detector.subscribers.set(cb, true);
@@ -257,7 +250,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				detector.subscribers.delete(onResult);
 				if (detector.subscribers.size === 0) {
 					detector.segmenter.close();
-					detector.mask.shader?.destroy();
+					detector.maskShader.destroy();
 					sharedDetectors.delete(optionsKey);
 				}
 			}

@@ -36,7 +36,7 @@ const DEFAULT_HANDS_OPTIONS: Required<Omit<HandsPluginOptions, 'history'>> = {
 
 interface Detector {
 	landmarker: HandLandmarker;
-	canvas: OffscreenCanvas;
+	mediapipeCanvas: OffscreenCanvas;
 	subscribers: Map<() => void, boolean>;
 	maxHands: number;
 	state: {
@@ -155,7 +155,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 
 				detector = {
 					landmarker: handLandmarker,
-					canvas: mediapipeCanvas,
+					mediapipeCanvas,
 					subscribers: new Map(),
 					maxHands: options.maxHands,
 					state: {

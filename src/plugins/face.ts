@@ -2,7 +2,6 @@ import ShaderPad, { PluginContext, TextureSource } from '..';
 import {
 	calculateBoundingBoxCenter,
 	generateGLSLFn,
-	dummyTexture,
 	getSharedFileset,
 	hashOptions,
 	isMediaPipeSource,
@@ -126,9 +125,18 @@ function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 	}
 }
 
+interface MaskRenderer {
+	canvas: OffscreenCanvas;
+	gl: WebGL2RenderingContext;
+	program: WebGLProgram;
+	positionBuffer: WebGLBuffer;
+	colorLocation: WebGLUniformLocation;
+}
+
 interface Detector {
 	landmarker: FaceLandmarker;
-	canvas: OffscreenCanvas;
+	mediapipeCanvas: OffscreenCanvas;
+	mask: MaskRenderer;
 	subscribers: Map<() => void, boolean>;
 	maxFaces: number;
 	state: {
@@ -144,18 +152,11 @@ interface Detector {
 		data: Float32Array;
 		textureHeight: number;
 	};
-	mask: {
-		canvas: OffscreenCanvas;
-		gl: WebGL2RenderingContext;
-		program: WebGLProgram;
-		positionBuffer: WebGLBuffer;
-		colorLocation: WebGLUniformLocation;
-	};
 }
 const sharedDetectors = new Map<string, Detector>();
 
-function initMaskRenderer(detector: Detector) {
-	const gl = detector.mask.canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true })!;
+function initMaskRenderer(canvas: OffscreenCanvas): MaskRenderer {
+	const gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true })!;
 
 	const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
 	gl.shaderSource(vertexShader, MASK_VERTEX_SHADER);
@@ -183,21 +184,25 @@ function initMaskRenderer(detector: Detector) {
 	gl.enable(gl.BLEND);
 	gl.blendEquation(gl.MAX);
 
-	detector.mask = { ...detector.mask, gl, program, positionBuffer, colorLocation };
+	return { canvas, gl, program, positionBuffer, colorLocation };
 }
 
-function drawTriangles(detector: Detector, faceRegion: FaceRegion, faceIdx: number, r: number, g: number, b: number) {
+function drawTriangles(
+	mask: MaskRenderer,
+	landmarksData: Float32Array,
+	faceRegion: FaceRegion,
+	faceIdx: number,
+	r: number,
+	g: number,
+	b: number
+) {
 	const { triangles, vertices } = faceRegion;
-	const {
-		mask: { gl, colorLocation },
-		landmarks,
-	} = detector;
-	const { data: landmarksDataArray } = landmarks;
+	const { gl, colorLocation } = mask;
 
 	for (let i = 0; i < triangles.length; ++i) {
 		const landmarkIdx = (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + triangles[i]) * 4;
-		vertices[i * 2] = landmarksDataArray[landmarkIdx];
-		vertices[i * 2 + 1] = landmarksDataArray[landmarkIdx + 1];
+		vertices[i * 2] = landmarksData[landmarkIdx];
+		vertices[i * 2 + 1] = landmarksData[landmarkIdx + 1];
 	}
 
 	gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
@@ -240,36 +245,39 @@ function updateLandmarksData(detector: Detector, faces: NormalizedLandmark[][]) 
 	detector.state.nFaces = nFaces;
 }
 
-function updateMaskCanvas(detector: Detector) {
+function updateMask(detector: Detector, width: number, height: number) {
 	if (!faceRegions) return;
 	const {
 		mask,
-		canvas,
 		maxFaces,
+		landmarks,
 		state: { nFaces },
 	} = detector;
-	const { gl: maskGl, canvas: maskCanvas } = mask;
+	const { gl, canvas: maskCanvas } = mask;
+	const { data: landmarksData } = landmarks;
 
-	maskCanvas.width = canvas.width;
-	maskCanvas.height = canvas.height;
-	maskGl.viewport(0, 0, maskCanvas.width, maskCanvas.height);
-	maskGl.clearColor(0, 0, 0, 0);
-	maskGl.clear(maskGl.COLOR_BUFFER_BIT);
+	if (maskCanvas.width !== width || maskCanvas.height !== height) {
+		maskCanvas.width = width;
+		maskCanvas.height = height;
+	}
+	gl.viewport(0, 0, maskCanvas.width, maskCanvas.height);
+	gl.clearColor(0, 0, 0, 0);
+	gl.clear(gl.COLOR_BUFFER_BIT);
 
 	for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
 		const b = (faceIdx + 1) / maxFaces;
 
 		// G channel: face mesh (0.5) and oval (1.0)
-		drawTriangles(detector, faceRegions.TESSELATION, faceIdx, 0, 0.5, b);
-		drawTriangles(detector, faceRegions.OVAL, faceIdx, 0, 1.0, b);
+		drawTriangles(mask, landmarksData, faceRegions.TESSELATION, faceIdx, 0, 0.5, b);
+		drawTriangles(mask, landmarksData, faceRegions.OVAL, faceIdx, 0, 1.0, b);
 
 		// R channel: feature regions
-		drawTriangles(detector, faceRegions.LEFT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.LEFT_EYEBROW, 0, b);
-		drawTriangles(detector, faceRegions.RIGHT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYEBROW, 0, b);
-		drawTriangles(detector, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, 0, b);
-		drawTriangles(detector, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, 0, b);
-		drawTriangles(detector, faceRegions.OUTER_MOUTH, faceIdx, RED_CHANNEL_VALUES.OUTER_MOUTH, 0, b);
-		drawTriangles(detector, faceRegions.INNER_MOUTH, faceIdx, RED_CHANNEL_VALUES.INNER_MOUTH, 0, b);
+		drawTriangles(mask, landmarksData, faceRegions.LEFT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.LEFT_EYEBROW, 0, b);
+		drawTriangles(mask, landmarksData, faceRegions.RIGHT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYEBROW, 0, b);
+		drawTriangles(mask, landmarksData, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, 0, b);
+		drawTriangles(mask, landmarksData, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, 0, b);
+		drawTriangles(mask, landmarksData, faceRegions.OUTER_MOUTH, faceIdx, RED_CHANNEL_VALUES.OUTER_MOUTH, 0, b);
+		drawTriangles(mask, landmarksData, faceRegions.INNER_MOUTH, faceIdx, RED_CHANNEL_VALUES.INNER_MOUTH, 0, b);
 	}
 }
 
@@ -339,7 +347,8 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 
 				detector = {
 					landmarker: faceLandmarker,
-					canvas: mediapipeCanvas,
+					mediapipeCanvas,
+					mask: initMaskRenderer(maskCanvas),
 					subscribers: new Map(),
 					maxFaces: options.maxFaces,
 					state: {
@@ -355,13 +364,9 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 						data: landmarksData,
 						textureHeight,
 					},
-					mask: {
-						canvas: maskCanvas,
-					} as Detector['mask'],
 				};
 
 				initFaceRegions(FaceLandmarker);
-				initMaskRenderer(detector);
 				sharedDetectors.set(optionsKey, detector);
 			}
 
@@ -404,11 +409,16 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 
 				if (shouldDetect) {
 					let result: FaceLandmarkerResult | undefined;
+					let width: number, height: number;
 					if (source instanceof HTMLVideoElement) {
 						if (source.videoWidth === 0 || source.videoHeight === 0 || source.readyState < 2) return;
+						width = source.videoWidth;
+						height = source.videoHeight;
 						result = detector.landmarker.detectForVideo(source, now);
 					} else {
 						if (source.width === 0 || source.height === 0) return;
+						width = source.width;
+						height = source.height;
 						result = detector.landmarker.detect(source);
 					}
 
@@ -416,7 +426,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 						detector.state.resultTimestamp = now;
 						detector.state.result = result;
 						updateLandmarksData(detector, result.faceLandmarks);
-						updateMaskCanvas(detector);
+						updateMask(detector, width, height);
 						for (const cb of detector.subscribers.keys()) {
 							cb();
 							detector.subscribers.set(cb, true);
