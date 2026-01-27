@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.44
+
+### Minor Changes
+
+-   Swap play() arg order
+
 ## 1.0.0-beta.43
 
 ### Patch Changes
