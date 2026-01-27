@@ -57,7 +57,7 @@ void main() {
 		plugins: [helpers()],
 	});
 
-	shader.play((_t, frame) => {
+	shader.play(undefined, (_t, frame) => {
 		// Pause for inspection now that the history buffer is full.
 		if (frame >= HISTORY_LENGTH + 1) shader!.pause();
 	});

@@ -3,7 +3,6 @@
  * for animation. Spacebar to pause/play.
  */
 import ShaderPad from 'shaderpad';
-import autosize from 'shaderpad/plugins/autosize';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
