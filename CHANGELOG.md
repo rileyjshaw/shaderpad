@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.47
+
+### Patch Changes
+
+-   Add precision qualifiers to mask uniforms
+
 ## 1.0.0-beta.46
 
 ### Minor Changes
