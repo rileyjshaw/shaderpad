@@ -98,7 +98,7 @@ const MASK_SHADER_SRC = `#version 300 es
 precision mediump float;
 in vec2 v_uv;
 out vec4 outColor;
-uniform sampler2D u_mask;
+uniform mediump sampler2D u_mask;
 uniform float u_poseIndex;
 void main() {
 	ivec2 texCoord = ivec2(vec2(v_uv.x, 1.0 - v_uv.y) * vec2(textureSize(u_mask, 0)));
@@ -464,7 +464,7 @@ uniform highp sampler2D${history ? 'Array' : ''} u_poseLandmarksTex;${
 uniform int u_poseLandmarksTexFrameOffset;`
 				: ''
 		}
-uniform sampler2D${history ? 'Array' : ''} u_poseMask;${
+uniform ${history ? 'highp' : 'mediump'} sampler2D${history ? 'Array' : ''} u_poseMask;${
 			history
 				? `
 uniform int u_poseMaskFrameOffset;`

@@ -15,7 +15,7 @@ ${a}
 precision mediump float;
 in vec2 v_uv;
 out vec4 outColor;
-uniform sampler2D u_mask;
+uniform mediump sampler2D u_mask;
 uniform float u_poseIndex;
 void main() {
 	ivec2 texCoord = ivec2(vec2(v_uv.x, 1.0 - v_uv.y) * vec2(textureSize(u_mask, 0)));
@@ -28,7 +28,7 @@ uniform int u_maxPoses;
 uniform int u_nPoses;
 uniform highp sampler2D${e?"Array":""} u_poseLandmarksTex;${e?`
 uniform int u_poseLandmarksTexFrameOffset;`:""}
-uniform sampler2D${e?"Array":""} u_poseMask;${e?`
+uniform ${e?"highp":"mediump"} sampler2D${e?"Array":""} u_poseMask;${e?`
 uniform int u_poseMaskFrameOffset;`:""}
 
 #define POSE_LANDMARK_LEFT_EYE ${h.LEFT_EYE}
