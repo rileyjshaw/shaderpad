@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.48
+
+### Minor Changes
+
+-   Improve inX checks and add public clear method
+
 ## 1.0.0-beta.47
 
 ### Patch Changes
