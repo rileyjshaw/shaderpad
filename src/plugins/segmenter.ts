@@ -229,10 +229,14 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 						result = detector.segmenter.segment(source);
 					}
 
-					if (result?.confidenceMasks && result.confidenceMasks.length > 0) {
+					if (result) {
 						detector.state.resultTimestamp = now;
 						detector.state.result = result;
-						updateMask(detector, result.confidenceMasks);
+						if (result.confidenceMasks && result.confidenceMasks.length > 0) {
+							updateMask(detector, result.confidenceMasks);
+						} else {
+							detector.maskShader.clear();
+						}
 						for (const cb of detector.subscribers.keys()) {
 							cb();
 							detector.subscribers.set(cb, true);

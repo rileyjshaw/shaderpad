@@ -246,7 +246,6 @@ function updateLandmarksData(detector: Detector, faces: NormalizedLandmark[][]) 
 }
 
 function updateMask(detector: Detector, width: number, height: number) {
-	if (!faceRegions) return;
 	const {
 		mask,
 		maxFaces,
@@ -263,6 +262,8 @@ function updateMask(detector: Detector, width: number, height: number) {
 	gl.viewport(0, 0, maskCanvas.width, maskCanvas.height);
 	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
+
+	if (!faceRegions) return;
 
 	for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
 		const b = (faceIdx + 1) / maxFaces;

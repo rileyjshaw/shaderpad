@@ -234,8 +234,11 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 }
 
 function updateMask(detector: Detector, segmentationMasks?: MPMask[]) {
-	if (!segmentationMasks || segmentationMasks.length === 0) return;
 	const { maskShader, maxPoses } = detector;
+
+	if (!segmentationMasks || segmentationMasks.length === 0) {
+		return maskShader.clear();
+	}
 
 	for (let i = 0; i < segmentationMasks.length; ++i) {
 		const segMask = segmentationMasks[i];

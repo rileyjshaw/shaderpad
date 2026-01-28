@@ -818,21 +818,35 @@ class ShaderPad {
 		}
 	}
 
+	private bindIntermediate() {
+		const gl = this.gl;
+		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.intermediateFbo);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateInfo.texture, 0);
+	}
+
+	clear() {
+		this.bindIntermediate();
+		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+	}
+
 	draw(options?: StepOptions) {
 		this.emitHook('beforeDraw', ...arguments);
 		const gl = this.gl;
 		const w = gl.drawingBufferWidth;
 		const h = gl.drawingBufferHeight;
-		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
-		gl.bindFramebuffer(gl.FRAMEBUFFER, this.intermediateFbo);
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateInfo.texture, 0);
+
+		if (options?.skipClear) {
+			this.bindIntermediate();
+		} else {
+			this.clear();
+		}
 
 		gl.useProgram(this.program);
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 		gl.vertexAttribPointer(this.aPositionLocation, 2, gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(this.aPositionLocation);
 		gl.viewport(0, 0, w, h);
-		if (!options?.skipClear) gl.clear(gl.COLOR_BUFFER_BIT);
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
 		const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
