@@ -17,6 +17,7 @@ const demos = [
 	{ path: './face-camo', name: 'Face Camo' },
 	{ path: './face-dual', name: 'Face Dual' },
 	{ path: './pose', name: 'Pose Detection' },
+	{ path: './pose-background-blur', name: 'Pose - Background blur' },
 	{ path: './body-camo', name: 'Body Camo' },
 	{ path: './hands', name: 'Hands Detection' },
 	{ path: './hands-elastic', name: 'Hands - Elastic' },
