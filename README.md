@@ -448,12 +448,12 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Uniforms:**
 
-| Uniform              | Type                          | Description                                                                 |
-| -------------------- | ----------------------------- | --------------------------------------------------------------------------- |
-| `u_maxFaces`         | int                           | Maximum number of faces to detect                                           |
-| `u_nFaces`           | int                           | Current number of detected faces                                            |
-| `u_faceLandmarksTex` | sampler2D (or sampler2DArray) | Raw landmark data texture (use `faceLandmark()` to access)                  |
-| `u_faceMask`         | sampler2D (or sampler2DArray) | Face mask texture (R: region type, G: confidence, B: normalized face index) |
+| Uniform              | Type                          | Description                                                                  |
+| -------------------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| `u_maxFaces`         | int                           | Maximum number of faces to detect                                            |
+| `u_nFaces`           | int                           | Current number of detected faces                                             |
+| `u_faceLandmarksTex` | sampler2D (or sampler2DArray) | Raw landmark data texture (use `faceLandmark()` to access)                   |
+| `u_faceMask`         | sampler2D (or sampler2DArray) | Face mask texture (R: region type, G: face region, B: normalized face index) |
 
 **Helper functions:**
 
@@ -472,14 +472,14 @@ All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexe
 -   `eyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eye, `vec2(0.0, -1.0)` otherwise.
 -   `eyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eyebrow, `vec2(0.0, -1.0)` otherwise.
 
-**Convenience functions** (return `1.0` if true, `0.0` if false):
+**Convenience functions** (return confidence 0-1 if found, `0.0` otherwise):
 
--   `inFace(vec2 pos) -> float` - Returns `1.0` if position is in face mesh, `0.0` otherwise.
--   `inEye(vec2 pos) -> float` - Returns `1.0` if position is in either eye, `0.0` otherwise.
--   `inEyebrow(vec2 pos) -> float` - Returns `1.0` if position is in either eyebrow, `0.0` otherwise.
--   `inOuterMouth(vec2 pos) -> float` - Returns `1.0` if position is in outer mouth (lips + inner mouth), `0.0` otherwise.
--   `inInnerMouth(vec2 pos) -> float` - Returns `1.0` if position is in inner mouth, `0.0` otherwise.
--   `inLips(vec2 pos) -> float` - Returns `1.0` if position is in lips, `0.0` otherwise.
+-   `inFace(vec2 pos) -> float` - Returns confidence (0-1) if position is in face mesh, `0.0` otherwise.
+-   `inEye(vec2 pos) -> float` - Returns confidence (0-1) if position is in either eye, `0.0` otherwise.
+-   `inEyebrow(vec2 pos) -> float` - Returns confidence (0-1) if position is in either eyebrow, `0.0` otherwise.
+-   `inOuterMouth(vec2 pos) -> float` - Returns confidence (0-1) if position is in outer mouth (lips + inner mouth), `0.0` otherwise.
+-   `inInnerMouth(vec2 pos) -> float` - Returns confidence (0-1) if position is in inner mouth, `0.0` otherwise.
+-   `inLips(vec2 pos) -> float` - Returns confidence (0-1) if position is in lips, `0.0` otherwise.
 
 **Landmark Constants:**
 
@@ -495,7 +495,7 @@ All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexe
 // Get a specific landmark position.
 vec2 nosePos = vec2(faceLandmark(0, FACE_LANDMARK_NOSE_TIP));
 
-// Use in* convenience functions for simple boolean checks.
+// Use in* convenience functions for simple confidence checks.
 float eyeMask = inEye(v_uv);
 
 // Use faceLandmark or *At functions when you need to check a specific face index.
@@ -513,6 +513,8 @@ for (int i = 0; i < u_nFaces; ++i) {
 [Landmark indices are documented here.](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker#face_landmarker_model) This library adds two custom landmarks: `FACE_CENTER` and `MOUTH_CENTER`. This brings the total landmark count to 480.
 
 **Note:** The face plugin requires `@mediapipe/tasks-vision` as a peer dependency.
+
+**Note:** Confidence values are currently limited to 0.0 or 1.0.
 
 #### pose
 
@@ -552,7 +554,7 @@ When `history` is enabled, all functions accept an optional `int framesAgo` para
 
 -   `poseLandmark(int poseIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(poseLandmark(...))` to get just the screen position.
 -   `poseAt(vec2 pos) -> vec2` - Returns `vec2(confidence, poseIndex)`. poseIndex is 0-indexed (-1 = no pose), confidence is the segmentation confidence.
--   `inPose(vec2 pos) -> float` - Returns `1.0` if position is in any pose, `0.0` otherwise.
+-   `inPose(vec2 pos) -> float` - Returns confidence (0-1) if position is in any pose, `0.0` otherwise.
 
 **Constants:**
 
@@ -747,11 +749,8 @@ When `history` is enabled, all functions accept an optional `int framesAgo` para
 vec2 segment = segmentAt(v_uv);
 float confidence = segment.x;  // Segmentation confidence
 float category = segment.y;    // Category index (0-indexed, -1 = background)
-
-if (category >= 0.0) {
-	// Apply effect based on confidence.
-	color = mix(color, vec3(1.0, 0.0, 1.0), confidence);
-}
+float isNotBackground = step(0.0, category) * confidence;
+color = mix(color, vec3(1.0, 0.0, 1.0), isNotBackground);
 ```
 
 **Note:** The segmenter plugin requires `@mediapipe/tasks-vision` as a peer dependency.

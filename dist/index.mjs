@@ -1,2 +1,2 @@
-import{a}from"./chunk-OIM5PVRI.mjs";export{a as default};
+import{a}from"./chunk-OFQOKVP6.mjs";export{a as default};
 //# sourceMappingURL=index.mjs.map

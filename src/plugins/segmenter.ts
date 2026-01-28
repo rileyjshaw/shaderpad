@@ -22,7 +22,9 @@ const DEFAULT_SEGMENTER_OPTIONS: Required<Omit<SegmenterPluginOptions, 'history'
 };
 
 function createMaskShaderSource(numMasks: number): string {
-	const uniforms = Array.from({ length: numMasks }, (_, i) => `uniform mediump sampler2D u_confidenceMask${i};`).join('\n');
+	const uniforms = Array.from({ length: numMasks }, (_, i) => `uniform mediump sampler2D u_confidenceMask${i};`).join(
+		'\n'
+	);
 
 	const sampleByIndex = Array.from(
 		{ length: numMasks },

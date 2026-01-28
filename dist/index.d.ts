@@ -101,6 +101,8 @@ declare class ShaderPad {
         skipHistoryWrite?: boolean;
     }): void;
     private updateTexture;
+    private bindIntermediate;
+    clear(): void;
     draw(options?: StepOptions): void;
     step(time: number, options?: StepOptions): void;
     play(onBeforeStep?: (time: number, frame: number) => StepOptions | void, onAfterStep?: (time: number, frame: number) => void): void;

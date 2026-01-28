@@ -489,23 +489,51 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		const sampleMask = history ? `_sampleFaceMask(pos, framesAgo)` : `texture(u_faceMask, pos)`;
 
 		const checkAt = (
+			fnName: string,
 			regionMin: keyof typeof RED_CHANNEL_VALUES,
 			regionMax: keyof typeof RED_CHANNEL_VALUES = regionMin
 		) =>
-			`vec4 mask = ${sampleMask};
+			fn(
+				'vec2',
+				`${fnName}At`,
+				'vec2 pos',
+				`vec4 mask = ${sampleMask};
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
 	return (mask.r > ${(RED_CHANNEL_VALUES[regionMin] - HALF_GAP).toFixed(4)} && mask.r < ${(
-				RED_CHANNEL_VALUES[regionMax] + HALF_GAP
-			).toFixed(4)}) ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`;
+					RED_CHANNEL_VALUES[regionMax] + HALF_GAP
+				).toFixed(4)}) ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`
+			);
 
-		const checkMaskG = (threshold: number) =>
-			`vec4 mask = ${sampleMask};
+		const checkMaskG = (fnName: string, threshold: number) =>
+			fn(
+				'vec2',
+				`${fnName}At`,
+				'vec2 pos',
+				`vec4 mask = ${sampleMask};
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return mask.g > ${threshold.toFixed(2)} ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`;
+	return mask.g > ${threshold.toFixed(2)} ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`
+			);
 
-		const combineLeftRight = (leftFn: string, rightFn: string) =>
-			`vec2 left = ${leftFn}(pos${historyParams});
-	return left.x > 0.0 ? left : ${rightFn}(pos${historyParams});`;
+		const combineLeftRight = (fnName: string, leftFn: string, rightFn: string) =>
+			fn(
+				'vec2',
+				`${fnName}At`,
+				'vec2 pos',
+				`vec2 left = ${leftFn}(pos${historyParams});
+	return left.x > 0.0 ? left : ${rightFn}(pos${historyParams});`
+			);
+
+		const checkIn = (fnNames: string[]) =>
+			fnNames
+				.map(fnName =>
+					fn(
+						'float',
+						`in${fnName[0].toUpperCase() + fnName.slice(1)}`,
+						'vec2 pos',
+						`vec2 a = ${fnName}At(pos${historyParams}); return step(0.0, a.y) * a.x;`
+					)
+				)
+				.join('\n');
 
 		injectGLSL(`
 uniform int u_maxFaces;
@@ -565,23 +593,18 @@ vec4 _sampleFaceMask(vec2 pos, int framesAgo) {
 `
 		: ''
 }
-${fn('vec2', 'leftEyebrowAt', 'vec2 pos', checkAt('LEFT_EYEBROW'))}
-${fn('vec2', 'rightEyebrowAt', 'vec2 pos', checkAt('RIGHT_EYEBROW'))}
-${fn('vec2', 'leftEyeAt', 'vec2 pos', checkAt('LEFT_EYE'))}
-${fn('vec2', 'rightEyeAt', 'vec2 pos', checkAt('RIGHT_EYE'))}
-${fn('vec2', 'lipsAt', 'vec2 pos', checkAt('OUTER_MOUTH'))}
-${fn('vec2', 'outerMouthAt', 'vec2 pos', checkAt('OUTER_MOUTH', 'INNER_MOUTH'))}
-${fn('vec2', 'innerMouthAt', 'vec2 pos', checkAt('INNER_MOUTH'))}
-${fn('vec2', 'faceOvalAt', 'vec2 pos', checkMaskG(0.75))}
-${fn('vec2', 'faceAt', 'vec2 pos', checkMaskG(0.25))}
-${fn('vec2', 'eyeAt', 'vec2 pos', combineLeftRight('leftEyeAt', 'rightEyeAt'))}
-${fn('vec2', 'eyebrowAt', 'vec2 pos', combineLeftRight('leftEyebrowAt', 'rightEyebrowAt'))}
-${fn('float', 'inEyebrow', 'vec2 pos', `return eyebrowAt(pos${historyParams}).x;`)}
-${fn('float', 'inEye', 'vec2 pos', `return eyeAt(pos${historyParams}).x;`)}
-${fn('float', 'inOuterMouth', 'vec2 pos', `return outerMouthAt(pos${historyParams}).x;`)}
-${fn('float', 'inInnerMouth', 'vec2 pos', `return innerMouthAt(pos${historyParams}).x;`)}
-${fn('float', 'inLips', 'vec2 pos', `return lipsAt(pos${historyParams}).x;`)}
-${fn('float', 'inFace', 'vec2 pos', `return faceAt(pos${historyParams}).x;`)}`);
+${checkAt('leftEyebrow', 'LEFT_EYEBROW')}
+${checkAt('rightEyebrow', 'RIGHT_EYEBROW')}
+${checkAt('leftEye', 'LEFT_EYE')}
+${checkAt('rightEye', 'RIGHT_EYE')}
+${checkAt('lips', 'OUTER_MOUTH')}
+${checkAt('outerMouth', 'OUTER_MOUTH', 'INNER_MOUTH')}
+${checkAt('innerMouth', 'INNER_MOUTH')}
+${checkMaskG('faceOval', 0.75)}
+${checkMaskG('face', 0.25)}
+${combineLeftRight('eye', 'leftEyeAt', 'rightEyeAt')}
+${combineLeftRight('eyebrow', 'leftEyebrowAt', 'rightEyebrowAt')}
+${checkIn(['eyebrow', 'eye', 'outerMouth', 'innerMouth', 'lips', 'face'])}`);
 	};
 }
 

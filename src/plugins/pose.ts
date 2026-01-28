@@ -522,7 +522,7 @@ ${fn(
 	float poseIndex = floor(mask.b * float(u_maxPoses) + 0.5) - 1.0;
 	return vec2(mask.g, poseIndex);`
 )}
-${fn('float', 'inPose', 'vec2 pos', `return step(0.0, poseAt(pos${historyParams}).x);`)}`);
+${fn('float', 'inPose', 'vec2 pos', `vec2 pose = poseAt(pos${historyParams}); return step(0.0, pose.y) * pose.x;`)}`);
 	};
 }
 
