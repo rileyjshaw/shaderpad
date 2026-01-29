@@ -133,7 +133,7 @@ void main() {
 	shaderB.play(() => {
 		shaderA!.updateTextures({ u_webcam: video! });
 		shaderB!.updateTextures({ u_webcam: video! });
-		shaderA!.draw();
+		shaderA!.step();
 		shaderB!.updateTextures({ u_firstPass: shaderA! });
 	});
 }

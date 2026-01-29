@@ -227,22 +227,17 @@ shader.play(() => {
 -   `onBeforeStep?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
 -   `onAfterStep?`: `(time: number, frame: number) => void` - Called after each frame
 
-#### `step(time, options?)`
+#### `step(options?)`
 
-Manually advance one frame. Updates `u_time` and `u_frame`, then renders.
-
-```typescript
-shader.step(5.0); // Render at 5 seconds.
-```
+Manually advance one frame. Updates `u_time` and `u_frame`, renders, then writes to history if `skipHistoryWrite` is `false` (default).
 
 **Parameters:**
 
--   `time` (number): The current time in seconds
 -   `options?` (optional): `StepOptions` - Options to control rendering behavior (see below)
 
 #### `draw(options?)`
 
-Render without updating uniforms or frame counter.
+Render without updating uniforms, frame counter, or history.
 
 ```typescript
 shader.draw({ skipClear: true });

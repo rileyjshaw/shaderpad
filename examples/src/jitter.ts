@@ -1,7 +1,3 @@
-/**
- * Procedural animation with rotating grid patterns. Multiple variants
- * (rainbow, stripes, graph paper) cycled with arrow keys. Uses custom uniforms.
- */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
 
@@ -50,20 +46,11 @@ float easeInCubic(float t) {
 }
 
 void main() {
-	vec2 uv = vec2(1.0 - v_uv.x, v_uv.y); // Selfie mode: flip X-axis.
+	vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
 
 	vec3 color = vec3(0.0);
 	for (int i = 0; i < ${N_ECHOES}; ++i) {
 		float frameOffset = easeInCubic(float(i * ${FRAME_DELAY_PER_ECHO}) / ${N_ECHOES}.0) * ${N_ECHOES}.0;
-		/*
-		int frameOffset = i * ${3 * FRAME_DELAY_PER_ECHO};
-		vec3 echo = vec3(0.0);
-		echo.r += texture(u_webcam, vec3(uv, historyZ(u_webcam, u_webcamFrameOffset, frameOffset))).r;
-		echo.g += texture(u_webcam, vec3(uv, historyZ(u_webcam, u_webcamFrameOffset, frameOffset + ${FRAME_DELAY_PER_ECHO}))).g;
-		echo.b += texture(u_webcam, vec3(uv, historyZ(u_webcam, u_webcamFrameOffset, frameOffset + ${
-			FRAME_DELAY_PER_ECHO * 2
-		}))).b;
-		*/
 		vec3 echo = texture(u_webcam, vec3(uv, historyZ(u_webcam, u_webcamFrameOffset, int(frameOffset)))).rgb;
 		color += echo * ${dimmingFactor.toFixed(1)} / float(i + 1);
 	}

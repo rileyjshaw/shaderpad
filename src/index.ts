@@ -849,12 +849,6 @@ class ShaderPad {
 		gl.viewport(0, 0, w, h);
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-		const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
-		if (historyInfo && !options?.skipHistoryWrite) {
-			gl.bindTexture(gl.TEXTURE_2D_ARRAY, historyInfo.texture);
-			gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, historyInfo.history!.writeIndex, 0, 0, w, h);
-		}
-
 		if (!this.isHeadless) {
 			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
 			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
@@ -864,7 +858,11 @@ class ShaderPad {
 		this.emitHook('afterDraw', ...arguments);
 	}
 
-	step(time: number, options?: StepOptions) {
+	step(options?: StepOptions) {
+		this._step(performance.now() - this.startTime, options);
+	}
+
+	private _step(time: number, options?: StepOptions) {
 		this.emitHook('beforeStep', ...arguments);
 		const updates: Record<string, number> = {};
 		if (this.uniforms.has('u_time')) updates.u_time = time;
@@ -874,6 +872,19 @@ class ShaderPad {
 		const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
 		if (historyInfo && !options?.skipHistoryWrite) {
 			const { writeIndex, depth } = historyInfo.history!;
+			const gl = this.gl;
+			gl.bindTexture(gl.TEXTURE_2D_ARRAY, historyInfo.texture);
+			gl.copyTexSubImage3D(
+				gl.TEXTURE_2D_ARRAY,
+				0,
+				0,
+				0,
+				writeIndex,
+				0,
+				0,
+				gl.drawingBufferWidth,
+				gl.drawingBufferHeight
+			);
 			this.updateUniforms({ [`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: writeIndex });
 			historyInfo.history!.writeIndex = (writeIndex + 1) % depth;
 		}
@@ -889,7 +900,7 @@ class ShaderPad {
 		const loop = (time: number) => {
 			time = (time - this.startTime) / 1000; // Convert from milliseconds to seconds.
 			const options = onBeforeStep?.(time, this.frame) ?? undefined;
-			this.step(time, options);
+			this._step(time, options);
 			this.animationFrameId = requestAnimationFrame(loop);
 			onAfterStep?.(time, this.frame);
 		};
@@ -914,6 +925,7 @@ class ShaderPad {
 				this.clearHistoryTextureLayers(texture);
 			}
 		});
+		this.clear();
 		this.emitHook('reset');
 	}
 

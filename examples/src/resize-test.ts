@@ -160,7 +160,7 @@ void main() {
 		shader!.updateTextures({
 			u_input: currentInput === 'small' ? inputCanvasSmall! : inputCanvasBig!,
 		});
-		shader!.step(Date.now() / 1000);
+		shader!.step();
 	}, 500);
 }
 
