@@ -274,6 +274,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			})();
 
 		let detector: Detector | null = null;
+		let destroyed = false;
 		let skipHistoryWrite = false;
 
 		function onResult() {
@@ -305,6 +306,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					getSharedFileset(),
 					import('@mediapipe/tasks-vision'),
 				]);
+				if (destroyed) return;
 				const poseLandmarker = await PoseLandmarker.createFromOptions(mediaPipe, {
 					baseOptions: {
 						modelAssetPath: options.modelPath,
@@ -318,6 +320,11 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					minTrackingConfidence: options.minTrackingConfidence,
 					outputSegmentationMasks: true,
 				});
+				if (destroyed) {
+					poseLandmarker.close();
+					maskShader.destroy();
+					return;
+				}
 
 				detector = {
 					landmarker: poseLandmarker,
@@ -359,7 +366,10 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				magFilter: 'NEAREST',
 				history,
 			});
-			initPromise.then(() => emitHook('pose:ready'));
+			initPromise.then(() => {
+				if (destroyed || !detector) return;
+				emitHook('pose:ready');
+			});
 		});
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
@@ -441,6 +451,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		}
 
 		shaderPad.on('destroy', () => {
+			destroyed = true;
 			if (detector) {
 				detector.subscribers.delete(onResult);
 				if (detector.subscribers.size === 0) {

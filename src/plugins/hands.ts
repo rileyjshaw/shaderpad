@@ -109,6 +109,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		const landmarksData =
 			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		let detector: Detector | null = null;
+		let destroyed = false;
 		let skipHistoryWrite = false;
 
 		function onResult() {
@@ -139,6 +140,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					getSharedFileset(),
 					import('@mediapipe/tasks-vision'),
 				]);
+				if (destroyed) return;
 				const mediapipeCanvas = new OffscreenCanvas(1, 1);
 				const handLandmarker = await HandLandmarker.createFromOptions(mediaPipe, {
 					baseOptions: {
@@ -152,6 +154,10 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					minHandPresenceConfidence: options.minHandPresenceConfidence,
 					minTrackingConfidence: options.minTrackingConfidence,
 				});
+				if (destroyed) {
+					handLandmarker.close();
+					return;
+				}
 
 				detector = {
 					landmarker: handLandmarker,
@@ -187,7 +193,10 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
 				{ internalFormat: 'RGBA32F', type: 'FLOAT', minFilter: 'NEAREST', magFilter: 'NEAREST', history }
 			);
-			initPromise.then(() => emitHook('hands:ready'));
+			initPromise.then(() => {
+				if (destroyed || !detector) return;
+				emitHook('hands:ready');
+			});
 		});
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
@@ -267,6 +276,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		}
 
 		shaderPad.on('destroy', () => {
+			destroyed = true;
 			if (detector) {
 				detector.subscribers.delete(onResult);
 				if (detector.subscribers.size === 0) {

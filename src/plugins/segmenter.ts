@@ -98,6 +98,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
 		let detector: SharedDetector | null = null;
+		let destroyed = false;
 		let skipHistoryWrite = false;
 
 		function onResult() {
@@ -114,6 +115,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					getSharedFileset(),
 					import('@mediapipe/tasks-vision'),
 				]);
+				if (destroyed) return;
 				// Single shared canvas for MediaPipe and maskShader (same WebGL context required
 				// because maskShader uses textures from MediaPipe via getAsWebGLTexture).
 				const imageSegmenter = await ImageSegmenter.createFromOptions(mediaPipe, {
@@ -126,6 +128,10 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					outputCategoryMask: options.outputCategoryMask,
 					outputConfidenceMasks: true,
 				});
+				if (destroyed) {
+					imageSegmenter.close();
+					return;
+				}
 
 				const labels = imageSegmenter.getLabels();
 				const numCategories = labels.length || 1;
@@ -166,7 +172,8 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				history,
 			});
 			initPromise.then(() => {
-				shaderPad.updateUniforms({ u_numCategories: detector!.numCategories });
+				if (destroyed || !detector) return;
+				shaderPad.updateUniforms({ u_numCategories: detector.numCategories });
 				emitHook('segmenter:ready');
 			});
 		});
@@ -252,6 +259,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		}
 
 		shaderPad.on('destroy', () => {
+			destroyed = true;
 			if (detector) {
 				detector.subscribers.delete(onResult);
 				if (detector.subscribers.size === 0) {

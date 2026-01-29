@@ -298,6 +298,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		const maskCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
 		let detector: Detector | null = null;
+		let destroyed = false;
 		let skipHistoryWrite = false;
 
 		function onResult() {
@@ -329,6 +330,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 					getSharedFileset(),
 					import('@mediapipe/tasks-vision'),
 				]);
+				if (destroyed) return;
 
 				const mediapipeCanvas = new OffscreenCanvas(1, 1);
 				const faceLandmarker = await FaceLandmarker.createFromOptions(mediaPipe, {
@@ -345,6 +347,10 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 					outputFaceBlendshapes: options.outputFaceBlendshapes,
 					outputFacialTransformationMatrixes: options.outputFacialTransformationMatrixes,
 				});
+				if (destroyed) {
+					faceLandmarker.close();
+					return;
+				}
 
 				detector = {
 					landmarker: faceLandmarker,
@@ -455,7 +461,10 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				magFilter: 'NEAREST',
 				history,
 			});
-			initPromise.then(() => emitHook('face:ready'));
+			initPromise.then(() => {
+				if (destroyed || !detector) return;
+				emitHook('face:ready');
+			});
 		});
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
@@ -474,6 +483,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		);
 
 		shaderPad.on('destroy', () => {
+			destroyed = true;
 			if (detector) {
 				detector.subscribers.delete(onResult);
 				if (detector.subscribers.size === 0) {
