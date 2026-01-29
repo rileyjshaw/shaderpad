@@ -1,11 +1,11 @@
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
-in vec2 aPosition;
 out vec2 v_uv;
 void main() {
-    v_uv = aPosition * 0.5 + 0.5;
-    gl_Position = vec4(aPosition, 0.0, 1.0);
+    int id = gl_VertexID;
+    vec2 uv = vec2(float((id << 1) & 2), float(id & 2));
+    gl_Position = vec4(uv * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 0.0, 1.0);
+    v_uv = gl_Position.xy * 0.5 + 0.5;
 }`;
-const QUAD_VERTICES = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
 
 interface Uniform {
 	type: 'float' | 'int';
@@ -254,12 +254,7 @@ class ShaderPad {
 		}
 
 		this.aPositionLocation = gl.getAttribLocation(program, 'aPosition');
-		this.buffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-		gl.bufferData(gl.ARRAY_BUFFER, QUAD_VERTICES, gl.STATIC_DRAW);
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-		gl.enableVertexAttribArray(this.aPositionLocation);
-		gl.vertexAttribPointer(this.aPositionLocation, 2, gl.FLOAT, false, 0, 0);
 
 		gl.useProgram(program);
 
@@ -849,11 +844,8 @@ class ShaderPad {
 		}
 
 		gl.useProgram(this.program);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-		gl.vertexAttribPointer(this.aPositionLocation, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(this.aPositionLocation);
 		gl.viewport(0, 0, w, h);
-		gl.drawArrays(gl.TRIANGLES, 0, 6);
+		gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 		if (!this.isHeadless) {
 			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);

@@ -13,7 +13,7 @@ function save() {
 
 		(shaderPad as any).save = async function (filename: string, text?: string) {
 			gl.clear(gl.COLOR_BUFFER_BIT);
-			gl.drawArrays(gl.TRIANGLES, 0, 6);
+			gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 			if (filename && !`${filename}`.toLowerCase().endsWith('.png')) {
 				filename = `${filename}.png`;

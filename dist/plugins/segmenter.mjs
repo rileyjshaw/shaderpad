@@ -1,4 +1,4 @@
-import{a as C}from"../chunk-KOMCRUS3.mjs";import{a as _,b as h,c as I,e as O,f as E}from"../chunk-JRSBIGBN.mjs";var L={modelPath:"https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite",outputCategoryMask:!1};function z(a){let o=Array.from({length:a},(c,n)=>`uniform mediump sampler2D u_confidenceMask${n};`).join(`
+import{a as C}from"../chunk-SBS4G6RV.mjs";import{a as _,b as h,c as I,e as O,f as E}from"../chunk-JRSBIGBN.mjs";var L={modelPath:"https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite",outputCategoryMask:!1};function z(a){let o=Array.from({length:a},(c,n)=>`uniform mediump sampler2D u_confidenceMask${n};`).join(`
 `),i=Array.from({length:a},(c,n)=>`		${n>0?"else ":""}if (i == ${n}) c = texelFetch(u_confidenceMask${n}, texCoord, 0).r;`).join(`
 `);return`#version 300 es
 precision mediump float;
