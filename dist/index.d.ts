@@ -104,7 +104,8 @@ declare class ShaderPad {
     private bindIntermediate;
     clear(): void;
     draw(options?: StepOptions): void;
-    step(time: number, options?: StepOptions): void;
+    step(options?: StepOptions): void;
+    private _step;
     play(onBeforeStep?: (time: number, frame: number) => StepOptions | void, onAfterStep?: (time: number, frame: number) => void): void;
     pause(): void;
     reset(): void;

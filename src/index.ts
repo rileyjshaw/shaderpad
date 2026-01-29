@@ -465,7 +465,7 @@ class ShaderPad {
 	private resolveTextureOptions(options?: TextureOptions): ResolvedTextureOptions {
 		const { gl } = this;
 		const type = this.resolveGLConstant(options?.type ?? 'UNSIGNED_BYTE');
-		return {
+		const result = {
 			type,
 			format: this.resolveGLConstant(options?.format ?? 'RGBA'),
 			internalFormat: this.resolveGLConstant(
@@ -478,6 +478,12 @@ class ShaderPad {
 			wrapT: this.resolveGLConstant(options?.wrapT ?? 'CLAMP_TO_EDGE'),
 			preserveY: options?.preserveY,
 		};
+		const isFloatColorFormat = result.internalFormat === gl.RGBA16F || result.internalFormat === gl.RGBA32F;
+		// gl.getExtension isn’t just a check, it’s a required side-effect to enable floats.
+		if (isFloatColorFormat && !gl.getExtension('EXT_color_buffer_float')) {
+			throw new Error('Missing EXT_color_buffer_float.');
+		}
+		return result;
 	}
 
 	private getPixelArray(type: number, size: number): ArrayBufferView {
