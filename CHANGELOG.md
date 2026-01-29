@@ -1,5 +1,13 @@
 # shaderpad
 
+## 1.0.0-beta.49
+
+### Minor Changes
+
+-   Remove time as first arg for public step method
+
+    This version also fixes high-precision float formats, and handles a race condition between init and destroy in MediaPipe plugins.
+
 ## 1.0.0-beta.48
 
 ### Minor Changes

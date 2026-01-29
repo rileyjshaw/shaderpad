@@ -1,6 +1,6 @@
 {
 	"name": "shaderpad",
-	"version": "1.0.0-beta.48",
+	"version": "1.0.0-beta.49",
 	"description": "A lightweight, dependency-free library to reduce boilerplate when writing fragment shaders.",
 	"keywords": [
 		"shaders",
