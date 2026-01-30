@@ -773,11 +773,11 @@ class ShaderPad {
 			if (!options?.skipHistoryWrite) {
 				const { depth } = info.history;
 				const targetSlots =
-					options?.historyWriteIndex !== undefined
-						? Array.isArray(options.historyWriteIndex)
-							? options.historyWriteIndex.map(i => safeMod(i, depth))
-							: [safeMod(options.historyWriteIndex, depth)]
-						: [info.history.writeIndex];
+					options?.historyWriteIndex === undefined
+						? [info.history.writeIndex]
+						: Array.isArray(options.historyWriteIndex)
+						? options.historyWriteIndex.map(i => safeMod(i, depth))
+						: [safeMod(options.historyWriteIndex, depth)];
 
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 				const sourceData =

@@ -137,7 +137,7 @@ interface Detector {
 	landmarker: FaceLandmarker;
 	mediapipeCanvas: OffscreenCanvas;
 	mask: MaskRenderer;
-	subscribers: Map<() => void, boolean>;
+	subscribers: Map<Function, boolean>;
 	maxFaces: number;
 	state: {
 		runningMode: 'IMAGE' | 'VIDEO';
@@ -301,11 +301,16 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		let destroyed = false;
 		let skipHistoryWrite = false;
 
-		function onResult() {
+		function onResult(singleHistoryWriteIndex?: number) {
 			if (!detector) return;
 			const nFaces = detector.state.nFaces;
 			const nSlots = nFaces * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
+			let historyWriteIndex: number | number[] | undefined = singleHistoryWriteIndex;
+			if (typeof historyWriteIndex === 'undefined' && pendingBackfillSlots.length > 0) {
+				historyWriteIndex = pendingBackfillSlots;
+				pendingBackfillSlots = [];
+			}
 			shaderPad.updateTextures(
 				{
 					u_faceLandmarksTex: {
@@ -316,7 +321,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 					},
 					u_faceMask: detector.mask.canvas,
 				},
-				{ skipHistoryWrite }
+				history ? { skipHistoryWrite, historyWriteIndex } : undefined
 			);
 			shaderPad.updateUniforms({ u_nFaces: nFaces });
 			emitHook('face:result', detector.state.result);
@@ -439,9 +444,13 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 							detector.subscribers.set(cb, true);
 						}
 					}
-				} else if (detector.state.result && !detector.subscribers.get(onResult)) {
-					onResult();
-					detector.subscribers.set(onResult, true);
+				} else if (detector.state.result) {
+					for (const [cb, hasCalled] of detector.subscribers.entries()) {
+						if (!hasCalled) {
+							cb();
+							detector.subscribers.set(cb, true);
+						}
+					}
 				}
 			});
 
@@ -467,8 +476,20 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			});
 		});
 
+		let historyWriteCounter = 0;
+		let pendingBackfillSlots: number[] = [];
+		const writeToHistory = () => {
+			if (!history) return;
+			onResult(historyWriteCounter); // Write stale data immediately.
+			pendingBackfillSlots.push(historyWriteCounter); // Queue up backfill with more recent data.
+			historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
+		};
+
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
-			if (name === textureName && isMediaPipeSource(source)) detectFaces(source);
+			if (name === textureName && isMediaPipeSource(source)) {
+				writeToHistory();
+				detectFaces(source);
+			}
 		});
 
 		shaderPad.on(
@@ -477,6 +498,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				const source = updates[textureName];
 				if (isMediaPipeSource(source)) {
 					skipHistoryWrite = options?.skipHistoryWrite ?? false;
+					if (!skipHistoryWrite) writeToHistory();
 					detectFaces(source);
 				}
 			}
@@ -574,7 +596,7 @@ ${fn(
 	'',
 	history
 		? `
-	int layer = (u_faceLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	int layer = (u_faceLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return int(texelFetch(u_faceLandmarksTex, ivec3(0, 0, layer), 0).r + 0.5);`
 		: `
 	return int(texelFetch(u_faceLandmarksTex, ivec2(0, 0), 0).r + 0.5);`
@@ -588,7 +610,7 @@ ${fn(
 	int y = i / ${LANDMARKS_TEXTURE_WIDTH};${
 		history
 			? `
-	int layer = (u_faceLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	int layer = (u_faceLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return texelFetch(u_faceLandmarksTex, ivec3(x, y, layer), 0);`
 			: `
 	return texelFetch(u_faceLandmarksTex, ivec2(x, y), 0);`
@@ -598,7 +620,7 @@ ${
 	history
 		? `
 vec4 _sampleFaceMask(vec2 pos, int framesAgo) {
-	int layer = (u_faceMaskFrameOffset - framesAgo + ${history}) % ${history};
+	int layer = (u_faceMaskFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return texture(u_faceMask, vec3(pos, float(layer)));
 }
 `

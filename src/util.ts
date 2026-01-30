@@ -1,3 +1,7 @@
+export function safeMod(i: number, m: number): number {
+	return ((i % m) + m) % m;
+}
+
 export function createFullscreenCanvas(container?: HTMLElement): HTMLCanvasElement {
 	const canvas = document.createElement('canvas');
 	canvas.style.position = 'fixed';

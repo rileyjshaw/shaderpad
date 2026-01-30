@@ -99,6 +99,7 @@ declare class ShaderPad {
     }): void;
     updateTextures(updates: Record<string, UpdateTextureSource>, options?: {
         skipHistoryWrite?: boolean;
+        historyWriteIndex?: number | number[];
     }): void;
     private updateTexture;
     private bindIntermediate;

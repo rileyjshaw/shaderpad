@@ -111,7 +111,7 @@ interface Detector {
 	landmarker: PoseLandmarker;
 	mediapipeCanvas: OffscreenCanvas;
 	maskShader: ShaderPad;
-	subscribers: Map<() => void, boolean>;
+	subscribers: Map<Function, boolean>;
 	maxPoses: number;
 	state: {
 		runningMode: 'IMAGE' | 'VIDEO';
@@ -244,7 +244,7 @@ function updateMask(detector: Detector, segmentationMasks?: MPMask[]) {
 		const segMask = segmentationMasks[i];
 		maskShader.updateTextures({ u_mask: segMask.getAsWebGLTexture() });
 		maskShader.updateUniforms({ u_poseIndex: (i + 1) / maxPoses });
-		maskShader.draw({ skipClear: i > 0 });
+		maskShader.step({ skipClear: i > 0 });
 		segMask.close();
 	}
 }
@@ -277,11 +277,16 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		let destroyed = false;
 		let skipHistoryWrite = false;
 
-		function onResult() {
+		function onResult(singleHistoryWriteIndex?: number) {
 			if (!detector) return;
 			const { nPoses } = detector.state;
 			const nSlots = nPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
+			let historyWriteIndex: number | number[] | undefined = singleHistoryWriteIndex;
+			if (typeof historyWriteIndex === 'undefined' && pendingBackfillSlots.length > 0) {
+				historyWriteIndex = pendingBackfillSlots;
+				pendingBackfillSlots = [];
+			}
 			shaderPad.updateTextures(
 				{
 					u_poseLandmarksTex: {
@@ -292,7 +297,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					},
 					u_poseMask: maskShader,
 				},
-				{ skipHistoryWrite }
+				history ? { skipHistoryWrite, historyWriteIndex } : undefined
 			);
 			shaderPad.updateUniforms({ u_nPoses: nPoses });
 			emitHook('pose:result', detector.state.result);
@@ -372,8 +377,20 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			});
 		});
 
+		let historyWriteCounter = 0;
+		let pendingBackfillSlots: number[] = [];
+		const writeToHistory = () => {
+			if (!history) return;
+			onResult(historyWriteCounter); // Write stale data immediately.
+			pendingBackfillSlots.push(historyWriteCounter); // Queue up backfill with more recent data.
+			historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
+		};
+
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
-			if (name === textureName && isMediaPipeSource(source)) detectPoses(source);
+			if (name === textureName && isMediaPipeSource(source)) {
+				writeToHistory();
+				detectPoses(source);
+			}
 		});
 
 		shaderPad.on(
@@ -382,6 +399,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				const source = updates[textureName];
 				if (isMediaPipeSource(source)) {
 					skipHistoryWrite = options?.skipHistoryWrite ?? false;
+					if (!skipHistoryWrite) writeToHistory();
 					detectPoses(source);
 				}
 			}
@@ -441,9 +459,13 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 							detector.subscribers.set(cb, true);
 						}
 					}
-				} else if (detector.state.result && !detector.subscribers.get(onResult)) {
-					onResult();
-					detector.subscribers.set(onResult, true);
+				} else if (detector.state.result) {
+					for (const [cb, hasCalled] of detector.subscribers.entries()) {
+						if (!hasCalled) {
+							cb();
+							detector.subscribers.set(cb, true);
+						}
+					}
 				}
 			});
 
@@ -465,7 +487,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 
 		const { fn, historyParams } = generateGLSLFn(history);
 		const sampleMask = history
-			? `int layer = (u_poseMaskFrameOffset - framesAgo + ${history}) % ${history};
+			? `int layer = (u_poseMaskFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	vec4 mask = texture(u_poseMask, vec3(pos, float(layer)));`
 			: `vec4 mask = texture(u_poseMask, pos);`;
 
@@ -508,7 +530,7 @@ ${fn(
 	'',
 	history
 		? `
-	int layer = (u_poseLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	int layer = (u_poseLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return int(texelFetch(u_poseLandmarksTex, ivec3(0, 0, layer), 0).r + 0.5);`
 		: `
 	return int(texelFetch(u_poseLandmarksTex, ivec2(0, 0), 0).r + 0.5);`
@@ -522,7 +544,7 @@ ${fn(
 	int y = i / ${LANDMARKS_TEXTURE_WIDTH};${
 		history
 			? `
-	int layer = (u_poseLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	int layer = (u_poseLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return texelFetch(u_poseLandmarksTex, ivec3(x, y, layer), 0);`
 			: `
 	return texelFetch(u_poseLandmarksTex, ivec2(x, y), 0);`

@@ -37,7 +37,7 @@ const DEFAULT_HANDS_OPTIONS: Required<Omit<HandsPluginOptions, 'history'>> = {
 interface Detector {
 	landmarker: HandLandmarker;
 	mediapipeCanvas: OffscreenCanvas;
-	subscribers: Map<() => void, boolean>;
+	subscribers: Map<Function, boolean>;
 	maxHands: number;
 	state: {
 		runningMode: 'IMAGE' | 'VIDEO';
@@ -112,11 +112,16 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		let destroyed = false;
 		let skipHistoryWrite = false;
 
-		function onResult() {
+		function onResult(singleHistoryWriteIndex?: number | number[]) {
 			if (!detector) return;
 			const { nHands } = detector.state;
 			const nSlots = nHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
+			let historyWriteIndex: number | number[] | undefined = singleHistoryWriteIndex;
+			if (typeof historyWriteIndex === 'undefined' && pendingBackfillSlots.length > 0) {
+				historyWriteIndex = pendingBackfillSlots;
+				pendingBackfillSlots = [];
+			}
 			shaderPad.updateTextures(
 				{
 					u_handLandmarksTex: {
@@ -126,7 +131,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 						isPartial: true,
 					},
 				},
-				{ skipHistoryWrite }
+				history ? { skipHistoryWrite, historyWriteIndex } : undefined
 			);
 			shaderPad.updateUniforms({ u_nHands: nHands });
 			emitHook('hands:result', detector.state.result);
@@ -199,8 +204,20 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			});
 		});
 
+		let historyWriteCounter = 0;
+		let pendingBackfillSlots: number[] = [];
+		const writeToHistory = () => {
+			if (!history) return;
+			onResult(historyWriteCounter); // Write stale data immediately.
+			pendingBackfillSlots.push(historyWriteCounter); // Queue up backfill with more recent data.
+			historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
+		};
+
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
-			if (name === textureName && isMediaPipeSource(source)) detectHands(source);
+			if (name === textureName && isMediaPipeSource(source)) {
+				writeToHistory();
+				detectHands(source);
+			}
 		});
 
 		shaderPad.on(
@@ -209,6 +226,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 				const source = updates[textureName];
 				if (isMediaPipeSource(source)) {
 					skipHistoryWrite = options?.skipHistoryWrite ?? false;
+					if (!skipHistoryWrite) writeToHistory();
 					detectHands(source);
 				}
 			}
@@ -266,9 +284,13 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 							detector.subscribers.set(cb, true);
 						}
 					}
-				} else if (detector.state.result && !detector.subscribers.get(onResult)) {
-					onResult();
-					detector.subscribers.set(onResult, true);
+				} else if (detector.state.result) {
+					for (const [cb, hasCalled] of detector.subscribers.entries()) {
+						if (!hasCalled) {
+							cb();
+							detector.subscribers.set(cb, true);
+						}
+					}
 				}
 			});
 
@@ -305,7 +327,7 @@ ${fn(
 	'',
 	history
 		? `
-	int layer = (u_handLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	int layer = (u_handLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return int(texelFetch(u_handLandmarksTex, ivec3(0, 0, layer), 0).r + 0.5);`
 		: `
 	return int(texelFetch(u_handLandmarksTex, ivec2(0, 0), 0).r + 0.5);`
@@ -319,7 +341,7 @@ ${fn(
 	int y = i / ${LANDMARKS_TEXTURE_WIDTH};${
 		history
 			? `
-	int layer = (u_handLandmarksTexFrameOffset - framesAgo + ${history}) % ${history};
+	int layer = (u_handLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return texelFetch(u_handLandmarksTex, ivec3(x, y, layer), 0);`
 			: `
 	return texelFetch(u_handLandmarksTex, ivec2(x, y), 0);`

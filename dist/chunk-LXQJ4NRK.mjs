@@ -1,0 +1,2 @@
+function t(n,e){return(n%e+e)%e}function s(n){let e=document.createElement("canvas");return e.style.position="fixed",e.style.inset="0",e.style.height="100dvh",e.style.width="100dvw",(n||document.body).appendChild(e),e}export{t as a,s as b};
+//# sourceMappingURL=chunk-LXQJ4NRK.mjs.map

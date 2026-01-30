@@ -61,7 +61,7 @@ interface SharedDetector {
 	segmenter: ImageSegmenter;
 	mediapipeCanvas: OffscreenCanvas;
 	maskShader: ShaderPad;
-	subscribers: Map<() => void, boolean>;
+	subscribers: Map<Function, boolean>;
 	state: {
 		runningMode: 'IMAGE' | 'VIDEO';
 		source: MediaPipeSource | null;
@@ -83,7 +83,7 @@ function updateMask(detector: SharedDetector, confidenceMasks: MPMask[]) {
 		textures[`u_confidenceMask${i}`] = confidenceMasks[i].getAsWebGLTexture();
 	}
 	maskShader.updateTextures(textures);
-	maskShader.draw();
+	maskShader.step();
 	confidenceMasks.forEach(m => m.close());
 }
 
@@ -101,9 +101,17 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		let destroyed = false;
 		let skipHistoryWrite = false;
 
-		function onResult() {
+		function onResult(singleHistoryWriteIndex?: number) {
 			if (!detector) return;
-			shaderPad.updateTextures({ u_segmentMask: detector.maskShader }, { skipHistoryWrite });
+			let historyWriteIndex: number | number[] | undefined = singleHistoryWriteIndex;
+			if (typeof historyWriteIndex === 'undefined' && pendingBackfillSlots.length > 0) {
+				historyWriteIndex = pendingBackfillSlots;
+				pendingBackfillSlots = [];
+			}
+			shaderPad.updateTextures(
+				{ u_segmentMask: detector.maskShader },
+				history ? { skipHistoryWrite, historyWriteIndex } : undefined
+			);
 			emitHook('segmenter:result', detector.state.result);
 		}
 
@@ -178,8 +186,20 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			});
 		});
 
+		let historyWriteCounter = 0;
+		let pendingBackfillSlots: number[] = [];
+		const writeToHistory = () => {
+			if (!history) return;
+			onResult(historyWriteCounter); // Write stale data immediately.
+			pendingBackfillSlots.push(historyWriteCounter); // Queue up backfill with more recent data.
+			historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
+		};
+
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
-			if (name === textureName && isMediaPipeSource(source)) detectSegments(source);
+			if (name === textureName && isMediaPipeSource(source)) {
+				writeToHistory();
+				detectSegments(source);
+			}
 		});
 
 		shaderPad.on(
@@ -188,6 +208,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				const source = updates[textureName];
 				if (isMediaPipeSource(source)) {
 					skipHistoryWrite = options?.skipHistoryWrite ?? false;
+					if (!skipHistoryWrite) writeToHistory();
 					detectSegments(source);
 				}
 			}
@@ -249,8 +270,13 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 							detector.subscribers.set(cb, true);
 						}
 					}
-				} else if (detector.state.result && !detector.subscribers.get(onResult)) {
-					onResult();
+				} else if (detector.state.result) {
+					for (const [cb, hasCalled] of detector.subscribers.entries()) {
+						if (!hasCalled) {
+							cb();
+							detector.subscribers.set(cb, true);
+						}
+					}
 					detector.subscribers.set(onResult, true);
 				}
 			});
@@ -273,7 +299,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 
 		const { fn } = generateGLSLFn(history);
 		const sampleMask = history
-			? `int layer = (u_segmentMaskFrameOffset - framesAgo + ${history}) % ${history};
+			? `int layer = (u_segmentMaskFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	vec4 mask = texture(u_segmentMask, vec3(pos, float(layer)));`
 			: `vec4 mask = texture(u_segmentMask, pos);`;
 
