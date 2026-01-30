@@ -114,6 +114,7 @@ interface Detector {
 	subscribers: Map<Function, boolean>;
 	maxPoses: number;
 	state: {
+		nCalls: number;
 		runningMode: 'IMAGE' | 'VIDEO';
 		source: MediaPipeSource | null;
 		videoTime: number;
@@ -338,6 +339,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					subscribers: new Map(),
 					maxPoses: options.maxPoses,
 					state: {
+						nCalls: 0,
 						runningMode: 'VIDEO',
 						source: null,
 						videoTime: -1,
@@ -405,16 +407,14 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			}
 		);
 
-		let nDetectionCalls = 0;
 		async function detectPoses(source: MediaPipeSource) {
 			const now = performance.now();
-			const callOrder = ++nDetectionCalls;
-
 			await initPromise;
 			if (!detector) return;
+			const callOrder = ++detector.state.nCalls;
 
 			detector.state.pending = detector.state.pending.then(async () => {
-				if (callOrder !== nDetectionCalls || !detector) return;
+				if (!detector || callOrder !== detector.state.nCalls) return;
 
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {

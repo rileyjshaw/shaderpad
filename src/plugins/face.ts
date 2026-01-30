@@ -140,6 +140,7 @@ interface Detector {
 	subscribers: Map<Function, boolean>;
 	maxFaces: number;
 	state: {
+		nCalls: number;
 		runningMode: 'IMAGE' | 'VIDEO';
 		source: MediaPipeSource | null;
 		videoTime: number;
@@ -364,6 +365,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 					subscribers: new Map(),
 					maxFaces: options.maxFaces,
 					state: {
+						nCalls: 0,
 						runningMode: 'VIDEO',
 						source: null,
 						videoTime: -1,
@@ -386,15 +388,14 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		}
 		const initPromise = initializeDetector();
 
-		let nDetectionCalls = 0;
 		async function detectFaces(source: MediaPipeSource) {
 			const now = performance.now();
-			const callOrder = ++nDetectionCalls;
 			await initPromise;
 			if (!detector) return;
+			const callOrder = ++detector.state.nCalls;
 
 			detector.state.pending = detector.state.pending.then(async () => {
-				if (callOrder !== nDetectionCalls || !detector) return;
+				if (!detector || callOrder !== detector.state.nCalls) return;
 
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {

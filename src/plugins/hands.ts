@@ -40,6 +40,7 @@ interface Detector {
 	subscribers: Map<Function, boolean>;
 	maxHands: number;
 	state: {
+		nCalls: number;
 		runningMode: 'IMAGE' | 'VIDEO';
 		source: MediaPipeSource | null;
 		videoTime: number;
@@ -112,7 +113,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		let destroyed = false;
 		let skipHistoryWrite = false;
 
-		function onResult(singleHistoryWriteIndex?: number | number[]) {
+		function onResult(singleHistoryWriteIndex?: number) {
 			if (!detector) return;
 			const { nHands } = detector.state;
 			const nSlots = nHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
@@ -170,6 +171,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					subscribers: new Map(),
 					maxHands: options.maxHands,
 					state: {
+						nCalls: 0,
 						runningMode: 'VIDEO',
 						source: null,
 						videoTime: -1,
@@ -232,15 +234,14 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			}
 		);
 
-		let nDetectionCalls = 0;
 		async function detectHands(source: MediaPipeSource) {
 			const now = performance.now();
-			const callOrder = ++nDetectionCalls;
 			await initPromise;
 			if (!detector) return;
+			const callOrder = ++detector.state.nCalls;
 
 			detector.state.pending = detector.state.pending.then(async () => {
-				if (callOrder !== nDetectionCalls || !detector) return;
+				if (!detector || callOrder !== detector.state.nCalls) return;
 
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {

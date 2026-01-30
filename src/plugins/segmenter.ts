@@ -63,6 +63,7 @@ interface SharedDetector {
 	maskShader: ShaderPad;
 	subscribers: Map<Function, boolean>;
 	state: {
+		nCalls: number;
 		runningMode: 'IMAGE' | 'VIDEO';
 		source: MediaPipeSource | null;
 		videoTime: number;
@@ -155,6 +156,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					maskShader,
 					subscribers: new Map(),
 					state: {
+						nCalls: 0,
 						runningMode: 'VIDEO',
 						source: null,
 						videoTime: -1,
@@ -214,15 +216,14 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			}
 		);
 
-		let nDetectionCalls = 0;
 		async function detectSegments(source: MediaPipeSource) {
 			const now = performance.now();
-			const callOrder = ++nDetectionCalls;
 			await initPromise;
 			if (!detector) return;
+			const callOrder = ++detector.state.nCalls;
 
 			detector.state.pending = detector.state.pending.then(async () => {
-				if (callOrder !== nDetectionCalls || !detector) return;
+				if (!detector || callOrder !== detector.state.nCalls) return;
 
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {
