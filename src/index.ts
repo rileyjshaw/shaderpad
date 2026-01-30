@@ -904,6 +904,7 @@ class ShaderPad {
 		if (historyInfo && !options?.skipHistoryWrite) {
 			const { writeIndex, depth } = historyInfo.history!;
 			const gl = this.gl;
+			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
 			gl.bindTexture(gl.TEXTURE_2D_ARRAY, historyInfo.texture);
 			gl.copyTexSubImage3D(
 				gl.TEXTURE_2D_ARRAY,
@@ -916,6 +917,7 @@ class ShaderPad {
 				gl.drawingBufferWidth,
 				gl.drawingBufferHeight
 			);
+			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
 			const nextWriteIndex = (writeIndex + 1) % depth;
 			this.updateUniforms({ [`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: nextWriteIndex });
 			historyInfo.history!.writeIndex = nextWriteIndex;
