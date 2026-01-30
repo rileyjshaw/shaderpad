@@ -1,12 +1,11 @@
 import { safeMod } from './util.js';
 
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
+in vec2 a_position;
 out vec2 v_uv;
 void main() {
-    int id = gl_VertexID;
-    vec2 uv = vec2(float((id << 1) & 2), float(id & 2));
-    gl_Position = vec4(uv * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 0.0, 1.0);
-    v_uv = gl_Position.xy * 0.5 + 0.5;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+    v_uv = a_position * 0.5 + 0.5;
 }`;
 
 interface Uniform {
@@ -173,8 +172,8 @@ class ShaderPad {
 	private textures: Map<string | symbol, Texture> = new Map();
 	private textureUnitPool: TextureUnitPool;
 	private buffer: WebGLBuffer | null = null;
+	private vao: WebGLVertexArrayObject | null = null;
 	private program: WebGLProgram | null = null;
-	private aPositionLocation = 0;
 	private animationFrameId: number | null;
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;
@@ -245,6 +244,7 @@ class ShaderPad {
 		);
 		gl.attachShader(program, vertexShader);
 		gl.attachShader(program, fragmentShader);
+		gl.bindAttribLocation(program, 0, 'a_position');
 		gl.linkProgram(program);
 		gl.deleteShader(vertexShader);
 		gl.deleteShader(fragmentShader);
@@ -255,7 +255,14 @@ class ShaderPad {
 			throw new Error('Failed to link WebGL program');
 		}
 
-		this.aPositionLocation = gl.getAttribLocation(program, 'aPosition');
+		this.vao = gl.createVertexArray();
+		gl.bindVertexArray(this.vao);
+		this.buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+		gl.enableVertexAttribArray(0);
+		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
 		gl.useProgram(program);
@@ -869,6 +876,7 @@ class ShaderPad {
 		}
 
 		gl.useProgram(this.program);
+		gl.bindVertexArray(this.vao);
 		gl.viewport(0, 0, w, h);
 		gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -988,6 +996,11 @@ class ShaderPad {
 		this.textures.clear();
 		this.textureUnitPool.free = [];
 		this.textureUnitPool.next = 0;
+
+		if (this.vao) {
+			this.gl.deleteVertexArray(this.vao);
+			this.vao = null;
+		}
 
 		if (this.buffer) {
 			this.gl.deleteBuffer(this.buffer);
