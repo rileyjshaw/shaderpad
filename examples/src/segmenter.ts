@@ -40,18 +40,15 @@ void main() {
 	vec3 color = webcamColor.rgb;
 
 	vec2 segment = segmentAt(v_uv);
-	float category = segment.x;
-	float confidence = segment.y;
-	if (category > 0.0) {
-		color = mix(color, vec3(0.0, 1.0, 0.0), confidence * 0.2);
-	}
+	float confidence = segment.x;
+	float category = segment.y;
+	color = mix(color, vec3(0.0, 1.0, 0.0), (1.0 - step(category, 0.0)) * confidence * 0.2);
 
 	// Display mask in bottom-right corner as debug overlay.
 	vec2 maskPreviewUV = (v_uv - vec2(0.65, 0.0)) * vec2(2.86, 2.86);
 	if (maskPreviewUV.x >= 0.0 && maskPreviewUV.x <= 1.0 && maskPreviewUV.y >= 0.0 && maskPreviewUV.y <= 1.0) {
 		vec4 debugMask = texture(u_segmentMask, maskPreviewUV);
-		vec3 maskVis = vec3(debugMask.r);
-		color = mix(color, maskVis, 0.9);
+		color = mix(color, debugMask.rgb, 0.9);
 		float border = 1.0 - smoothstep(0.0, 0.01, min(min(maskPreviewUV.x, 1.0 - maskPreviewUV.x), min(maskPreviewUV.y, 1.0 - maskPreviewUV.y)));
 		color = mix(color, vec3(1.0, 1.0, 1.0), border * 0.8);
 	}
@@ -75,6 +72,11 @@ void main() {
 		plugins: [
 			segmenter({
 				textureName: 'u_webcam',
+				options: {
+					modelPath:
+						'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
+					outputConfidenceMasks: true,
+				},
 			}),
 		],
 	});

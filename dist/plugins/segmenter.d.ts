@@ -2,7 +2,7 @@ import ShaderPad, { PluginContext } from '../index.js';
 
 interface SegmenterPluginOptions {
     modelPath?: string;
-    outputCategoryMask?: boolean;
+    outputConfidenceMasks?: boolean;
     history?: number;
 }
 declare function segmenter(config: {

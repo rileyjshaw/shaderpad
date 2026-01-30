@@ -707,7 +707,6 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 			options: {
 				modelPath:
 					'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
-				outputCategoryMask: true,
 			},
 		}),
 	],
@@ -716,6 +715,8 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
+-   `modelPath?: string` - Path to the segmentation model (default: DeepLab v3)
+-   `outputConfidenceMasks?: boolean` - Whether to output per-category confidence masks (default: `false`). If `false`, confidence is always 1.
 -   `history?: number` - Frames of history to store for mask texture
 
 **Events:**
@@ -736,16 +737,16 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
--   `segmentAt(vec2 pos) -> vec2` - Returns `vec2(confidence, categoryIndex)`. categoryIndex is 0-indexed (-1 = background). confidence is the segmentation confidence (0-1).
+-   `segmentAt(vec2 pos) -> vec2` - Returns `vec2(confidence, category)`. confidence is the segmentation confidence (0–1, or 1 if `outputConfidenceMasks` is false). category is the normalized category index (0–1).
 
 **Example usage:**
 
 ```glsl
 vec2 segment = segmentAt(v_uv);
-float confidence = segment.x;  // Segmentation confidence
-float category = segment.y;    // Category index (0-indexed, -1 = background)
-float isNotBackground = step(0.0, category) * confidence;
-color = mix(color, vec3(1.0, 0.0, 1.0), isNotBackground);
+float confidence = segment.x;
+float category = segment.y;
+float isForeground = step(0.0, category) * confidence;
+color = mix(color, vec3(1.0, 0.0, 1.0), isForeground);
 ```
 
 **Note:** The segmenter plugin requires `@mediapipe/tasks-vision` as a peer dependency.
