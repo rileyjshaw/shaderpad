@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.51
+
+### Patch Changes
+
+-   Bind framebuffer in step
+
 ## 1.0.0-beta.50
 
 ### Minor Changes
