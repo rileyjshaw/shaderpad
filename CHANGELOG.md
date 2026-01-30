@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.52
+
+### Minor Changes
+
+-   Enable model choice for segmenter plugin
+
 ## 1.0.0-beta.51
 
 ### Patch Changes
