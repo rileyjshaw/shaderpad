@@ -135,7 +135,6 @@ interface MaskRenderer {
 
 interface Detector {
 	landmarker: FaceLandmarker;
-	mediapipeCanvas: OffscreenCanvas;
 	mask: MaskRenderer;
 	subscribers: Map<Function, boolean>;
 	maxFaces: number;
@@ -338,13 +337,11 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				]);
 				if (destroyed) return;
 
-				const mediapipeCanvas = new OffscreenCanvas(1, 1);
 				const faceLandmarker = await FaceLandmarker.createFromOptions(mediaPipe, {
 					baseOptions: {
 						modelAssetPath: options.modelPath,
 						delegate: 'GPU',
 					},
-					canvas: mediapipeCanvas,
 					runningMode: 'VIDEO',
 					numFaces: options.maxFaces,
 					minFaceDetectionConfidence: options.minFaceDetectionConfidence,
@@ -360,7 +357,6 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 
 				detector = {
 					landmarker: faceLandmarker,
-					mediapipeCanvas,
 					mask: initMaskRenderer(maskCanvas),
 					subscribers: new Map(),
 					maxFaces: options.maxFaces,
