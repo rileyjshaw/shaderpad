@@ -1,3 +1,5 @@
+import { safeMod } from './util.js';
+
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
 out vec2 v_uv;
 void main() {
@@ -697,11 +699,17 @@ class ShaderPad {
 	}
 
 	initializeTexture(name: string, source: TextureSource, options?: TextureOptions & { history?: number }) {
-		this._initializeTexture(name, source, options);
+		// Since history[0] is the current frame, add 1 to history depth to allow history[maxHistory].
+		const opts =
+			options?.history != null && options.history > 0 ? { ...options, history: options.history + 1 } : options;
+		this._initializeTexture(name, source, opts);
 		this.emitHook('initializeTexture', ...arguments);
 	}
 
-	updateTextures(updates: Record<string, UpdateTextureSource>, options?: { skipHistoryWrite?: boolean }) {
+	updateTextures(
+		updates: Record<string, UpdateTextureSource>,
+		options?: { skipHistoryWrite?: boolean; historyWriteIndex?: number | number[] }
+	) {
 		Object.entries(updates).forEach(([name, source]) => {
 			this.updateTexture(name, source, options);
 		});
@@ -711,7 +719,7 @@ class ShaderPad {
 	private updateTexture(
 		name: string | symbol,
 		source: UpdateTextureSource,
-		options?: { skipHistoryWrite?: boolean }
+		options?: { skipHistoryWrite?: boolean; historyWriteIndex?: number | number[] }
 	) {
 		const info = this.textures.get(name);
 		if (!info) throw new Error(`Texture '${stringFrom(name)}' is not initialized.`);
@@ -763,25 +771,42 @@ class ShaderPad {
 			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
 			this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
 			if (!options?.skipHistoryWrite) {
+				const { depth } = info.history;
+				const targetSlots =
+					options?.historyWriteIndex !== undefined
+						? Array.isArray(options.historyWriteIndex)
+							? options.historyWriteIndex.map(i => safeMod(i, depth))
+							: [safeMod(options.historyWriteIndex, depth)]
+						: [info.history.writeIndex];
+
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
-				this.gl.texSubImage3D(
-					this.gl.TEXTURE_2D_ARRAY,
-					0,
-					0,
-					0,
-					info.history.writeIndex,
-					width,
-					height,
-					1,
-					info.options.format,
-					info.options.type,
-					((nonShaderPadSource as PartialCustomTexture).data ??
-						(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>)) as any
-				);
+				const sourceData =
+					(nonShaderPadSource as PartialCustomTexture).data ??
+					(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>);
+
+				for (const slot of targetSlots) {
+					this.gl.texSubImage3D(
+						this.gl.TEXTURE_2D_ARRAY,
+						0,
+						0,
+						0,
+						slot,
+						width,
+						height,
+						1,
+						info.options.format,
+						info.options.type,
+						sourceData as any
+					);
+				}
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
+
 				const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
-				this.updateUniforms({ [frameOffsetUniformName]: info.history.writeIndex });
-				info.history.writeIndex = (info.history.writeIndex + 1) % info.history.depth;
+				this.updateUniforms({ [frameOffsetUniformName]: targetSlots[targetSlots.length - 1] });
+
+				if (options?.historyWriteIndex === undefined) {
+					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
+				}
 			}
 		} else {
 			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
@@ -883,8 +908,9 @@ class ShaderPad {
 				gl.drawingBufferWidth,
 				gl.drawingBufferHeight
 			);
-			this.updateUniforms({ [`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: writeIndex });
-			historyInfo.history!.writeIndex = (writeIndex + 1) % depth;
+			const nextWriteIndex = (writeIndex + 1) % depth;
+			this.updateUniforms({ [`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: nextWriteIndex });
+			historyInfo.history!.writeIndex = nextWriteIndex;
 		}
 		++this.frame;
 		this.emitHook('afterStep', ...arguments);
