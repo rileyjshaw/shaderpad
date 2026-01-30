@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.50
+
+### Minor Changes
+
+-   Improve plugin history consistency and performance
+
 ## 1.0.0-beta.49
 
 ### Minor Changes

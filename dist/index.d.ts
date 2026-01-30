@@ -56,8 +56,8 @@ declare class ShaderPad {
     private textures;
     private textureUnitPool;
     private buffer;
+    private vao;
     private program;
-    private aPositionLocation;
     private animationFrameId;
     private eventListeners;
     private frame;
