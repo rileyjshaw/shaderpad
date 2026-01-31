@@ -303,7 +303,6 @@ Remove a previously registered callback.
 
 | Event               | Callback Arguments                      | Description                                      |
 | ------------------- | --------------------------------------- | ------------------------------------------------ |
-| `init`              | none                                    | Fired after initialization is complete           |
 | `resize`            | `(width: number, height: number)`       | Fired when the canvas element is resized         |
 | `updateResolution`  | `(width: number, height: number)`       | Fired when the drawing buffer resolution changes |
 | `play`              | none                                    | Fired when the render loop starts                |

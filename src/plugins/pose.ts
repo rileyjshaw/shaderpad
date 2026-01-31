@@ -360,7 +360,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		}
 		const initPromise = initializeDetector();
 
-		shaderPad.on('init', () => {
+		shaderPad.on('_init', () => {
 			shaderPad.initializeUniform('u_maxPoses', 'int', options.maxPoses);
 			shaderPad.initializeUniform('u_nPoses', 'int', 0);
 			shaderPad.initializeTexture(

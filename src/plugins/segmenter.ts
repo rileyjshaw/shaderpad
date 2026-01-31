@@ -193,7 +193,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		}
 		const initPromise = initializeDetector();
 
-		shaderPad.on('init', () => {
+		shaderPad.on('_init', () => {
 			shaderPad.initializeUniform('u_numCategories', 'int', 1);
 			shaderPad.initializeTexture('u_segmentMask', mediapipeCanvas, {
 				minFilter: 'NEAREST',

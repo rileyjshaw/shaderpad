@@ -94,7 +94,7 @@ export interface PluginContext {
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 
 type LifecycleMethod =
-	| 'init'
+	| '_init'
 	| 'initializeTexture'
 	| 'initializeUniform'
 	| 'updateTextures'
@@ -307,7 +307,7 @@ class ShaderPad {
 		if (this.canvas instanceof HTMLCanvasElement) {
 			this.addEventListeners();
 		}
-		this.emitHook('init');
+		this.emitHook('_init');
 	}
 
 	private resolveGLConstant(value: GLConstantString): number {

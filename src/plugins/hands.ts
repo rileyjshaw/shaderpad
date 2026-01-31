@@ -192,7 +192,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		}
 		const initPromise = initializeDetector();
 
-		shaderPad.on('init', () => {
+		shaderPad.on('_init', () => {
 			shaderPad.initializeUniform('u_maxHands', 'int', options.maxHands);
 			shaderPad.initializeUniform('u_nHands', 'int', 0);
 			shaderPad.initializeTexture(

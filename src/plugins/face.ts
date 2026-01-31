@@ -454,7 +454,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			await detector.state.pending;
 		}
 
-		shaderPad.on('init', () => {
+		shaderPad.on('_init', () => {
 			shaderPad.initializeUniform('u_maxFaces', 'int', options.maxFaces);
 			shaderPad.initializeUniform('u_nFaces', 'int', 0);
 			shaderPad.initializeTexture(
