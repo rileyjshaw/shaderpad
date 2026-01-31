@@ -207,7 +207,7 @@ shader.updateTextures({ u_camera: videoElement }, { skipHistoryWrite: true });
 
 ### Lifecycle methods
 
-#### `play(onBeforeStep?, onAfterStep?)`
+#### `play(onBeforeStep?)`
 
 Start the render loop.
 
@@ -225,7 +225,6 @@ shader.play(() => {
 **Parameters:**
 
 -   `onBeforeStep?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
--   `onAfterStep?`: `(time: number, frame: number) => void` - Called after each frame
 
 #### `step(options?)`
 

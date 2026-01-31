@@ -66,7 +66,6 @@ const sharedDetectors = new Map<string, SharedDetector>();
 
 function updateMask(detector: SharedDetector, categoryMask: MPMask, confidenceMasks?: MPMask[]) {
 	const {
-		numCategories,
 		outputConfidenceMasks,
 		mask: { shader, confidence },
 	} = detector;
