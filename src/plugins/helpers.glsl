@@ -12,9 +12,15 @@ vec2 fitCover(vec2 uv, vec2 textureSize) {
 	return (uv - 0.5) * min(scale, vec2(1.0)) + 0.5;
 }
 
-// Get the array index for a history texture
+float _historyZ(int historyDepth, int frameOffset, int framesAgo) {
+	return float((historyDepth + frameOffset - framesAgo) % historyDepth);
+}
 float historyZ(highp sampler2DArray tex, int frameOffset, int framesAgo) {
-	int historyDepth = textureSize(tex, 0).z;
-	int z = (historyDepth + frameOffset - framesAgo) % historyDepth;
-	return float(z);
+	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
+}
+float historyZ(highp usampler2DArray tex, int frameOffset, int framesAgo) {
+	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
+}
+float historyZ(highp isampler2DArray tex, int frameOffset, int framesAgo) {
+	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
 }
