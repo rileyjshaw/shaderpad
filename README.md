@@ -332,7 +332,7 @@ const canvas = document.createElement('canvas');
 const shader = new ShaderPad(fragmentShaderSrc, { canvas });
 
 // Use utilities for a fullscreen canvas.
-import { autosize } from 'shaderpad/plugins/autosize';
+import autosize from 'shaderpad/plugins/autosize';
 import { createFullscreenCanvas } from 'shaderpad/util';
 const shader = new ShaderPad(fragmentShaderSrc, { canvas: createFullscreenCanvas(), plugins: [autosize()] });
 
