@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.54
+
+### Patch Changes
+
+-   Fix formatString defaults and improve play/pause ergonomics
+
 ## 1.0.0-beta.53
 
 ### Minor Changes

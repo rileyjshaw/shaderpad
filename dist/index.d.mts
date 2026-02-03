@@ -64,6 +64,7 @@ declare class ShaderPad {
     private eventListeners;
     private frame;
     private startTime;
+    private isPlaying;
     private cursorPosition;
     private clickPosition;
     private isMouseDown;
@@ -112,6 +113,7 @@ declare class ShaderPad {
     step(options?: StepOptions): void;
     private _step;
     play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void;
+    private _pause;
     pause(): void;
     reset(): void;
     destroy(): void;

@@ -137,7 +137,7 @@ shader.updateUniforms(
 | `u_time`               | float          | The current time in seconds.                                                      |
 | `u_frame`              | int            | The current frame number.                                                         |
 | `u_resolution`         | float[2]       | The canvas element's dimensions.                                                  |
-| `u_cursor`             | float[2]       | Cursor position (x, y), normalized to [0,1] over the `cursorTarget` bounding box.  |
+| `u_cursor`             | float[2]       | Cursor position (x, y), normalized to [0,1] over the `cursorTarget` bounding box. |
 | `u_click`              | float[3]       | Click position (x, y) and left click state (z).                                   |
 | `u_history`            | sampler2DArray | Buffer texture of prior frames. Available if `history` option is set.             |
 | `u_historyFrameOffset` | int            | Frame offset for accessing history texture. Available if `history` option is set. |
@@ -300,22 +300,22 @@ Remove a previously registered callback.
 
 #### Available Events
 
-| Event               | Callback Arguments                      | Description                                      |
-| ------------------- | --------------------------------------- | ------------------------------------------------ |
-| `resize`            | `(width: number, height: number)`       | Fired when the canvas element is resized         |
-| `updateResolution`  | `(width: number, height: number)`       | Fired when the drawing buffer resolution changes |
-| `play`              | none                                    | Fired when the render loop starts                |
-| `pause`             | none                                    | Fired when the render loop is paused             |
-| `reset`             | none                                    | Fired when the shader is reset                   |
-| `destroy`           | none                                    | Fired when the shader is destroyed               |
-| `beforeStep`        | `(time: number, options?: StepOptions)` | Fired before each render step                    |
-| `afterStep`         | `(time: number, options?: StepOptions)` | Fired after each render step                     |
-| `beforeDraw`        | `(options?: StepOptions)`               | Fired before each draw call                      |
-| `afterDraw`         | `(options?: StepOptions)`               | Fired after each draw call                       |
-| `initializeTexture` | `(name, source, options?)`              | Fired after a texture is initialized             |
-| `initializeUniform` | `(name, type, value, options?)`         | Fired after a uniform is initialized             |
-| `updateTextures`    | `(updates, options?)`                   | Fired after textures are updated                 |
-| `updateUniforms`    | `(updates, options?)`                   | Fired after uniforms are updated                 |
+| Event               | Callback Arguments                                     | Description                                      |
+| ------------------- | ------------------------------------------------------ | ------------------------------------------------ |
+| `resize`            | `(width: number, height: number)`                      | Fired when the canvas element is resized         |
+| `updateResolution`  | `(width: number, height: number)`                      | Fired when the drawing buffer resolution changes |
+| `play`              | none                                                   | Fired when the render loop starts                |
+| `pause`             | none                                                   | Fired when the render loop is paused             |
+| `reset`             | none                                                   | Fired when the shader is reset                   |
+| `destroy`           | none                                                   | Fired when the shader is destroyed               |
+| `beforeStep`        | `(time: number, frame: number, options?: StepOptions)` | Fired before each render step                    |
+| `afterStep`         | `(time: number, frame: number, options?: StepOptions)` | Fired after each render step                     |
+| `beforeDraw`        | `(options?: StepOptions)`                              | Fired before each draw call                      |
+| `afterDraw`         | `(options?: StepOptions)`                              | Fired after each draw call                       |
+| `initializeTexture` | `(name, source, options?)`                             | Fired after a texture is initialized             |
+| `initializeUniform` | `(name, type, value, options?)`                        | Fired after a uniform is initialized             |
+| `updateTextures`    | `(updates, options?)`                                  | Fired after textures are updated                 |
+| `updateUniforms`    | `(updates, options?)`                                  | Fired after uniforms are updated                 |
 
 Plugins may emit additional namespaced events (e.g., `face:ready`, `pose:results`).
 
