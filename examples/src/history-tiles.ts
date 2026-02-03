@@ -57,10 +57,10 @@ void main() {
 		plugins: [helpers()],
 	});
 
-	shader.play(undefined, (_t, frame) => {
-		// Pause for inspection now that the history buffer is full.
-		if (frame >= HISTORY_LENGTH + 1) shader!.pause();
+	shader.on('afterStep', (_time: number, frame: number) => {
+		if (frame > HISTORY_LENGTH) shader!.pause();
 	});
+	shader.play();
 }
 
 export function destroy() {
