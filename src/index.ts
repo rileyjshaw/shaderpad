@@ -16,13 +16,45 @@ interface Uniform {
 }
 
 type GLInternalFormatChannels = 'R' | 'RG' | 'RGB' | 'RGBA';
-type GLInternalFormatDepth = '8' | '16F' | '32F';
+type GLInternalFormatDepth = '8' | '16F' | '32F' | '8UI' | '8I' | '16UI' | '16I' | '32UI' | '32I';
 export type GLInternalFormatString = `${GLInternalFormatChannels}${GLInternalFormatDepth}`;
 
-export type GLFormatString = 'RED' | 'RG' | 'RGB' | 'RGBA';
-export type GLTypeString = 'UNSIGNED_BYTE' | 'FLOAT' | 'HALF_FLOAT';
+export type GLFormatString =
+	| 'RED'
+	| 'RG'
+	| 'RGB'
+	| 'RGBA'
+	| 'RED_INTEGER'
+	| 'RG_INTEGER'
+	| 'RGB_INTEGER'
+	| 'RGBA_INTEGER';
+export type GLTypeString =
+	| 'UNSIGNED_BYTE'
+	| 'BYTE'
+	| 'FLOAT'
+	| 'HALF_FLOAT'
+	| 'UNSIGNED_SHORT'
+	| 'SHORT'
+	| 'UNSIGNED_INT'
+	| 'INT';
 export type GLFilterString = 'LINEAR' | 'NEAREST';
 export type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
+
+const FORMAT_TYPE_SUFFIXES: [string, GLTypeString][] = [
+	['8UI', 'UNSIGNED_BYTE'],
+	['8I', 'BYTE'],
+	['16UI', 'UNSIGNED_SHORT'],
+	['16I', 'SHORT'],
+	['16F', 'HALF_FLOAT'],
+	['32UI', 'UNSIGNED_INT'],
+	['32I', 'INT'],
+	['32F', 'FLOAT'],
+	['8', 'UNSIGNED_BYTE'],
+];
+
+function typeFromInternalFormatString(internalFormatString?: GLInternalFormatString): GLTypeString | undefined {
+	return internalFormatString && FORMAT_TYPE_SUFFIXES.find(([suffix]) => internalFormatString.endsWith(suffix))?.[1];
+}
 
 type GLConstantString = GLInternalFormatString | GLFormatString | GLTypeString | GLFilterString | GLWrapString;
 
@@ -45,6 +77,7 @@ type ResolvedTextureOptions = {
 	wrapS: number;
 	wrapT: number;
 	preserveY?: boolean;
+	isIntegerColorFormat: boolean;
 };
 
 interface Texture {
@@ -168,6 +201,11 @@ class ShaderPad {
 	private isHeadless = false;
 	private isTouchDevice = false;
 	private gl: WebGL2RenderingContext;
+	private glHelpers!: {
+		typeToArray: Map<number, new (length: number) => ArrayBufferView>;
+		typeToInternalFormatString: Map<number, GLInternalFormatString>;
+		unsignedIntTypes: Set<number>;
+	};
 	private uniforms: Map<string, Uniform> = new Map();
 	private textures: Map<string | symbol, Texture> = new Map();
 	private textureUnitPool: TextureUnitPool;
@@ -205,6 +243,27 @@ class ShaderPad {
 			throw new Error('WebGL2 not supported. Please use a browser that supports WebGL2.');
 		}
 		this.gl = gl;
+		this.glHelpers = {
+			typeToArray: new Map<number, new (length: number) => ArrayBufferView>([
+				[gl.FLOAT, Float32Array],
+				[gl.HALF_FLOAT, Uint16Array],
+				[gl.UNSIGNED_SHORT, Uint16Array],
+				[gl.SHORT, Int16Array],
+				[gl.BYTE, Int8Array],
+				[gl.UNSIGNED_INT, Uint32Array],
+				[gl.INT, Int32Array],
+			]),
+			typeToInternalFormatString: new Map<number, GLInternalFormatString>([
+				[gl.FLOAT, 'RGBA32F'],
+				[gl.HALF_FLOAT, 'RGBA16F'],
+				[gl.UNSIGNED_SHORT, 'RGBA32UI'],
+				[gl.SHORT, 'RGBA32I'],
+				[gl.BYTE, 'RGBA32I'],
+				[gl.UNSIGNED_INT, 'RGBA32UI'],
+				[gl.INT, 'RGBA32I'],
+			]),
+			unsignedIntTypes: new Set([gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT, gl.UNSIGNED_INT]),
+		};
 
 		this.textureUnitPool = {
 			free: [],
@@ -468,19 +527,23 @@ class ShaderPad {
 
 	private resolveTextureOptions(options?: TextureOptions): ResolvedTextureOptions {
 		const { gl } = this;
-		const type = this.resolveGLConstant(options?.type ?? 'UNSIGNED_BYTE');
-		const result = {
+		const internalFormatOption = options?.internalFormat;
+		const typeString = options?.type ?? typeFromInternalFormatString(internalFormatOption) ?? 'UNSIGNED_BYTE';
+		const type = this.resolveGLConstant(typeString);
+		const internalFormatString =
+			internalFormatOption ?? this.glHelpers.typeToInternalFormatString.get(type) ?? 'RGBA8';
+		const isIntegerColorFormat = /^(R|RG|RGB|RGBA)(8|16|32)(UI|I)$/.test(internalFormatString);
+		const formatString = options?.format ?? isIntegerColorFormat ? 'RGBA_INTEGER' : 'RGBA';
+		const result: ResolvedTextureOptions = {
 			type,
-			format: this.resolveGLConstant(options?.format ?? 'RGBA'),
-			internalFormat: this.resolveGLConstant(
-				options?.internalFormat ??
-					(type === gl.FLOAT ? 'RGBA32F' : type === gl.HALF_FLOAT ? 'RGBA16F' : 'RGBA8')
-			),
+			format: this.resolveGLConstant(formatString),
+			internalFormat: this.resolveGLConstant(internalFormatString),
 			minFilter: this.resolveGLConstant(options?.minFilter ?? 'LINEAR'),
 			magFilter: this.resolveGLConstant(options?.magFilter ?? 'LINEAR'),
 			wrapS: this.resolveGLConstant(options?.wrapS ?? 'CLAMP_TO_EDGE'),
 			wrapT: this.resolveGLConstant(options?.wrapT ?? 'CLAMP_TO_EDGE'),
 			preserveY: options?.preserveY,
+			isIntegerColorFormat,
 		};
 		const isFloatColorFormat = result.internalFormat === gl.RGBA16F || result.internalFormat === gl.RGBA32F;
 		// gl.getExtension isn’t just a check, it’s a required side-effect to enable floats.
@@ -491,11 +554,8 @@ class ShaderPad {
 	}
 
 	private getPixelArray(type: number, size: number): ArrayBufferView {
-		return type === this.gl.FLOAT
-			? new Float32Array(size)
-			: type === this.gl.HALF_FLOAT
-			? new Uint16Array(size)
-			: new Uint8Array(size);
+		const ArrayType = this.glHelpers.typeToArray.get(type) ?? Uint8Array;
+		return new ArrayType(size);
 	}
 
 	private clearHistoryTextureLayers(textureInfo: Texture): void {
@@ -860,7 +920,18 @@ class ShaderPad {
 
 	clear() {
 		this.bindIntermediate();
-		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+		const gl = this.gl;
+		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+		if (intermediateInfo.options.isIntegerColorFormat) {
+			const t = intermediateInfo.options.type;
+			if (this.glHelpers.unsignedIntTypes.has(t)) {
+				gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array(4));
+			} else {
+				gl.clearBufferiv(gl.COLOR, 0, new Int32Array(4));
+			}
+		} else {
+			gl.clear(gl.COLOR_BUFFER_BIT);
+		}
 	}
 
 	draw(options?: StepOptions) {
@@ -881,10 +952,13 @@ class ShaderPad {
 		gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 		if (!this.isHeadless) {
-			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
-			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-			gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
-			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+			const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+			if (!intermediateInfo.options.isIntegerColorFormat) {
+				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
+				gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+				gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+			}
 		}
 		this.emitHook('afterDraw', ...arguments);
 	}
