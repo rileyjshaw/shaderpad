@@ -800,10 +800,35 @@ class ShaderPad {
 		let nonShaderPadSource = source as Exclude<UpdateTextureSource, ShaderPad>;
 		if (source instanceof ShaderPad) {
 			const sourceIntermediateInfo = source.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+			const srcW = sourceIntermediateInfo.width;
+			const srcH = sourceIntermediateInfo.height;
 
 			if (source.gl === this.gl) {
+				if (!info.history) {
+					this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
+					this.gl.bindTexture(this.gl.TEXTURE_2D, sourceIntermediateInfo.texture);
+					return;
+				}
+				const { depth } = info.history;
+				const targetSlots =
+					options?.historyWriteIndex === undefined
+						? [info.history.writeIndex]
+						: Array.isArray(options?.historyWriteIndex)
+						? options.historyWriteIndex.map(i => safeMod(i, depth))
+						: [safeMod(options.historyWriteIndex, depth)];
+				this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, source.intermediateFbo);
+				this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
+				for (const slot of targetSlots) {
+					this.gl.copyTexSubImage3D(this.gl.TEXTURE_2D_ARRAY, 0, 0, 0, slot, 0, 0, srcW, srcH);
+				}
+				this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, null);
 				this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
-				this.gl.bindTexture(this.gl.TEXTURE_2D, sourceIntermediateInfo.texture);
+				this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
+				const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
+				this.updateUniforms({ [frameOffsetUniformName]: targetSlots[targetSlots.length - 1] });
+				if (options?.historyWriteIndex === undefined) {
+					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
+				}
 				return;
 			}
 
