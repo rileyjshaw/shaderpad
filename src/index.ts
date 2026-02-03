@@ -217,6 +217,7 @@ class ShaderPad {
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;
 	private startTime = 0;
+	private isPlaying = false;
 	private cursorPosition = [0.5, 0.5];
 	private clickPosition = [0.5, 0.5];
 	private isMouseDown = false;
@@ -1009,7 +1010,7 @@ class ShaderPad {
 	}
 
 	private _step(time: number, options?: StepOptions) {
-		this.emitHook('beforeStep', ...arguments);
+		this.emitHook('beforeStep', time, this.frame, options);
 		const updates: Record<string, number> = {};
 		if (this.uniforms.has('u_time')) updates.u_time = time;
 		if (this.uniforms.has('u_frame')) updates.u_frame = this.frame;
@@ -1038,26 +1039,32 @@ class ShaderPad {
 			historyInfo.history!.writeIndex = nextWriteIndex;
 		}
 		++this.frame;
-		this.emitHook('afterStep', ...arguments);
+		this.emitHook('afterStep', time, this.frame, options);
 	}
 
 	play(onBeforeStep?: (time: number, frame: number) => StepOptions | void) {
 		this.pause(); // Prevent double play.
+		this.isPlaying = true;
 		const loop = (time: number) => {
 			time = (time - this.startTime) / 1000; // Convert from milliseconds to seconds.
 			const options = onBeforeStep?.(time, this.frame) ?? undefined;
 			this._step(time, options);
-			this.animationFrameId = requestAnimationFrame(loop);
+			if (this.isPlaying) this.animationFrameId = requestAnimationFrame(loop);
 		};
 		this.animationFrameId = requestAnimationFrame(loop);
 		this.emitHook('play');
 	}
 
-	pause() {
+	private _pause() {
+		this.isPlaying = false;
 		if (this.animationFrameId) {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
 		}
+	}
+
+	pause() {
+		this._pause();
 		this.emitHook('pause');
 	}
 
@@ -1076,10 +1083,8 @@ class ShaderPad {
 
 	destroy() {
 		this.emitHook('destroy');
-		if (this.animationFrameId) {
-			cancelAnimationFrame(this.animationFrameId);
-			this.animationFrameId = null;
-		}
+
+		this._pause();
 
 		if (this.cursorTarget) {
 			this.eventListeners.forEach((listener, event) => {
