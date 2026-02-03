@@ -12,11 +12,17 @@ vec2 fitCover(vec2 uv, vec2 textureSize) {
 	return (uv - 0.5) * min(scale, vec2(1.0)) + 0.5;
 }
 
-// Get the array index for a history texture
-float historyZ(highp sampler2DArray tex, int frameOffset, int framesAgo) {
-	int historyDepth = textureSize(tex, 0).z;
-	int z = (historyDepth + frameOffset - framesAgo) % historyDepth;
-	return float(z);
+float _historyZ(int historyDepth, int frameOffset, int framesAgo) {
+	return float((historyDepth + frameOffset - framesAgo) % historyDepth);
 }
-`;function o(){return function(i,t){t.injectGLSL(e)}}var c=o;export{c as default};
+float historyZ(highp sampler2DArray tex, int frameOffset, int framesAgo) {
+	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
+}
+float historyZ(highp usampler2DArray tex, int frameOffset, int framesAgo) {
+	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
+}
+float historyZ(highp isampler2DArray tex, int frameOffset, int framesAgo) {
+	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
+}
+`;function i(){return function(o,t){t.injectGLSL(e)}}var s=i;export{s as default};
 //# sourceMappingURL=helpers.mjs.map

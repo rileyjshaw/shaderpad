@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.53
+
+### Minor Changes
+
+-   Improve integer format compatibility, perf, add cursorTarget option
+
 ## 1.0.0-beta.52
 
 ### Minor Changes
