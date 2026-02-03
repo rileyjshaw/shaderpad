@@ -137,7 +137,7 @@ shader.updateUniforms(
 | `u_time`               | float          | The current time in seconds.                                                      |
 | `u_frame`              | int            | The current frame number.                                                         |
 | `u_resolution`         | float[2]       | The canvas element's dimensions.                                                  |
-| `u_cursor`             | float[2]       | Cursor position (x, y).                                                           |
+| `u_cursor`             | float[2]       | Cursor position (x, y), normalized to [0,1] over the `cursorTarget` bounding box.  |
 | `u_click`              | float[3]       | Click position (x, y) and left click state (z).                                   |
 | `u_history`            | sampler2DArray | Buffer texture of prior frames. Available if `history` option is set.             |
 | `u_historyFrameOffset` | int            | Frame offset for accessing history texture. Available if `history` option is set. |
@@ -338,6 +338,19 @@ const shader = new ShaderPad(fragmentShaderSrc, { canvas: createFullscreenCanvas
 
 // Create a headless ShaderPad for intermediate processing with initial dimensions.
 const shader = new ShaderPad(fragmentShaderSrc, { canvas: { width: 640, height: 480 } });
+```
+
+### cursorTarget
+
+Element (or `window`) to listen for cursor/click events; coordinates are normalized to [0,1] over its bounding box. If omitted and the canvas is an HTML canvas, the canvas is used.
+
+```typescript
+// Listen on the window (e.g. full viewport, coordinates 0–1).
+const shader = new ShaderPad(fragmentShaderSrc, { cursorTarget: window });
+
+// Listen on a specific container element.
+const container = document.querySelector('.shader-container');
+const shader = new ShaderPad(fragmentShaderSrc, { cursorTarget: container });
 ```
 
 ### history

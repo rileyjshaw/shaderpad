@@ -148,6 +148,7 @@ export interface Options extends Exclude<TextureOptions, 'preserveY'> {
 	plugins?: Plugin[];
 	history?: number;
 	debug?: boolean;
+	cursorTarget?: Window | Element;
 }
 
 export interface StepOptions {
@@ -225,11 +226,15 @@ class ShaderPad {
 	private historyDepth = 0;
 	private textureOptions: TextureOptions;
 	private debug: boolean;
+	private cursorTarget: Window | Element | undefined;
 	// WebGL can’t read from and write to the history texture at the same time.
 	// We write to an intermediate texture then blit to the history texture.
 	private intermediateFbo: WebGLFramebuffer | null = null;
 
-	constructor(fragmentShaderSrc: string, { canvas, plugins, history, debug, ...textureOptions }: Options = {}) {
+	constructor(
+		fragmentShaderSrc: string,
+		{ canvas, plugins, history, debug, cursorTarget, ...textureOptions }: Options = {}
+	) {
 		if (canvas && 'getContext' in canvas) {
 			this.canvas = canvas;
 		} else {
@@ -274,6 +279,7 @@ class ShaderPad {
 
 		if (history) this.historyDepth = history;
 		this.debug = debug ?? (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production');
+		this.cursorTarget = cursorTarget ?? (this.canvas instanceof HTMLCanvasElement ? this.canvas : undefined);
 		this.animationFrameId = null;
 
 		const glslInjections: string[] = [];
@@ -363,7 +369,7 @@ class ShaderPad {
 				...this.textureOptions,
 			});
 		}
-		if (this.canvas instanceof HTMLCanvasElement) {
+		if (this.cursorTarget) {
 			this.addEventListeners();
 		}
 		this.emitHook('_init');
@@ -408,13 +414,23 @@ class ShaderPad {
 		return shader;
 	}
 
+	private getCursorTargetRect(): { left: number; top: number; width: number; height: number } {
+		const target = this.cursorTarget!;
+		if (target === window) {
+			return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+		}
+		return (target as Element).getBoundingClientRect();
+	}
+
 	private addEventListeners() {
-		const htmlCanvas = this.canvas as HTMLCanvasElement;
+		if (!this.cursorTarget) return;
 		const updateCursor = (x: number, y: number) => {
 			if (!this.uniforms.has('u_cursor')) return;
-			const rect = htmlCanvas.getBoundingClientRect();
-			this.cursorPosition[0] = (x - rect.left) / rect.width;
-			this.cursorPosition[1] = 1 - (y - rect.top) / rect.height; // Flip Y for WebGL
+			const rect = this.getCursorTargetRect();
+			const u = (x - rect.left) / rect.width;
+			const v = 1 - (y - rect.top) / rect.height; // Flip Y for WebGL
+			this.cursorPosition[0] = Math.max(0, Math.min(1, u));
+			this.cursorPosition[1] = Math.max(0, Math.min(1, v));
 			this.updateUniforms({ u_cursor: this.cursorPosition });
 		};
 
@@ -422,11 +438,11 @@ class ShaderPad {
 			if (!this.uniforms.has('u_click')) return;
 			this.isMouseDown = isMouseDown;
 			if (isMouseDown) {
-				const rect = htmlCanvas.getBoundingClientRect();
+				const rect = this.getCursorTargetRect();
 				const xVal = x as number;
 				const yVal = y as number;
-				this.clickPosition[0] = (xVal - rect.left) / rect.width;
-				this.clickPosition[1] = 1 - (yVal - rect.top) / rect.height; // Flip Y for WebGL
+				this.clickPosition[0] = Math.max(0, Math.min(1, (xVal - rect.left) / rect.width));
+				this.clickPosition[1] = Math.max(0, Math.min(1, 1 - (yVal - rect.top) / rect.height)); // Flip Y for WebGL
 			}
 			this.updateUniforms({ u_click: [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0] });
 		};
@@ -481,7 +497,7 @@ class ShaderPad {
 		});
 
 		this.eventListeners.forEach((listener, event) => {
-			htmlCanvas.addEventListener(event, listener);
+			this.cursorTarget!.addEventListener(event, listener);
 		});
 	}
 
@@ -1065,9 +1081,9 @@ class ShaderPad {
 			this.animationFrameId = null;
 		}
 
-		if (this.canvas instanceof HTMLCanvasElement) {
+		if (this.cursorTarget) {
 			this.eventListeners.forEach((listener, event) => {
-				this.canvas.removeEventListener(event, listener);
+				this.cursorTarget!.removeEventListener(event, listener);
 			});
 			this.eventListeners.clear();
 		}
