@@ -550,7 +550,7 @@ class ShaderPad {
 		const internalFormatString =
 			internalFormatOption ?? this.glHelpers.typeToInternalFormatString.get(type) ?? 'RGBA8';
 		const isIntegerColorFormat = /^(R|RG|RGB|RGBA)(8|16|32)(UI|I)$/.test(internalFormatString);
-		const formatString = options?.format ?? isIntegerColorFormat ? 'RGBA_INTEGER' : 'RGBA';
+		const formatString = options?.format ?? (isIntegerColorFormat ? 'RGBA_INTEGER' : 'RGBA');
 		const result: ResolvedTextureOptions = {
 			type,
 			format: this.resolveGLConstant(formatString),
