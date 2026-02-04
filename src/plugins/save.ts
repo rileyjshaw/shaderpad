@@ -6,12 +6,16 @@ declare module '..' {
 	}
 }
 
+export interface SaveOptions {
+	preventShare?: boolean;
+}
+
 function save() {
 	return function (shaderPad: ShaderPad, context: PluginContext) {
 		const { gl, canvas } = context;
 		const downloadLink = document.createElement('a');
 
-		(shaderPad as any).save = async function (filename: string, text?: string) {
+		(shaderPad as any).save = async function (filename: string, text?: string, options: SaveOptions = {}) {
 			gl.clear(gl.COLOR_BUFFER_BIT);
 			gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -24,7 +28,7 @@ function save() {
 				? new Promise(resolve => canvas.toBlob(resolve as BlobCallback, 'image/png'))
 				: canvas.convertToBlob({ type: 'image/png' }));
 
-			if (navigator.share) {
+			if (!options.preventShare && navigator.share) {
 				try {
 					const file = new File([blob], filename, { type: blob.type });
 					const shareData: ShareData = { files: [file] };

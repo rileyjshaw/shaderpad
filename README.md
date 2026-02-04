@@ -426,8 +426,12 @@ The `save` plugin adds a `.save()` method to the shader that saves the current f
 ```typescript
 import save, { WithSave } from 'shaderpad/plugins/save';
 const shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
-shader.save('filename', 'Optional mobile share text');
+shader.save('filename', 'Optional mobile share text', { preventShare: true });
 ```
+
+**Function parameters:**
+
+-   `options.preventShare?: boolean` - If `true`, the Web Share API is not used and the file is always downloaded. Default: `false`.
 
 #### face
 
