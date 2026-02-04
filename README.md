@@ -756,7 +756,7 @@ When `history` is enabled, all functions accept an optional `int framesAgo` para
 vec2 segment = segmentAt(v_uv);
 float confidence = segment.x;
 float category = segment.y;
-float isForeground = step(0.0, category) * confidence;
+float isForeground = (1.0 - step(category, 0.0)) * confidence;
 color = mix(color, vec3(1.0, 0.0, 1.0), isForeground);
 ```
 
