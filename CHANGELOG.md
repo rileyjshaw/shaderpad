@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.55
+
+### Minor Changes
+
+-   Add preventShare option to save plugin
+
 ## 1.0.0-beta.54
 
 ### Patch Changes
