@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.56
+
+### Patch Changes
+
+-   Improve ShaderPad chaining
+
 ## 1.0.0-beta.55
 
 ### Minor Changes
