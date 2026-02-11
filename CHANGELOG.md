@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.57
+
+### Minor Changes
+
+-   Fix autosize target sizing
+
 ## 1.0.0-beta.56
 
 ### Patch Changes

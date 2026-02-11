@@ -115,6 +115,7 @@ declare class ShaderPad {
     play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void;
     private _pause;
     pause(): void;
+    resetFrame(): void;
     reset(): void;
     destroy(): void;
 }
