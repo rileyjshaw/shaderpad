@@ -784,7 +784,12 @@ class ShaderPad {
 		const textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> = {
 			width,
 			height,
-			options: this.resolveTextureOptions(textureOptions),
+			options:
+				source instanceof ShaderPad &&
+				Object.keys(textureOptions).length === 0 &&
+				source.textures.has(INTERMEDIATE_TEXTURE_KEY)
+					? source.textures.get(INTERMEDIATE_TEXTURE_KEY)!.options
+					: this.resolveTextureOptions(textureOptions),
 		};
 		if (historyDepth > 0) {
 			textureInfo.history = { depth: historyDepth, writeIndex: 0 };
