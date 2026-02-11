@@ -48,6 +48,8 @@ function autosize(options: AutosizeOptions = {}) {
 			}
 		}
 
+		handleResize();
+
 		let resizeObserver: ResizeObserver | null = null;
 		if (target instanceof Window) {
 			window.addEventListener('resize', throttledHandleResize);
