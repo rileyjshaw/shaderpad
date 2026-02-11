@@ -264,7 +264,8 @@ interface StepOptions {
 
 ```typescript
 shader.pause(); // Pause the render loop.
-shader.reset(); // Reset frame counter and clear history buffers.
+shader.reset(); // Reset frame counter, clock, and clear history buffers.
+shader.resetFrame(); // Reset frame counter and clock only.
 shader.destroy(); // Clean up resources.
 ```
 

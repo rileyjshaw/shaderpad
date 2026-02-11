@@ -1094,9 +1094,13 @@ class ShaderPad {
 		this.emitHook('pause');
 	}
 
-	reset() {
+	resetFrame() {
 		this.frame = 0;
 		this.startTime = performance.now();
+	}
+
+	reset() {
+		this.resetFrame();
 		this.textures.forEach(texture => {
 			if (texture.history) {
 				texture.history.writeIndex = 0;
