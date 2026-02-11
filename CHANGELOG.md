@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.58
+
+### Patch Changes
+
+-   Add a synchronous handleResize() during autosize init
+
 ## 1.0.0-beta.57
 
 ### Minor Changes
