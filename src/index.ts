@@ -165,6 +165,11 @@ type TextureUnitPool = {
 const HISTORY_TEXTURE_KEY = Symbol('u_history');
 const INTERMEDIATE_TEXTURE_KEY = Symbol('__SHADERPAD_BUFFER');
 
+const canvasRegistry = new WeakMap<
+	HTMLCanvasElement | OffscreenCanvas,
+	{ textureUnitPool: TextureUnitPool; instances: Set<ShaderPad> }
+>();
+
 function combineShaderCode(shader: string, injections: string[]): string {
 	if (!injections?.length) return shader;
 	const lines = shader.split('\n');
@@ -271,11 +276,21 @@ class ShaderPad {
 			unsignedIntTypes: new Set([gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT, gl.UNSIGNED_INT]),
 		};
 
-		this.textureUnitPool = {
-			free: [],
-			next: 0,
-			max: gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),
-		};
+		let registryEntry = canvasRegistry.get(this.canvas);
+		if (!registryEntry) {
+			registryEntry = {
+				textureUnitPool: {
+					free: [],
+					next: 0,
+					max: gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),
+				},
+				instances: new Set([this]),
+			};
+			canvasRegistry.set(this.canvas, registryEntry);
+		}
+		this.textureUnitPool = registryEntry.textureUnitPool;
+		registryEntry.instances.add(this);
+
 		this.textureOptions = textureOptions;
 
 		if (history) this.historyDepth = history;
@@ -339,11 +354,17 @@ class ShaderPad {
 		} else {
 			const wrapDimension = (dimension: 'width' | 'height') => {
 				const descriptor = Object.getOwnPropertyDescriptor(OffscreenCanvas.prototype, dimension)!;
-				Object.defineProperty(this.canvas, dimension, {
-					get: () => descriptor.get!.call(this.canvas),
+				const canvas = this.canvas;
+				Object.defineProperty(canvas, dimension, {
+					get: () => descriptor.get!.call(canvas),
 					set: v => {
-						descriptor.set!.call(this.canvas, v);
-						this.updateResolution();
+						descriptor.set!.call(canvas, v);
+						const entry = canvasRegistry.get(canvas);
+						if (entry) {
+							for (const instance of entry.instances) {
+								instance.updateResolution();
+							}
+						}
 					},
 					configurable: descriptor.configurable,
 					enumerable: descriptor.enumerable,
@@ -363,6 +384,8 @@ class ShaderPad {
 			...this.textureOptions,
 		});
 		this.intermediateFbo = gl.createFramebuffer();
+		this.bindIntermediate();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 		if (this.historyDepth > 0) {
 			this._initializeTexture(HISTORY_TEXTURE_KEY, this.canvas, {
@@ -773,9 +796,12 @@ class ShaderPad {
 			this.clearHistoryTextureLayers(completeTextureInfo);
 		}
 		this.textures.set(name, completeTextureInfo);
-		this.updateTexture(name, source);
+		if (name !== INTERMEDIATE_TEXTURE_KEY && name !== HISTORY_TEXTURE_KEY) {
+			this.updateTexture(name, source);
+		}
 
 		// Set a uniform to access the texture in the fragment shader.
+		this.gl.useProgram(this.program!);
 		const uSampler = this.gl.getUniformLocation(this.program!, stringFrom(name));
 		if (uSampler) {
 			this.gl.uniform1i(uSampler, unitIndex);
@@ -1109,11 +1135,17 @@ class ShaderPad {
 		}
 
 		this.textures.forEach(texture => {
+			this.textureUnitPool.free.push(texture.unitIndex);
 			this.gl.deleteTexture(texture.texture);
 		});
 		this.textures.clear();
-		this.textureUnitPool.free = [];
-		this.textureUnitPool.next = 0;
+		const entry = canvasRegistry.get(this.canvas);
+		if (entry) {
+			entry.instances.delete(this);
+			if (entry.instances.size === 0) {
+				canvasRegistry.delete(this.canvas);
+			}
+		}
 
 		if (this.vao) {
 			this.gl.deleteVertexArray(this.vao);
