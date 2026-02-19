@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.59
+
+### Minor Changes
+
+-   Allow uint uniforms
+
 ## 1.0.0-beta.58
 
 ### Patch Changes
