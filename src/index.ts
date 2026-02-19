@@ -9,7 +9,7 @@ void main() {
 }`;
 
 interface Uniform {
-	type: 'float' | 'int';
+	type: 'float' | 'int' | 'uint';
 	length: 1 | 2 | 3 | 4;
 	location: WebGLUniformLocation;
 	arrayLength?: number;
@@ -51,6 +51,12 @@ const FORMAT_TYPE_SUFFIXES: [string, GLTypeString][] = [
 	['32F', 'FLOAT'],
 	['8', 'UNSIGNED_BYTE'],
 ];
+
+const UNIFORM_TYPE_SUFFIXES: Record<Uniform['type'], string> = {
+	float: 'f',
+	int: 'i',
+	uint: 'ui',
+};
 
 function typeFromInternalFormatString(internalFormatString?: GLInternalFormatString): GLTypeString | undefined {
 	return internalFormatString && FORMAT_TYPE_SUFFIXES.find(([suffix]) => internalFormatString.endsWith(suffix))?.[1];
@@ -625,7 +631,7 @@ class ShaderPad {
 
 	initializeUniform(
 		name: string,
-		type: 'float' | 'int',
+		type: Uniform['type'],
 		value: number | number[] | (number | number[])[],
 		options?: { arrayLength?: number }
 	) {
@@ -633,8 +639,10 @@ class ShaderPad {
 		if (this.uniforms.has(name)) {
 			throw new Error(`${name} is already initialized.`);
 		}
-		if (type !== 'float' && type !== 'int') {
-			throw new Error(`Invalid uniform type: ${type}. Expected 'float' or 'int'.`);
+		if (!UNIFORM_TYPE_SUFFIXES[type]) {
+			throw new Error(
+				`Invalid uniform type: ${type}. Expected one of: ${Object.keys(UNIFORM_TYPE_SUFFIXES).join(', ')}.`
+			);
 		}
 		if (arrayLength && !(Array.isArray(value) && value.length === arrayLength)) {
 			throw new Error(`${name} array length mismatch: must initialize with ${arrayLength} elements.`);
@@ -677,8 +685,7 @@ class ShaderPad {
 				this.log(`${name} not in shader. Skipping update.`);
 				return;
 			}
-
-			let glFunctionName = `uniform${uniform.length}${uniform.type.charAt(0)}`; // e.g. uniform1f, uniform3i…
+			let glFunctionName = `uniform${uniform.length}${UNIFORM_TYPE_SUFFIXES[uniform.type]}`;
 			if (uniform.arrayLength) {
 				if (!Array.isArray(newValue)) {
 					throw new Error(`${name} is an array, but the value passed to updateUniforms is not an array.`);
@@ -695,7 +702,13 @@ class ShaderPad {
 						`Tried to update ${name} with some elements that are not length ${uniform.length}.`
 					);
 				}
-				const typedArray = new (uniform.type === 'float' ? Float32Array : Int32Array)(newValue.flat());
+				const flat = newValue.flat();
+				const typedArray =
+					uniform.type === 'float'
+						? new Float32Array(flat)
+						: uniform.type === 'uint'
+						? new Uint32Array(flat)
+						: new Int32Array(flat);
 				let location = uniform.location;
 				if (options?.startIndex) {
 					const newLocation = this.gl.getUniformLocation(this.program!, `${name}[${options.startIndex}]`);

@@ -72,7 +72,7 @@ shader.initializeUniform('u_data', 'float', [1.0, 0.5, 0.0], { arrayLength: 3 })
 **Parameters:**
 
 -   `name` (string): Uniform name
--   `type` ('float' | 'int'): Uniform type
+-   `type` ('float' | 'int' | 'uint'): Uniform type
 -   `value` (number | number[] | (number | number[])[]): Initial value(s)
 -   `options` (optional): `{ arrayLength?: number }` - Required for arrays
 
