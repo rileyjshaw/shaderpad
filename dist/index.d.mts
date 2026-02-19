@@ -1,3 +1,9 @@
+interface Uniform {
+    type: 'float' | 'int' | 'uint';
+    length: 1 | 2 | 3 | 4;
+    location: WebGLUniformLocation;
+    arrayLength?: number;
+}
 type GLInternalFormatChannels = 'R' | 'RG' | 'RGB' | 'RGBA';
 type GLInternalFormatDepth = '8' | '16F' | '32F' | '8UI' | '8I' | '16UI' | '16I' | '32UI' | '32I';
 type GLInternalFormatString = `${GLInternalFormatChannels}${GLInternalFormatDepth}`;
@@ -90,7 +96,7 @@ declare class ShaderPad {
     private resolveTextureOptions;
     private getPixelArray;
     private clearHistoryTextureLayers;
-    initializeUniform(name: string, type: 'float' | 'int', value: number | number[] | (number | number[])[], options?: {
+    initializeUniform(name: string, type: Uniform['type'], value: number | number[] | (number | number[])[], options?: {
         arrayLength?: number;
     }): void;
     private log;
