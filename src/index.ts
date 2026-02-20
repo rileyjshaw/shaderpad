@@ -604,6 +604,10 @@ class ShaderPad {
 		return new ArrayType(size);
 	}
 
+	private isNotRgba(format: number): boolean {
+		return format !== this.gl.RGBA && format !== this.gl.RGBA_INTEGER;
+	}
+
 	private clearHistoryTextureLayers(textureInfo: Texture): void {
 		if (!textureInfo.history) return;
 
@@ -612,6 +616,12 @@ class ShaderPad {
 		const transparent = this.getPixelArray(type, textureInfo.width * textureInfo.height * 4);
 		gl.activeTexture(gl.TEXTURE0 + textureInfo.unitIndex);
 		gl.bindTexture(gl.TEXTURE_2D_ARRAY, textureInfo.texture);
+		const needsAlignmentFix = this.isNotRgba(format);
+		let previousAlignment;
+		if (needsAlignmentFix) {
+			previousAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
+			gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		}
 		for (let layer = 0; layer < textureInfo.history.depth; ++layer) {
 			gl.texSubImage3D(
 				gl.TEXTURE_2D_ARRAY,
@@ -627,6 +637,7 @@ class ShaderPad {
 				transparent
 			);
 		}
+		if (needsAlignmentFix) gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousAlignment);
 	}
 
 	initializeUniform(
@@ -919,6 +930,12 @@ class ShaderPad {
 		const isTypedArray = 'data' in nonShaderPadSource && nonShaderPadSource.data;
 		const shouldFlipY = !isTypedArray && !info.options?.preserveY;
 		const previousFlipY = this.gl.getParameter(this.gl.UNPACK_FLIP_Y_WEBGL);
+		const needsAlignmentFix = isTypedArray && this.isNotRgba(info.options.format);
+		let previousAlignment;
+		if (needsAlignmentFix) {
+			previousAlignment = this.gl.getParameter(this.gl.UNPACK_ALIGNMENT);
+			this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
+		}
 
 		if (info.history) {
 			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
@@ -995,6 +1012,7 @@ class ShaderPad {
 			}
 			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
 		}
+		if (needsAlignmentFix) this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, previousAlignment);
 	}
 
 	private bindIntermediate() {
