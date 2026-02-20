@@ -1,4 +1,4 @@
-import{a as w}from"../chunk-EK64KAZ3.mjs";import"../chunk-LXQJ4NRK.mjs";import{a as I,b as C,c as D,e as F,f as P}from"../chunk-JRSBIGBN.mjs";var z={data:new Float32Array(1).fill(1),width:1,height:1},N={modelPath:"https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite",outputConfidenceMasks:!1},V=`#version 300 es
+import{a as w}from"../chunk-L2LKYYKE.mjs";import"../chunk-LXQJ4NRK.mjs";import{a as I,b as C,c as D,e as F,f as P}from"../chunk-JRSBIGBN.mjs";var z={data:new Float32Array(1).fill(1),width:1,height:1},N={modelPath:"https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite",outputConfidenceMasks:!1},V=`#version 300 es
 precision mediump float;
 in vec2 v_uv;
 out vec4 outColor;

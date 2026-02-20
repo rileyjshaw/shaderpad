@@ -95,6 +95,7 @@ declare class ShaderPad {
     private reserveTextureUnit;
     private resolveTextureOptions;
     private getPixelArray;
+    private isNotRgba;
     private clearHistoryTextureLayers;
     initializeUniform(name: string, type: Uniform['type'], value: number | number[] | (number | number[])[], options?: {
         arrayLength?: number;

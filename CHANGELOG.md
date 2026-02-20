@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.61
+
+### Patch Changes
+
+-   Fix UNPACK_ALIGNMENT for non-RGBA formats
+
 ## 1.0.0-beta.60
 
 ### Patch Changes
