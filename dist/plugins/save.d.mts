@@ -2,7 +2,7 @@ import ShaderPad, { PluginContext } from '../index.mjs';
 
 declare module '..' {
     interface ShaderPad {
-        save(filename: string, text?: string): Promise<void>;
+        save(filename?: string, text?: string, options?: SaveOptions): Promise<void>;
     }
 }
 interface SaveOptions {
@@ -10,7 +10,7 @@ interface SaveOptions {
 }
 declare function save(): (shaderPad: ShaderPad, context: PluginContext) => void;
 type WithSave<T extends ShaderPad> = T & {
-    save(filename: string, text?: string): Promise<void>;
+    save(filename?: string, text?: string, options?: SaveOptions): Promise<void>;
 };
 
 export { type SaveOptions, type WithSave, save as default };

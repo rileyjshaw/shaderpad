@@ -102,7 +102,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 	const optionsKey = hashOptions({ ...options, textureName });
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, emitHook } = context;
+		const { injectGLSL, emitHook, updateTexturesInternal } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const mediapipeCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
@@ -117,7 +117,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				historyWriteIndex = pendingBackfillSlots;
 				pendingBackfillSlots = [];
 			}
-			shaderPad.updateTextures(
+			updateTexturesInternal(
 				{ u_segmentMask: detector.mask.shader },
 				history ? { skipHistoryWrite, historyWriteIndex } : undefined
 			);

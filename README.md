@@ -323,6 +323,10 @@ Plugins may emit additional namespaced events (e.g., `face:ready`, `pose:result`
 
 ShaderPad’s constructor accepts an optional `options` object.
 
+In addition to the fields below, constructor options also accept texture storage/filter/wrap settings such as
+`internalFormat`, `format`, `type`, `minFilter`, `magFilter`, `wrapS`, and `wrapT`. These configure ShaderPad’s
+internal render targets and history buffers, which is mainly useful for float/integer pipelines and chained shaders.
+
 ### canvas
 
 The `canvas` option allows you to pass in an existing canvas element, dimensions object, or `null` for headless mode.
@@ -431,6 +435,8 @@ shader.save('filename', 'Optional mobile share text', { preventShare: true });
 
 **Function parameters:**
 
+-   `filename?` (string) - Output filename. Defaults to `export.png`
+-   `text?` (string) - Optional share text for platforms that support the Web Share API
 -   `options.preventShare?: boolean` - If `true`, the Web Share API is not used and the file is always downloaded. Default: `false`.
 
 #### face

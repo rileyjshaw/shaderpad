@@ -128,6 +128,10 @@ export interface PluginContext {
 	canvas: HTMLCanvasElement | OffscreenCanvas;
 	injectGLSL: (code: string) => void;
 	emitHook: (name: LifecycleMethod, ...args: any[]) => void;
+	updateTexturesInternal: (
+		updates: Record<string, UpdateTextureSource>,
+		options?: InternalUpdateTexturesOptions
+	) => void;
 }
 
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
@@ -149,7 +153,9 @@ type LifecycleMethod =
 	| 'destroy'
 	| `${string}:${string}`;
 
-export interface Options extends Exclude<TextureOptions, 'preserveY'> {
+export type RenderTextureOptions = Omit<TextureOptions, 'preserveY'>;
+
+export interface Options extends RenderTextureOptions {
 	canvas?: HTMLCanvasElement | OffscreenCanvas | { width: number; height: number } | null;
 	plugins?: Plugin[];
 	history?: number;
@@ -161,6 +167,14 @@ export interface StepOptions {
 	skipClear?: boolean;
 	skipHistoryWrite?: boolean;
 }
+
+export interface UpdateTexturesOptions {
+	skipHistoryWrite?: boolean;
+}
+
+type InternalUpdateTexturesOptions = UpdateTexturesOptions & {
+	historyWriteIndex?: number | number[];
+};
 
 type TextureUnitPool = {
 	free: number[];
@@ -227,7 +241,7 @@ class ShaderPad {
 	private animationFrameId: number | null;
 	private eventListeners: Map<string, EventListener> = new Map();
 	private frame = 0;
-	private startTime = 0;
+	private startTime = Number.NaN;
 	private isPlaying = false;
 	private cursorPosition = [0.5, 0.5];
 	private clickPosition = [0.5, 0.5];
@@ -314,6 +328,7 @@ class ShaderPad {
 						glslInjections.push(code);
 					},
 					emitHook: this.emitHook.bind(this),
+					updateTexturesInternal: this.updateTexturesInternal.bind(this),
 				})
 			);
 		}
@@ -427,7 +442,10 @@ class ShaderPad {
 	off(name: LifecycleMethod, fn: Function) {
 		const hooks = this.hooks.get(name);
 		if (hooks) {
-			hooks.splice(hooks.indexOf(fn), 1);
+			const index = hooks.indexOf(fn);
+			if (index >= 0) {
+				hooks.splice(index, 1);
+			}
 		}
 	}
 
@@ -845,21 +863,21 @@ class ShaderPad {
 		this.emitHook('initializeTexture', ...arguments);
 	}
 
-	updateTextures(
+	updateTextures(updates: Record<string, UpdateTextureSource>, options?: UpdateTexturesOptions) {
+		this.updateTexturesInternal(updates, options);
+		this.emitHook('updateTextures', ...arguments);
+	}
+
+	private updateTexturesInternal(
 		updates: Record<string, UpdateTextureSource>,
-		options?: { skipHistoryWrite?: boolean; historyWriteIndex?: number | number[] }
+		options?: InternalUpdateTexturesOptions
 	) {
 		Object.entries(updates).forEach(([name, source]) => {
 			this.updateTexture(name, source, options);
 		});
-		this.emitHook('updateTextures', ...arguments);
 	}
 
-	private updateTexture(
-		name: string | symbol,
-		source: UpdateTextureSource,
-		options?: { skipHistoryWrite?: boolean; historyWriteIndex?: number | number[] }
-	) {
+	private updateTexture(name: string | symbol, source: UpdateTextureSource, options?: InternalUpdateTexturesOptions) {
 		const info = this.textures.get(name);
 		if (!info) throw new Error(`Texture '${stringFrom(name)}' is not initialized.`);
 
@@ -1068,7 +1086,10 @@ class ShaderPad {
 	}
 
 	step(options?: StepOptions) {
-		this._step(performance.now() - this.startTime, options);
+		if (!Number.isFinite(this.startTime)) {
+			this.startTime = performance.now();
+		}
+		this._step((performance.now() - this.startTime) / 1000, options);
 	}
 
 	private _step(time: number, options?: StepOptions) {
@@ -1105,7 +1126,10 @@ class ShaderPad {
 	}
 
 	play(onBeforeStep?: (time: number, frame: number) => StepOptions | void) {
-		this.pause(); // Prevent double play.
+		this._pause();
+		if (!Number.isFinite(this.startTime)) {
+			this.startTime = performance.now();
+		}
 		this.isPlaying = true;
 		const loop = (time: number) => {
 			time = (time - this.startTime) / 1000; // Convert from milliseconds to seconds.
@@ -1118,16 +1142,19 @@ class ShaderPad {
 	}
 
 	private _pause() {
+		const wasPlaying = this.isPlaying;
 		this.isPlaying = false;
 		if (this.animationFrameId) {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
 		}
+		return wasPlaying;
 	}
 
 	pause() {
-		this._pause();
-		this.emitHook('pause');
+		if (this._pause()) {
+			this.emitHook('pause');
+		}
 	}
 
 	resetFrame() {

@@ -259,7 +259,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, emitHook } = context;
+		const { injectGLSL, emitHook, updateTexturesInternal } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
@@ -288,7 +288,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				historyWriteIndex = pendingBackfillSlots;
 				pendingBackfillSlots = [];
 			}
-			shaderPad.updateTextures(
+			updateTexturesInternal(
 				{
 					u_poseLandmarksTex: {
 						data: detector.landmarks.data,

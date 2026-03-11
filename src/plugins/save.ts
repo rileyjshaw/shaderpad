@@ -2,7 +2,7 @@ import ShaderPad, { PluginContext } from '..';
 
 declare module '..' {
 	interface ShaderPad {
-		save(filename: string, text?: string): Promise<void>;
+		save(filename?: string, text?: string, options?: SaveOptions): Promise<void>;
 	}
 }
 
@@ -15,7 +15,7 @@ function save() {
 		const { gl, canvas } = context;
 		const downloadLink = document.createElement('a');
 
-		(shaderPad as any).save = async function (filename: string, text?: string, options: SaveOptions = {}) {
+		(shaderPad as any).save = async function (filename?: string, text?: string, options: SaveOptions = {}) {
 			gl.clear(gl.COLOR_BUFFER_BIT);
 			gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -51,7 +51,7 @@ function save() {
 }
 
 export type WithSave<T extends ShaderPad> = T & {
-	save(filename: string, text?: string): Promise<void>;
+	save(filename?: string, text?: string, options?: SaveOptions): Promise<void>;
 };
 
 export default save;

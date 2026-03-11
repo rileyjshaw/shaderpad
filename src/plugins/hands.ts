@@ -104,7 +104,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, emitHook } = context;
+		const { injectGLSL, emitHook, updateTexturesInternal } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
@@ -123,7 +123,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 				historyWriteIndex = pendingBackfillSlots;
 				pendingBackfillSlots = [];
 			}
-			shaderPad.updateTextures(
+			updateTexturesInternal(
 				{
 					u_handLandmarksTex: {
 						data: detector.landmarks.data,

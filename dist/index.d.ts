@@ -38,10 +38,12 @@ interface PluginContext {
     canvas: HTMLCanvasElement | OffscreenCanvas;
     injectGLSL: (code: string) => void;
     emitHook: (name: LifecycleMethod, ...args: any[]) => void;
+    updateTexturesInternal: (updates: Record<string, UpdateTextureSource>, options?: InternalUpdateTexturesOptions) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 type LifecycleMethod = '_init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'beforeStep' | 'afterStep' | 'beforeDraw' | 'afterDraw' | 'updateResolution' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
-interface Options extends Exclude<TextureOptions, 'preserveY'> {
+type RenderTextureOptions = Omit<TextureOptions, 'preserveY'>;
+interface Options extends RenderTextureOptions {
     canvas?: HTMLCanvasElement | OffscreenCanvas | {
         width: number;
         height: number;
@@ -55,6 +57,12 @@ interface StepOptions {
     skipClear?: boolean;
     skipHistoryWrite?: boolean;
 }
+interface UpdateTexturesOptions {
+    skipHistoryWrite?: boolean;
+}
+type InternalUpdateTexturesOptions = UpdateTexturesOptions & {
+    historyWriteIndex?: number | number[];
+};
 declare class ShaderPad {
     private isHeadless;
     private isTouchDevice;
@@ -109,10 +117,8 @@ declare class ShaderPad {
     initializeTexture(name: string, source: TextureSource, options?: TextureOptions & {
         history?: number;
     }): void;
-    updateTextures(updates: Record<string, UpdateTextureSource>, options?: {
-        skipHistoryWrite?: boolean;
-        historyWriteIndex?: number | number[];
-    }): void;
+    updateTextures(updates: Record<string, UpdateTextureSource>, options?: UpdateTexturesOptions): void;
+    private updateTexturesInternal;
     private updateTexture;
     private bindIntermediate;
     clear(): void;
@@ -127,4 +133,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type Options, type PartialCustomTexture, type PluginContext, type StepOptions, type TextureOptions, type TextureSource, ShaderPad as default };
+export { type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type Options, type PartialCustomTexture, type PluginContext, type RenderTextureOptions, type StepOptions, type TextureOptions, type TextureSource, type UpdateTexturesOptions, ShaderPad as default };

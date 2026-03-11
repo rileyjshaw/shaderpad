@@ -291,7 +291,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, emitHook } = context;
+		const { injectGLSL, emitHook, updateTexturesInternal } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
@@ -311,7 +311,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				historyWriteIndex = pendingBackfillSlots;
 				pendingBackfillSlots = [];
 			}
-			shaderPad.updateTextures(
+			updateTexturesInternal(
 				{
 					u_faceLandmarksTex: {
 						data: detector.landmarks.data,
