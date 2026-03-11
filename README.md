@@ -303,7 +303,6 @@ Remove a previously registered callback.
 
 | Event               | Callback Arguments                                     | Description                                      |
 | ------------------- | ------------------------------------------------------ | ------------------------------------------------ |
-| `resize`            | `(width: number, height: number)`                      | Fired when the canvas element is resized         |
 | `updateResolution`  | `(width: number, height: number)`                      | Fired when the drawing buffer resolution changes |
 | `play`              | none                                                   | Fired when the render loop starts                |
 | `pause`             | none                                                   | Fired when the render loop is paused             |
@@ -318,7 +317,7 @@ Remove a previously registered callback.
 | `updateTextures`    | `(updates, options?)`                                  | Fired after textures are updated                 |
 | `updateUniforms`    | `(updates, options?)`                                  | Fired after uniforms are updated                 |
 
-Plugins may emit additional namespaced events (e.g., `face:ready`, `pose:results`).
+Plugins may emit additional namespaced events (e.g., `face:ready`, `pose:result`).
 
 ## Options
 
@@ -710,7 +709,7 @@ for (int i = 0; i < u_maxHands; ++i) {
 
 #### segmenter
 
-The `segmenter` plugin uses [MediaPipe Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) to segment objects in video or image textures. It supports models with multiple categories (e.g., background, hair, chair, dog…). By default, it uses the [hair segmentation model](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter#hair-model).
+The `segmenter` plugin uses [MediaPipe Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) to segment objects in video or image textures. It supports models with multiple categories (e.g., background, hair, chair, dog…). By default, it uses MediaPipe's selfie segmenter model.
 
 ```typescript
 import ShaderPad from 'shaderpad';
@@ -731,7 +730,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
--   `modelPath?: string` - Path to the segmentation model (default: DeepLab v3)
+-   `modelPath?: string` - Path to the segmentation model (default: MediaPipe selfie segmenter)
 -   `outputConfidenceMasks?: boolean` - Whether to output per-category confidence masks (default: `false`). If `false`, confidence is always 1.
 -   `history?: number` - Frames of history to store for mask texture
 
@@ -746,7 +745,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 | Uniform           | Type                          | Description                                                             |
 | ----------------- | ----------------------------- | ----------------------------------------------------------------------- |
-| `u_segmentMask`   | sampler2D (or sampler2DArray) | Segment mask texture (R: normalized category, G: confidence, B: unused) |
+| `u_segmentMask`   | sampler2D (or sampler2DArray) | Segment mask texture (R: confidence, G: normalized category, B: unused) |
 | `u_numCategories` | int                           | Number of segmentation categories (including background)                |
 
 **Helper functions:**
@@ -776,6 +775,12 @@ The `autosize` plugin handles automatic canvas resolution updates with ResizeObs
 -   `ignorePixelRatio?: boolean` - If `true`, don't scale with devicePixelRatio (default: `false`)
 -   `target?: Element | Window` - What to observe for resize (default: canvas itself for HTMLCanvasElement, window for OffscreenCanvas)
 -   `throttle?: number` - Throttle interval in milliseconds (default: 33ms)
+
+**Events:**
+
+| Event             | Callback Arguments                | Description                                          |
+| ----------------- | --------------------------------- | ---------------------------------------------------- |
+| `autosize:resize` | `(width: number, height: number)` | Fired when the canvas drawing buffer size is updated |
 
 ## Contributing
 
