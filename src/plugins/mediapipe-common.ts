@@ -22,7 +22,7 @@ export function calculateBoundingBoxCenter(
 	entityIdx: number,
 	landmarkIndices: readonly number[] | number[],
 	landmarkCount: number,
-	offset: number = 0
+	offset: number = 0,
 ): [number, number, number, number] {
 	let minX = Infinity,
 		maxX = -Infinity,
@@ -56,8 +56,8 @@ export function getSharedFileset(): Promise<any> {
 	if (!filesetPromise) {
 		filesetPromise = import('@mediapipe/tasks-vision').then(({ FilesetResolver }) =>
 			FilesetResolver.forVisionTasks(
-				`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${__MEDIAPIPE_TASKS_VISION_VERSION__}/wasm`
-			)
+				`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${__MEDIAPIPE_TASKS_VISION_VERSION__}/wasm`,
+			),
 		);
 	}
 	return filesetPromise;
@@ -72,7 +72,7 @@ export function generateGLSLFn(history: number | undefined) {
 				const callArgs = argsOnly ? `${argsOnly}, 0` : '0';
 				return `${returnType} ${name}(${historyArgs}) {\n${body}\n}
 ${returnType} ${name}(${args}) { return ${name}(${callArgs}); }`;
-		  }
+			}
 		: (returnType: string, name: string, args: string, body: string) =>
 				`${returnType} ${name}(${args}) {\n${body}\n}`;
 	return { historyParams, fn };

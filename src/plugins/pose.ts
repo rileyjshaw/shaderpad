@@ -152,7 +152,7 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 			poseIdx,
 			ALL_STANDARD_INDICES,
 			LANDMARK_COUNT,
-			N_LANDMARK_METADATA_SLOTS
+			N_LANDMARK_METADATA_SLOTS,
 		);
 		const bodyCenterIdx = (N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.BODY_CENTER) * 4;
 		data[bodyCenterIdx] = bodyCenter[0];
@@ -165,7 +165,7 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 			poseIdx,
 			LEFT_HAND_INDICES,
 			LANDMARK_COUNT,
-			N_LANDMARK_METADATA_SLOTS
+			N_LANDMARK_METADATA_SLOTS,
 		);
 		const leftHandCenterIdx =
 			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_HAND_CENTER) * 4;
@@ -179,7 +179,7 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 			poseIdx,
 			RIGHT_HAND_INDICES,
 			LANDMARK_COUNT,
-			N_LANDMARK_METADATA_SLOTS
+			N_LANDMARK_METADATA_SLOTS,
 		);
 		const rightHandCenterIdx =
 			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_HAND_CENTER) * 4;
@@ -193,7 +193,7 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 			poseIdx,
 			LEFT_FOOT_INDICES,
 			LANDMARK_COUNT,
-			N_LANDMARK_METADATA_SLOTS
+			N_LANDMARK_METADATA_SLOTS,
 		);
 		const leftFootCenterIdx =
 			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.LEFT_FOOT_CENTER) * 4;
@@ -207,7 +207,7 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 			poseIdx,
 			RIGHT_FOOT_INDICES,
 			LANDMARK_COUNT,
-			N_LANDMARK_METADATA_SLOTS
+			N_LANDMARK_METADATA_SLOTS,
 		);
 		const rightFootCenterIdx =
 			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.RIGHT_FOOT_CENTER) * 4;
@@ -221,7 +221,7 @@ function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) 
 			poseIdx,
 			TORSO_INDICES,
 			LANDMARK_COUNT,
-			N_LANDMARK_METADATA_SLOTS
+			N_LANDMARK_METADATA_SLOTS,
 		);
 		const torsoCenterIdx =
 			(N_LANDMARK_METADATA_SLOTS + poseIdx * LANDMARK_COUNT + LANDMARK_INDICES.TORSO_CENTER) * 4;
@@ -268,7 +268,9 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		const maskShader =
 			existingDetector?.maskShader ??
 			(() => {
-				const shader = new ShaderPad(MASK_SHADER_SRC, { canvas: mediapipeCanvas });
+				const shader = new ShaderPad(MASK_SHADER_SRC, {
+					canvas: mediapipeCanvas,
+				});
 				shader.initializeTexture('u_mask', dummyTexture);
 				shader.initializeUniform('u_poseIndex', 'float', 0);
 				return shader;
@@ -298,7 +300,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					},
 					u_poseMask: maskShader,
 				},
-				history ? { skipHistoryWrite, historyWriteIndex } : undefined
+				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
 			);
 			shaderPad.updateUniforms({ u_nPoses: nPoses });
 			emitHook('pose:result', detector.state.result);
@@ -365,8 +367,18 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			shaderPad.initializeUniform('u_nPoses', 'int', 0);
 			shaderPad.initializeTexture(
 				'u_poseLandmarksTex',
-				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
-				{ internalFormat: 'RGBA32F', type: 'FLOAT', minFilter: 'NEAREST', magFilter: 'NEAREST', history }
+				{
+					data: landmarksData,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: textureHeight,
+				},
+				{
+					internalFormat: 'RGBA32F',
+					type: 'FLOAT',
+					minFilter: 'NEAREST',
+					magFilter: 'NEAREST',
+					history,
+				},
 			);
 			shaderPad.initializeTexture('u_poseMask', maskShader, {
 				minFilter: 'NEAREST',
@@ -404,7 +416,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					if (!skipHistoryWrite) writeToHistory();
 					detectPoses(source);
 				}
-			}
+			},
 		);
 
 		async function detectPoses(source: MediaPipeSource) {
@@ -419,7 +431,9 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {
 					detector.state.runningMode = requiredMode;
-					await detector.landmarker.setOptions({ runningMode: requiredMode });
+					await detector.landmarker.setOptions({
+						runningMode: requiredMode,
+					});
 				}
 
 				let shouldDetect = false;
@@ -533,7 +547,7 @@ ${fn(
 	int layer = (u_poseLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return int(texelFetch(u_poseLandmarksTex, ivec3(0, 0, layer), 0).r + 0.5);`
 		: `
-	return int(texelFetch(u_poseLandmarksTex, ivec2(0, 0), 0).r + 0.5);`
+	return int(texelFetch(u_poseLandmarksTex, ivec2(0, 0), 0).r + 0.5);`,
 )}
 ${fn(
 	'vec4',
@@ -548,7 +562,7 @@ ${fn(
 	return texelFetch(u_poseLandmarksTex, ivec3(x, y, layer), 0);`
 			: `
 	return texelFetch(u_poseLandmarksTex, ivec2(x, y), 0);`
-	}`
+	}`,
 )}
 ${fn(
 	'vec2',
@@ -556,7 +570,7 @@ ${fn(
 	'vec2 pos',
 	`${sampleMask}
 	float poseIndex = floor(mask.b * float(u_maxPoses) + 0.5) - 1.0;
-	return vec2(mask.g, poseIndex);`
+	return vec2(mask.g, poseIndex);`,
 )}
 ${fn('float', 'inPose', 'vec2 pos', `vec2 pose = poseAt(pos${historyParams}); return step(0.0, pose.y) * pose.x;`)}`);
 	};

@@ -15,7 +15,11 @@ export interface SegmenterPluginOptions {
 	history?: number;
 }
 
-const dummyTextureFloat32 = { data: new Float32Array(1).fill(1), width: 1, height: 1 };
+const dummyTextureFloat32 = {
+	data: new Float32Array(1).fill(1),
+	width: 1,
+	height: 1,
+};
 
 const DEFAULT_SEGMENTER_OPTIONS: Required<Omit<SegmenterPluginOptions, 'history'>> = {
 	modelPath:
@@ -119,7 +123,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			}
 			updateTexturesInternal(
 				{ u_segmentMask: detector.mask.shader },
-				history ? { skipHistoryWrite, historyWriteIndex } : undefined
+				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
 			);
 			emitHook('segmenter:result', detector.state.result);
 		}
@@ -149,7 +153,9 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					return;
 				}
 
-				const maskShader = new ShaderPad(MASK_SHADER_SOURCE, { canvas: mediapipeCanvas });
+				const maskShader = new ShaderPad(MASK_SHADER_SOURCE, {
+					canvas: mediapipeCanvas,
+				});
 				maskShader.initializeTexture('u_categoryMask', dummyTexture);
 				maskShader.initializeTexture('u_confidenceMask', dummyTextureFloat32, {
 					format: 'RED',
@@ -201,7 +207,9 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			});
 			initPromise.then(() => {
 				if (destroyed || !detector) return;
-				shaderPad.updateUniforms({ u_numCategories: detector.numCategories });
+				shaderPad.updateUniforms({
+					u_numCategories: detector.numCategories,
+				});
 				emitHook('segmenter:ready');
 			});
 		});
@@ -231,7 +239,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					if (!skipHistoryWrite) writeToHistory();
 					detectSegments(source);
 				}
-			}
+			},
 		);
 
 		async function detectSegments(source: MediaPipeSource) {
@@ -246,7 +254,9 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {
 					detector.state.runningMode = requiredMode;
-					await detector.segmenter.setOptions({ runningMode: requiredMode });
+					await detector.segmenter.setOptions({
+						runningMode: requiredMode,
+					});
 				}
 
 				let shouldDetect = false;
@@ -334,7 +344,7 @@ ${fn(
 	'segmentAt',
 	'vec2 pos',
 	`${sampleMask}
-	return vec2(mask.r, mask.g);`
+	return vec2(mask.r, mask.g);`,
 )}`);
 	};
 }

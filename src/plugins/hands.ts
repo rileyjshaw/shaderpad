@@ -59,7 +59,7 @@ const sharedDetectors = new Map<string, Detector>();
 function updateLandmarksData(
 	detector: Detector,
 	hands: NormalizedLandmark[][],
-	handedness: { categoryName: string }[][]
+	handedness: { categoryName: string }[][],
 ) {
 	const data = detector.landmarks.data;
 	const nHands = hands.length;
@@ -83,7 +83,7 @@ function updateLandmarksData(
 			handIdx,
 			HAND_CENTER_LANDMARKS,
 			LANDMARK_COUNT,
-			N_LANDMARK_METADATA_SLOTS
+			N_LANDMARK_METADATA_SLOTS,
 		);
 		const handCenterIdx = (N_LANDMARK_METADATA_SLOTS + handIdx * LANDMARK_COUNT + STANDARD_LANDMARK_COUNT) * 4;
 		data[handCenterIdx] = handCenter[0];
@@ -132,7 +132,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 						isPartial: true,
 					},
 				},
-				history ? { skipHistoryWrite, historyWriteIndex } : undefined
+				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
 			);
 			shaderPad.updateUniforms({ u_nHands: nHands });
 			emitHook('hands:result', detector.state.result);
@@ -197,8 +197,18 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			shaderPad.initializeUniform('u_nHands', 'int', 0);
 			shaderPad.initializeTexture(
 				'u_handLandmarksTex',
-				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
-				{ internalFormat: 'RGBA32F', type: 'FLOAT', minFilter: 'NEAREST', magFilter: 'NEAREST', history }
+				{
+					data: landmarksData,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: textureHeight,
+				},
+				{
+					internalFormat: 'RGBA32F',
+					type: 'FLOAT',
+					minFilter: 'NEAREST',
+					magFilter: 'NEAREST',
+					history,
+				},
 			);
 			initPromise.then(() => {
 				if (destroyed || !detector) return;
@@ -231,7 +241,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					if (!skipHistoryWrite) writeToHistory();
 					detectHands(source);
 				}
-			}
+			},
 		);
 
 		async function detectHands(source: MediaPipeSource) {
@@ -246,7 +256,9 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {
 					detector.state.runningMode = requiredMode;
-					await detector.landmarker.setOptions({ runningMode: requiredMode });
+					await detector.landmarker.setOptions({
+						runningMode: requiredMode,
+					});
 				}
 
 				let shouldDetect = false;
@@ -331,7 +343,7 @@ ${fn(
 	int layer = (u_handLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return int(texelFetch(u_handLandmarksTex, ivec3(0, 0, layer), 0).r + 0.5);`
 		: `
-	return int(texelFetch(u_handLandmarksTex, ivec2(0, 0), 0).r + 0.5);`
+	return int(texelFetch(u_handLandmarksTex, ivec2(0, 0), 0).r + 0.5);`,
 )}
 ${fn(
 	'vec4',
@@ -346,7 +358,7 @@ ${fn(
 	return texelFetch(u_handLandmarksTex, ivec3(x, y, layer), 0);`
 			: `
 	return texelFetch(u_handLandmarksTex, ivec2(x, y), 0);`
-	}`
+	}`,
 )}
 ${fn('float', 'isRightHand', 'int handIndex', `return handLandmark(handIndex, 0${historyParams}).w;`)}
 ${fn('float', 'isLeftHand', 'int handIndex', `return 1.0 - handLandmark(handIndex, 0${historyParams}).w;`)}`);

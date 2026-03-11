@@ -106,7 +106,7 @@ function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 			tesselation.push(
 				tesselationConnections[i].start,
 				tesselationConnections[i + 1].start,
-				tesselationConnections[i + 2].start
+				tesselationConnections[i + 2].start,
 			);
 		}
 		const ovalIndices = LandmarkerClass.FACE_LANDMARKS_FACE_OVAL.map(({ start }) => start);
@@ -120,7 +120,7 @@ function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 				INNER_MOUTH: fanTriangulate(INNER_MOUTH_INDICES),
 				TESSELATION: tesselation,
 				OVAL: fanTriangulate(ovalIndices),
-			}).map(([key, triangles]) => [key, { triangles, vertices: new Float32Array(triangles.length * 2) }])
+			}).map(([key, triangles]) => [key, { triangles, vertices: new Float32Array(triangles.length * 2) }]),
 		);
 	}
 }
@@ -156,7 +156,10 @@ interface Detector {
 const sharedDetectors = new Map<string, Detector>();
 
 function initMaskRenderer(canvas: OffscreenCanvas): MaskRenderer {
-	const gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true })!;
+	const gl = canvas.getContext('webgl2', {
+		antialias: false,
+		preserveDrawingBuffer: true,
+	})!;
 
 	const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
 	gl.shaderSource(vertexShader, MASK_VERTEX_SHADER);
@@ -194,7 +197,7 @@ function drawTriangles(
 	faceIdx: number,
 	r: number,
 	g: number,
-	b: number
+	b: number,
 ) {
 	const { triangles, vertices } = faceRegion;
 	const { gl, colorLocation } = mask;
@@ -231,14 +234,14 @@ function updateLandmarksData(detector: Detector, faces: NormalizedLandmark[][]) 
 			faceIdx,
 			ALL_STANDARD_INDICES,
 			LANDMARK_COUNT,
-			N_LANDMARK_METADATA_SLOTS
+			N_LANDMARK_METADATA_SLOTS,
 		);
 		data.set(faceCenter, (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.FACE_CENTER) * 4);
 
 		const mouthCenter = calculateBoundingBoxCenter(data, faceIdx, INNER_MOUTH_INDICES, LANDMARK_COUNT, 1);
 		data.set(
 			mouthCenter,
-			(N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.MOUTH_CENTER) * 4
+			(N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.MOUTH_CENTER) * 4,
 		);
 	}
 
@@ -321,7 +324,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 					},
 					u_faceMask: detector.mask.canvas,
 				},
-				history ? { skipHistoryWrite, historyWriteIndex } : undefined
+				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
 			);
 			shaderPad.updateUniforms({ u_nFaces: nFaces });
 			emitHook('face:result', detector.state.result);
@@ -396,7 +399,9 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {
 					detector.state.runningMode = requiredMode;
-					await detector.landmarker.setOptions({ runningMode: requiredMode });
+					await detector.landmarker.setOptions({
+						runningMode: requiredMode,
+					});
 				}
 
 				let shouldDetect = false;
@@ -459,8 +464,18 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 			shaderPad.initializeUniform('u_nFaces', 'int', 0);
 			shaderPad.initializeTexture(
 				'u_faceLandmarksTex',
-				{ data: landmarksData, width: LANDMARKS_TEXTURE_WIDTH, height: textureHeight },
-				{ internalFormat: 'RGBA32F', type: 'FLOAT', minFilter: 'NEAREST', magFilter: 'NEAREST', history }
+				{
+					data: landmarksData,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: textureHeight,
+				},
+				{
+					internalFormat: 'RGBA32F',
+					type: 'FLOAT',
+					minFilter: 'NEAREST',
+					magFilter: 'NEAREST',
+					history,
+				},
 			);
 			shaderPad.initializeTexture('u_faceMask', maskCanvas, {
 				minFilter: 'NEAREST',
@@ -498,7 +513,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 					if (!skipHistoryWrite) writeToHistory();
 					detectFaces(source);
 				}
-			}
+			},
 		);
 
 		shaderPad.on('destroy', () => {
@@ -521,7 +536,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		const checkAt = (
 			fnName: string,
 			regionMin: keyof typeof RED_CHANNEL_VALUES,
-			regionMax: keyof typeof RED_CHANNEL_VALUES = regionMin
+			regionMax: keyof typeof RED_CHANNEL_VALUES = regionMin,
 		) =>
 			fn(
 				'vec2',
@@ -530,8 +545,8 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				`vec4 mask = ${sampleMask};
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
 	return (mask.r > ${(RED_CHANNEL_VALUES[regionMin] - HALF_GAP).toFixed(4)} && mask.r < ${(
-					RED_CHANNEL_VALUES[regionMax] + HALF_GAP
-				).toFixed(4)}) ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`
+		RED_CHANNEL_VALUES[regionMax] + HALF_GAP
+	).toFixed(4)}) ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`,
 			);
 
 		const checkMaskG = (fnName: string, threshold: number) =>
@@ -541,7 +556,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				'vec2 pos',
 				`vec4 mask = ${sampleMask};
 	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return mask.g > ${threshold.toFixed(2)} ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`
+	return mask.g > ${threshold.toFixed(2)} ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`,
 			);
 
 		const combineLeftRight = (fnName: string, leftFn: string, rightFn: string) =>
@@ -550,7 +565,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				`${fnName}At`,
 				'vec2 pos',
 				`vec2 left = ${leftFn}(pos${historyParams});
-	return left.x > 0.0 ? left : ${rightFn}(pos${historyParams});`
+	return left.x > 0.0 ? left : ${rightFn}(pos${historyParams});`,
 			);
 
 		const checkIn = (fnNames: string[]) =>
@@ -560,8 +575,8 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 						'float',
 						`in${fnName[0].toUpperCase() + fnName.slice(1)}`,
 						'vec2 pos',
-						`vec2 a = ${fnName}At(pos${historyParams}); return step(0.0, a.y) * a.x;`
-					)
+						`vec2 a = ${fnName}At(pos${historyParams}); return step(0.0, a.y) * a.x;`,
+					),
 				)
 				.join('\n');
 
@@ -596,7 +611,7 @@ ${fn(
 	int layer = (u_faceLandmarksTexFrameOffset - framesAgo + ${history + 1}) % ${history + 1};
 	return int(texelFetch(u_faceLandmarksTex, ivec3(0, 0, layer), 0).r + 0.5);`
 		: `
-	return int(texelFetch(u_faceLandmarksTex, ivec2(0, 0), 0).r + 0.5);`
+	return int(texelFetch(u_faceLandmarksTex, ivec2(0, 0), 0).r + 0.5);`,
 )}
 ${fn(
 	'vec4',
@@ -611,7 +626,7 @@ ${fn(
 	return texelFetch(u_faceLandmarksTex, ivec3(x, y, layer), 0);`
 			: `
 	return texelFetch(u_faceLandmarksTex, ivec2(x, y), 0);`
-	}`
+	}`,
 )}
 ${
 	history

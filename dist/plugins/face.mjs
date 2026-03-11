@@ -1,4 +1,4 @@
-import{b as B,c as Z,d as G,e as ee,f as te}from"../chunk-JRSBIGBN.mjs";var Ee=`#version 300 es
+import{b as B,c as Z,d as G,e as ee,f as te}from"../chunk-VMNWRREI.mjs";var Ee=`#version 300 es
 in vec2 a_pos;
 void main() { gl_Position = vec4(a_pos * 2.0 - 1.0, 0.0, 1.0); }`,fe=`#version 300 es
 precision mediump float;

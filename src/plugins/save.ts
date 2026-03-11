@@ -30,7 +30,9 @@ function save() {
 
 			if (!options.preventShare && navigator.share) {
 				try {
-					const file = new File([blob], filename, { type: blob.type });
+					const file = new File([blob], filename, {
+						type: blob.type,
+					});
 					const shareData: ShareData = { files: [file] };
 					if (text) shareData.text = text;
 					if (!navigator.canShare || navigator.canShare(shareData)) {

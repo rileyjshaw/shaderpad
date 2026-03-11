@@ -130,7 +130,7 @@ export interface PluginContext {
 	emitHook: (name: LifecycleMethod, ...args: any[]) => void;
 	updateTexturesInternal: (
 		updates: Record<string, UpdateTextureSource>,
-		options?: InternalUpdateTexturesOptions
+		options?: InternalUpdateTexturesOptions,
 	) => void;
 }
 
@@ -202,7 +202,10 @@ function combineShaderCode(shader: string, injections: string[]): string {
 	return lines.join('\n');
 }
 
-function getSourceDimensions(source: TextureSource): { width: number; height: number } {
+function getSourceDimensions(source: TextureSource): {
+	width: number;
+	height: number;
+} {
 	if (source instanceof WebGLTexture) {
 		return { width: 0, height: 0 }; // Invalid - dimensions not readable.
 	}
@@ -213,14 +216,17 @@ function getSourceDimensions(source: TextureSource): { width: number; height: nu
 		return { width: source.videoWidth, height: source.videoHeight };
 	}
 	if (source instanceof HTMLImageElement) {
-		return { width: source.naturalWidth ?? source.width, height: source.naturalHeight ?? source.height };
+		return {
+			width: source.naturalWidth ?? source.width,
+			height: source.naturalHeight ?? source.height,
+		};
 	}
 	// CustomTexture, HTMLCanvasElement, OffscreenCanvas, ImageBitmap.
 	return { width: source.width, height: source.height };
 }
 
 function stringFrom(name: string | symbol) {
-	return typeof name === 'symbol' ? name.description ?? '' : name;
+	return typeof name === 'symbol' ? (name.description ?? '') : name;
 }
 
 class ShaderPad {
@@ -259,7 +265,7 @@ class ShaderPad {
 
 	constructor(
 		fragmentShaderSrc: string,
-		{ canvas, plugins, history, debug, cursorTarget, ...textureOptions }: Options = {}
+		{ canvas, plugins, history, debug, cursorTarget, ...textureOptions }: Options = {},
 	) {
 		if (canvas && 'getContext' in canvas) {
 			this.canvas = canvas;
@@ -269,7 +275,9 @@ class ShaderPad {
 			this.isHeadless = true;
 		}
 
-		const gl = this.canvas.getContext('webgl2', { antialias: false }) as WebGL2RenderingContext;
+		const gl = this.canvas.getContext('webgl2', {
+			antialias: false,
+		}) as WebGL2RenderingContext;
 		if (!gl) {
 			throw new Error('WebGL2 not supported. Please use a browser that supports WebGL2.');
 		}
@@ -329,7 +337,7 @@ class ShaderPad {
 					},
 					emitHook: this.emitHook.bind(this),
 					updateTexturesInternal: this.updateTexturesInternal.bind(this),
-				})
+				}),
 			);
 		}
 
@@ -342,7 +350,7 @@ class ShaderPad {
 		const vertexShader = this.createShader(this.gl.VERTEX_SHADER, DEFAULT_VERTEX_SHADER_SRC);
 		const fragmentShader = this.createShader(
 			gl.FRAGMENT_SHADER,
-			combineShaderCode(fragmentShaderSrc, glslInjections)
+			combineShaderCode(fragmentShaderSrc, glslInjections),
 		);
 		gl.attachShader(program, vertexShader);
 		gl.attachShader(program, fragmentShader);
@@ -371,7 +379,10 @@ class ShaderPad {
 
 		if (this.canvas instanceof HTMLCanvasElement) {
 			this.resolutionObserver = new MutationObserver(() => this.updateResolution());
-			this.resolutionObserver.observe(this.canvas, { attributes: true, attributeFilter: ['width', 'height'] });
+			this.resolutionObserver.observe(this.canvas, {
+				attributes: true,
+				attributeFilter: ['width', 'height'],
+			});
 		} else {
 			const wrapDimension = (dimension: 'width' | 'height') => {
 				const descriptor = Object.getOwnPropertyDescriptor(OffscreenCanvas.prototype, dimension)!;
@@ -462,10 +473,20 @@ class ShaderPad {
 		return shader;
 	}
 
-	private getCursorTargetRect(): { left: number; top: number; width: number; height: number } {
+	private getCursorTargetRect(): {
+		left: number;
+		top: number;
+		width: number;
+		height: number;
+	} {
 		const target = this.cursorTarget!;
 		if (target === window) {
-			return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+			return {
+				left: 0,
+				top: 0,
+				width: window.innerWidth,
+				height: window.innerHeight,
+			};
 		}
 		return (target as Element).getBoundingClientRect();
 	}
@@ -492,7 +513,9 @@ class ShaderPad {
 				this.clickPosition[0] = Math.max(0, Math.min(1, (xVal - rect.left) / rect.width));
 				this.clickPosition[1] = Math.max(0, Math.min(1, 1 - (yVal - rect.top) / rect.height)); // Flip Y for WebGL
 			}
-			this.updateUniforms({ u_click: [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0] });
+			this.updateUniforms({
+				u_click: [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0],
+			});
 		};
 
 		this.eventListeners.set('mousemove', event => {
@@ -652,7 +675,7 @@ class ShaderPad {
 				1,
 				format,
 				type,
-				transparent
+				transparent,
 			);
 		}
 		if (needsAlignmentFix) gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousAlignment);
@@ -662,7 +685,7 @@ class ShaderPad {
 		name: string,
 		type: Uniform['type'],
 		value: number | number[] | (number | number[])[],
-		options?: { arrayLength?: number }
+		options?: { arrayLength?: number },
 	) {
 		const arrayLength = options?.arrayLength;
 		if (this.uniforms.has(name)) {
@@ -670,7 +693,7 @@ class ShaderPad {
 		}
 		if (!UNIFORM_TYPE_SUFFIXES[type]) {
 			throw new Error(
-				`Invalid uniform type: ${type}. Expected one of: ${Object.keys(UNIFORM_TYPE_SUFFIXES).join(', ')}.`
+				`Invalid uniform type: ${type}. Expected one of: ${Object.keys(UNIFORM_TYPE_SUFFIXES).join(', ')}.`,
 			);
 		}
 		if (arrayLength && !(Array.isArray(value) && value.length === arrayLength)) {
@@ -705,7 +728,7 @@ class ShaderPad {
 
 	updateUniforms(
 		updates: Record<string, number | number[] | (number | number[])[]>,
-		options?: { startIndex?: number }
+		options?: { startIndex?: number },
 	) {
 		this.gl.useProgram(this.program);
 		Object.entries(updates).forEach(([name, newValue]) => {
@@ -723,12 +746,12 @@ class ShaderPad {
 				if (!nValues) return;
 				if (nValues > uniform.arrayLength) {
 					throw new Error(
-						`${name} received ${nValues} values, but maximum length is ${uniform.arrayLength}.`
+						`${name} received ${nValues} values, but maximum length is ${uniform.arrayLength}.`,
 					);
 				}
 				if (newValue.some(item => (Array.isArray(item) ? item.length : 1) !== uniform.length)) {
 					throw new Error(
-						`Tried to update ${name} with some elements that are not length ${uniform.length}.`
+						`Tried to update ${name} with some elements that are not length ${uniform.length}.`,
 					);
 				}
 				const flat = newValue.flat();
@@ -736,14 +759,14 @@ class ShaderPad {
 					uniform.type === 'float'
 						? new Float32Array(flat)
 						: uniform.type === 'uint'
-						? new Uint32Array(flat)
-						: new Int32Array(flat);
+							? new Uint32Array(flat)
+							: new Int32Array(flat);
 				let location = uniform.location;
 				if (options?.startIndex) {
 					const newLocation = this.gl.getUniformLocation(this.program!, `${name}[${options.startIndex}]`);
 					if (!newLocation) {
 						throw new Error(
-							`${name}[${options.startIndex}] not in shader. Did you pass an invalid startIndex?`
+							`${name}[${options.startIndex}] not in shader. Did you pass an invalid startIndex?`,
 						);
 					}
 					location = newLocation;
@@ -762,7 +785,7 @@ class ShaderPad {
 
 	private createTexture(
 		name: string | symbol,
-		textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> & { unitIndex?: number }
+		textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> & { unitIndex?: number },
 	) {
 		const { width, height } = textureInfo;
 		const historyDepth = textureInfo.history?.depth ?? 0;
@@ -803,7 +826,7 @@ class ShaderPad {
 				0,
 				options.format,
 				options.type,
-				null
+				null,
 			);
 		}
 		return { texture, unitIndex };
@@ -812,7 +835,7 @@ class ShaderPad {
 	private _initializeTexture(
 		name: string | symbol,
 		source: TextureSource,
-		options?: TextureOptions & { history?: number }
+		options?: TextureOptions & { history?: number },
 	) {
 		if (this.textures.has(name)) {
 			throw new Error(`Texture '${stringFrom(name)}' is already initialized.`);
@@ -837,7 +860,11 @@ class ShaderPad {
 			textureInfo.history = { depth: historyDepth, writeIndex: 0 };
 		}
 		const { texture, unitIndex } = this.createTexture(name, textureInfo);
-		const completeTextureInfo: Texture = { texture, unitIndex, ...textureInfo };
+		const completeTextureInfo: Texture = {
+			texture,
+			unitIndex,
+			...textureInfo,
+		};
 		if (historyDepth > 0) {
 			this.initializeUniform(`${stringFrom(name)}FrameOffset`, 'int', 0);
 			this.clearHistoryTextureLayers(completeTextureInfo);
@@ -870,7 +897,7 @@ class ShaderPad {
 
 	private updateTexturesInternal(
 		updates: Record<string, UpdateTextureSource>,
-		options?: InternalUpdateTexturesOptions
+		options?: InternalUpdateTexturesOptions,
 	) {
 		Object.entries(updates).forEach(([name, source]) => {
 			this.updateTexture(name, source, options);
@@ -904,8 +931,8 @@ class ShaderPad {
 					options?.historyWriteIndex === undefined
 						? [info.history.writeIndex]
 						: Array.isArray(options?.historyWriteIndex)
-						? options.historyWriteIndex.map(i => safeMod(i, depth))
-						: [safeMod(options.historyWriteIndex, depth)];
+							? options.historyWriteIndex.map(i => safeMod(i, depth))
+							: [safeMod(options.historyWriteIndex, depth)];
 				this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, source.intermediateFbo);
 				this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
 				for (const slot of targetSlots) {
@@ -915,7 +942,9 @@ class ShaderPad {
 				this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
 				this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
 				const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
-				this.updateUniforms({ [frameOffsetUniformName]: targetSlots[targetSlots.length - 1] });
+				this.updateUniforms({
+					[frameOffsetUniformName]: targetSlots[targetSlots.length - 1],
+				});
 				if (options?.historyWriteIndex === undefined) {
 					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
 				}
@@ -964,8 +993,8 @@ class ShaderPad {
 					options?.historyWriteIndex === undefined
 						? [info.history.writeIndex]
 						: Array.isArray(options.historyWriteIndex)
-						? options.historyWriteIndex.map(i => safeMod(i, depth))
-						: [safeMod(options.historyWriteIndex, depth)];
+							? options.historyWriteIndex.map(i => safeMod(i, depth))
+							: [safeMod(options.historyWriteIndex, depth)];
 
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 				const sourceData =
@@ -984,13 +1013,15 @@ class ShaderPad {
 						1,
 						info.options.format,
 						info.options.type,
-						sourceData as any
+						sourceData as any,
 					);
 				}
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
 
 				const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
-				this.updateUniforms({ [frameOffsetUniformName]: targetSlots[targetSlots.length - 1] });
+				this.updateUniforms({
+					[frameOffsetUniformName]: targetSlots[targetSlots.length - 1],
+				});
 
 				if (options?.historyWriteIndex === undefined) {
 					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
@@ -1012,7 +1043,7 @@ class ShaderPad {
 					height,
 					info.options.format,
 					info.options.type,
-					partialSource.data
+					partialSource.data,
 				);
 			} else {
 				this.gl.texImage2D(
@@ -1025,7 +1056,7 @@ class ShaderPad {
 					info.options.format,
 					info.options.type,
 					((nonShaderPadSource as PartialCustomTexture).data ??
-						(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>)) as any
+						(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>)) as any,
 				);
 			}
 			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
@@ -1114,11 +1145,13 @@ class ShaderPad {
 				0,
 				0,
 				gl.drawingBufferWidth,
-				gl.drawingBufferHeight
+				gl.drawingBufferHeight,
 			);
 			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
 			const nextWriteIndex = (writeIndex + 1) % depth;
-			this.updateUniforms({ [`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: nextWriteIndex });
+			this.updateUniforms({
+				[`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: nextWriteIndex,
+			});
 			historyInfo.history!.writeIndex = nextWriteIndex;
 		}
 		++this.frame;
