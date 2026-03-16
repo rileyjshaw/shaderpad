@@ -83,6 +83,7 @@
 	],
 	"scripts": {
 		"build": "tsup src/index.ts src/plugins/*.ts src/util.ts",
+		"size:standard-import": "node scripts/size-standard-import.mjs",
 		"format": "prettier --write \"./**/*.{ts,js,tsx,jsx,html,css,json,md}\""
 	},
 	"devDependencies": {

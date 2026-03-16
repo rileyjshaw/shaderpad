@@ -12,6 +12,7 @@ docs/dist
 examples/dist
 dist-ssr
 *.local
+.next
 
 # Editor directories and files
 .vscode/*
