@@ -22,6 +22,11 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
+            - name: Setup Pages
+              uses: actions/configure-pages@v5
+              with:
+                  static_site_generator: next
+
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
@@ -38,14 +43,12 @@ jobs:
               run: |
                   cd docs
                   npm run build
-
-            - name: Setup Pages
-              uses: actions/configure-pages@v4
+                  touch out/.nojekyll
 
             - name: Upload artifact
               uses: actions/upload-pages-artifact@v3
               with:
-                  path: docs/dist
+                  path: docs/out
 
     deploy:
         environment:

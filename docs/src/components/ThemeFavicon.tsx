@@ -13,7 +13,10 @@ export function ThemeFavicon() {
       return
     }
 
-    let icon = resolvedTheme === 'dark' ? '/icon-dark.svg' : '/icon-light.svg'
+    let icon =
+      resolvedTheme === 'dark'
+        ? '/shaderpad/icon-dark.svg'
+        : '/shaderpad/icon-light.svg'
     let links = Array.from(
       document.head.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]'),
     )

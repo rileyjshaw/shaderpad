@@ -30,12 +30,12 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon-light.svg',
+        url: '/shaderpad/icon-light.svg',
         type: 'image/svg+xml',
         media: '(prefers-color-scheme: light)',
       },
       {
-        url: '/icon-dark.svg',
+        url: '/shaderpad/icon-dark.svg',
         type: 'image/svg+xml',
         media: '(prefers-color-scheme: dark)',
       },

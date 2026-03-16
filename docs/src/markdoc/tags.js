@@ -1,4 +1,5 @@
 import { Callout } from '@/components/Callout'
+import { MarkdownImage } from '@/components/MarkdownImage'
 import { QuickstartPreview } from '@/components/QuickstartPreview'
 import { QuickLink, QuickLinks } from '@/components/QuickLinks'
 import { ShaderPadSizeInline } from '@/components/ShaderPadSize'
@@ -25,8 +26,7 @@ const tags = {
     },
     render: ({ src, alt = '', caption }) => (
       <figure>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={alt} />
+        <MarkdownImage src={src} alt={alt} />
         <figcaption>{caption}</figcaption>
       </figure>
     ),

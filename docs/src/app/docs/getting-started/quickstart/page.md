@@ -109,6 +109,7 @@ These examples show some very basic applications of ShaderPad to get you started
 
 ## Next Useful Things To Learn
 
+- [Learning shaders](/docs/getting-started/learning-shaders)
 - [Shader lifecycle](/docs/core-concepts/shader-lifecycle)
 - [Built-in inputs](/docs/core-concepts/built-in-inputs)
 - [Uniforms API reference](/docs/api/uniforms)

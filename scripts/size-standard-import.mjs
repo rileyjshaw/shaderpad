@@ -12,7 +12,7 @@ const esbuildPath = require.resolve('esbuild', {
 const { build } = await import(pathToFileURL(esbuildPath).href);
 
 function formatKilobytes(bytes) {
-	return `${(bytes / 1000).toFixed(1)} kB`;
+	return `${(bytes / 1024).toFixed(1)} kB`;
 }
 
 const result = await build({

@@ -2,6 +2,8 @@ import { nodes as defaultNodes, Tag } from '@markdoc/markdoc'
 import { slugifyWithCounter } from '@sindresorhus/slugify'
 import yaml from 'js-yaml'
 
+import { MarkdownImage } from '@/components/MarkdownImage'
+import { MarkdownLink } from '@/components/MarkdownLink'
 import { DocsLayout } from '@/components/DocsLayout'
 import { Fence } from '@/components/Fence'
 
@@ -57,6 +59,14 @@ const nodes = {
         type: String,
       },
     },
+  },
+  image: {
+    ...defaultNodes.image,
+    render: MarkdownImage,
+  },
+  link: {
+    ...defaultNodes.link,
+    render: MarkdownLink,
   },
 }
 

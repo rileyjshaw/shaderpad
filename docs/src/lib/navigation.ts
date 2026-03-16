@@ -5,6 +5,10 @@ export const navigation = [
       { title: 'Overview', href: '/' },
       { title: 'Installation', href: '/docs/getting-started/installation' },
       { title: 'Quickstart', href: '/docs/getting-started/quickstart' },
+      {
+        title: 'Learning shaders',
+        href: '/docs/getting-started/learning-shaders',
+      },
     ],
   },
   {
