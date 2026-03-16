@@ -14,7 +14,9 @@ ShaderPad handles the repetitive work required to render fragment shaders in the
 
 {% quick-link title="Quickstart" icon="lightbulb" href="/docs/getting-started/quickstart" description="Render your first shader with the smallest complete example." /%}
 
-{% quick-link title="API reference" icon="plugins" href="/docs/api/shaderpad" description="Jump straight to constructor options, methods, events, and utilities." /%}
+{% quick-link title="AI agent guide" icon="plugins" href="/docs/getting-started/ai-agent-guide" description="Start here if you want an LLM or coding agent to generate correct ShaderPad programs." /%}
+
+{% quick-link title="API reference" icon="presets" href="/docs/api/shaderpad" description="Jump straight to constructor options, methods, events, and utilities." /%}
 
 {% /quick-links %}
 

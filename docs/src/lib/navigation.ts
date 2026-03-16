@@ -68,3 +68,15 @@ export const navigation = [
     ],
   },
 ]
+
+export function normalizePathname(pathname: string) {
+  if (pathname === '/') {
+    return pathname
+  }
+
+  return pathname.replace(/\/+$/, '')
+}
+
+export function isCurrentPath(href: string, pathname: string) {
+  return normalizePathname(href) === normalizePathname(pathname)
+}

@@ -12,7 +12,7 @@ To install the core library:
 npm install shaderpad
 ```
 
-The core `import ShaderPad from 'shaderpad'` bundle is currently {% shaderpad-size /%} gzipped.
+The core `ShaderPad` bundle is currently {% shaderpad-size /%} gzipped.
 
 {% callout title="Peer dependency requirements" %}
 If you wish to use the tracking plugins ([face](/docs/plugins/face), [pose](/docs/plugins/pose), [hands](/docs/plugins/hands), or [segmenter](/docs/plugins/segmenter)), you’ll also need to install MediaPipe as a peer dependency:

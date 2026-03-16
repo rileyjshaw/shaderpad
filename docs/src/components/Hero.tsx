@@ -53,7 +53,7 @@ export function Hero() {
                 It lets you add stunning creative effects to your website with
                 minimal setup.
               </p>
-              <div className="mt-8 flex gap-4 md:justify-center lg:justify-start">
+              <div className="mt-8 flex flex-wrap gap-4 md:justify-center lg:justify-start">
                 <Button href="/docs/getting-started/quickstart">
                   Quickstart
                 </Button>

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 
-import { navigation } from '@/lib/navigation'
+import { isCurrentPath, navigation } from '@/lib/navigation'
 
 export function Navigation({
   className,
@@ -32,7 +32,7 @@ export function Navigation({
                     onClick={onLinkClick}
                     className={clsx(
                       'block w-full pl-3.5 before:pointer-events-none before:absolute before:top-1/2 before:-left-1 before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full',
-                      link.href === pathname
+                      isCurrentPath(link.href, pathname)
                         ? 'font-semibold text-sky-500 before:bg-sky-500'
                         : 'text-slate-500 before:hidden before:bg-slate-300 hover:text-slate-600 hover:before:block dark:text-slate-400 dark:before:bg-slate-700 dark:hover:text-slate-300',
                     )}
