@@ -13,6 +13,7 @@ docs/out
 examples/dist
 dist-ssr
 *.local
+*.tsbuildinfo
 .next
 
 # Editor directories and files

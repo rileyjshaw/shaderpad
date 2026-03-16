@@ -30,7 +30,7 @@ ShaderPad is a minimal fragment shader library for the web. It handles WebGL2 sc
 
 - Create fullscreen interactive shaders with under 10 lines of JS code.
 - Make your own face filters or pose detection apps like [Strange Camera](https://strange.cam).
-- Add effects to `canvas`, `img` and `video` elements on an existing page.
+- Add post-processing effects to `canvas`, `img` and `video` elements on an existing page.
 - Point your AI coding agent at the [Quickstart](/docs/getting-started/quickstart) and [API reference](/docs/api/shaderpad), describe the effect you want to see, and let it build from there.
 
 ## Comparisons To Other Libraries
