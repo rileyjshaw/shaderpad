@@ -997,16 +997,19 @@ class ShaderPad {
 							: [safeMod(options.historyWriteIndex, depth)];
 
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
+				const partialSource = nonShaderPadSource as PartialCustomTexture;
 				const sourceData =
-					(nonShaderPadSource as PartialCustomTexture).data ??
+					partialSource.data ??
 					(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>);
+				const xOffset = isPartial ? (partialSource.x ?? 0) : 0;
+				const yOffset = isPartial ? (partialSource.y ?? 0) : 0;
 
 				for (const slot of targetSlots) {
 					this.gl.texSubImage3D(
 						this.gl.TEXTURE_2D_ARRAY,
 						0,
-						0,
-						0,
+						xOffset,
+						yOffset,
 						slot,
 						width,
 						height,
