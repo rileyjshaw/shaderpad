@@ -12,7 +12,7 @@ Uniforms are variables you can pass from JavaScript to your GLSL code.
 
 Uniforms are initialized one at a time with `initializeUniform()`.
 
-```typescript
+```javascript
 shader.initializeUniform('u_speed', 'float', 1.5) // float
 shader.initializeUniform('u_color', 'float', [1, 0.5, 0]) // vec3
 ```
@@ -28,7 +28,7 @@ Parameters:
 
 Updates are batched with key-value pairs:
 
-```typescript
+```javascript
 shader.updateUniforms({
   u_speed: 2.0,
   u_color: [1.0, 0.2, 0.1],
@@ -39,7 +39,7 @@ shader.updateUniforms({
 
 By default, array values represent vectors. You can declare uniform arrays by passing `arrayLength` to `initializeUniform()`. For example, to initialize a `float[24]` array:
 
-```typescript
+```javascript
 shader.initializeUniform('u_heights', 'float', [
   // 24 values...
 ], { arrayLength: 24 }) // float[24]
@@ -47,7 +47,7 @@ shader.initializeUniform('u_heights', 'float', [
 
 You can initialize an array of vectors like so:
 
-```typescript
+```javascript
 shader.initializeUniform(
   'u_points',
   'float',
@@ -61,7 +61,7 @@ shader.initializeUniform(
 
 Partial updates are supported with `startIndex`:
 
-```typescript
+```javascript
 shader.updateUniforms(
   {
     u_points: [[0.4, 0.5]],

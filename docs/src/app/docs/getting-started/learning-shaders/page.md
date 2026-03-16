@@ -8,6 +8,8 @@ nextjs:
 
 ShaderPad can help you build shader-driven projects quickly, but it does not replace the broader process of learning how shaders work. If you are new to this space, the fastest path is usually a mix of play, fundamentals, and following people whose work excites you.
 
+If you are already confident programming in WebGL2, you can probably skip this page.
+
 ## Click Around ShaderToy
 
 If you have not already, go to [ShaderToy](https://www.shadertoy.com) and click around for 15 minutes. You are almost guaranteed to find a few inspiring projects, and you will come back with a much better feel for what shaders can do.
@@ -29,9 +31,9 @@ Some examples worth exploring:
 - [Liam Egan](https://codepen.io/shubniggurath)
 - [The Art of Code](https://www.youtube.com/@TheArtofCodeIsCool)
 
-These are only starting points. Do a lot of research, find more people whose work speaks to you, and build your own list over time. That personal reference library is one of the best ways to keep improving.
+These are only starting points. Find more people whose work speaks to you, and build your own list over time. Having a strong personal reference library is one of the best ways to keep improving.
 
-## How This Fits With ShaderPad
+## When To Use ShaderPad
 
 Use ShaderPad when you want to move from inspiration into a real project quickly. The wider shader community can help sharpen your visual taste, technical intuition, and sense of what is possible.
 

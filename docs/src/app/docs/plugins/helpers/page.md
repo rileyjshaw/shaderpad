@@ -8,7 +8,7 @@ nextjs:
 
 The `helpers` plugin injects a few GLSL helper functions into your fragment shader.
 
-```typescript
+```javascript
 import helpers from 'shaderpad/plugins/helpers'
 
 const shader = new ShaderPad(fragmentShaderSrc, {

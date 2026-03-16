@@ -20,11 +20,4 @@ If you wish to use the tracking plugins ([face](/docs/plugins/face), [pose](/doc
 ```bash
 npm install @mediapipe/tasks-vision
 ```
-
 {% /callout %}
-
-## Next
-
-- [Quickstart](/docs/getting-started/quickstart)
-- [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [Webcam input](/docs/guides/webcam-input)

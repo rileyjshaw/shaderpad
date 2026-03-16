@@ -1,3 +1,4 @@
+import { BuiltInInputsPreview } from '@/components/BuiltInInputsPreview'
 import { Callout } from '@/components/Callout'
 import { MarkdownImage } from '@/components/MarkdownImage'
 import { QuickstartPreview } from '@/components/QuickstartPreview'
@@ -43,6 +44,10 @@ const tags = {
       icon: { type: String },
       href: { type: String },
     },
+  },
+  'built-in-inputs-preview': {
+    selfClosing: true,
+    render: BuiltInInputsPreview,
   },
   'quickstart-preview': {
     selfClosing: true,

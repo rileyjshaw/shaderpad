@@ -21,7 +21,7 @@ ShaderPad is a fragment-shader runtime, not a scene graph.
 
 If the user asks for “a fullscreen shader in the browser”, this is the safest minimal default:
 
-```typescript
+```javascript
 import ShaderPad from 'shaderpad'
 import { createFullscreenCanvas } from 'shaderpad/util'
 import autosize from 'shaderpad/plugins/autosize'
@@ -102,7 +102,7 @@ import segmenter from 'shaderpad/plugins/segmenter'
 
 ### Custom Uniform Animation
 
-```typescript
+```javascript
 shader.initializeUniform('u_strength', 'float', 0.0)
 shader.play((time) => {
   shader.updateUniforms({ u_strength: 0.5 + 0.5 * Math.sin(time) })
@@ -111,7 +111,7 @@ shader.play((time) => {
 
 ### Webcam Or Video Shader
 
-```typescript
+```javascript
 shader.initializeTexture('u_webcam', video)
 shader.play(() => {
   shader.updateTextures({ u_webcam: video })
@@ -129,7 +129,7 @@ void main() {
 
 ### History And Feedback
 
-```typescript
+```javascript
 import helpers from 'shaderpad/plugins/helpers'
 
 const shader = new ShaderPad(fragmentShaderSrc, {
@@ -151,7 +151,7 @@ Use `step()` or `play()` when history should advance. Do not use `draw()` if the
 
 ### Chained Multi-Pass Shader
 
-```typescript
+```javascript
 const passA = new ShaderPad(fragmentA, {
   canvas: { width: 512, height: 512 },
 })

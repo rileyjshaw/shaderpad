@@ -12,7 +12,7 @@ Chaining shaders is where ShaderPad’s internal texture handling becomes especi
 
 One ShaderPad instance renders into an internal texture, and another ShaderPad samples that output.
 
-```typescript
+```javascript
 const passA = new ShaderPad(fragmentA, { canvas: new OffscreenCanvas(256, 256) })
 const passB = new ShaderPad(fragmentB, { canvas })
 
@@ -23,7 +23,7 @@ passB.initializeTexture('u_firstPass', passA)
 
 You do not need an HTML canvas for every pass.
 
-```typescript
+```javascript
 const offscreen = new ShaderPad(fragmentShaderSrc, {
   canvas: { width: 512, height: 512 },
 })

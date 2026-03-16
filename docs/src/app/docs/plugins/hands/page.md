@@ -17,7 +17,7 @@ npm install @mediapipe/tasks-vision
 
 The `hands` plugin uses MediaPipe's [Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) and exposes ShaderPad textures and GLSL helper functions for hand-driven effects.
 
-```typescript
+```javascript
 import hands from 'shaderpad/plugins/hands'
 
 const shader = new ShaderPad(fragmentShaderSrc, {
@@ -47,7 +47,7 @@ Subscribe with `shader.on(name, callback)`.
 | `hands:ready`  | `() => void`                                  | model assets are loaded and the plugin is ready        |
 | `hands:result` | `(result: HandLandmarkerResult) => void`      | latest MediaPipe result for the current analyzed frame |
 
-```typescript
+```javascript
 shader.on('hands:result', result => {
   console.log(result.landmarks.length)
 })

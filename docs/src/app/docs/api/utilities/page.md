@@ -8,7 +8,7 @@ nextjs:
 
 ## `createFullscreenCanvas(container?)`
 
-```typescript
+```javascript
 import { createFullscreenCanvas } from 'shaderpad/util'
 ```
 
@@ -16,7 +16,7 @@ Creates an HTML canvas, styles it for fullscreen use, appends it to the containe
 
 ## `safeMod(i, m)`
 
-```typescript
+```javascript
 import { safeMod } from 'shaderpad/util'
 ```
 

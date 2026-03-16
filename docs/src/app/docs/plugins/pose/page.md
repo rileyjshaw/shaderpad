@@ -17,7 +17,7 @@ npm install @mediapipe/tasks-vision
 
 The `pose` plugin uses MediaPipe's [Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) and exposes landmark and mask data in ShaderPad-friendly GLSL form.
 
-```typescript
+```javascript
 import pose from 'shaderpad/plugins/pose'
 
 const shader = new ShaderPad(fragmentShaderSrc, {
@@ -47,7 +47,7 @@ Subscribe with `shader.on(name, callback)`.
 | `pose:ready`  | `() => void`                                  | model assets are loaded and the plugin is ready        |
 | `pose:result` | `(result: PoseLandmarkerResult) => void`      | latest MediaPipe result for the current analyzed frame |
 
-```typescript
+```javascript
 shader.on('pose:result', result => {
   console.log(result.landmarks.length)
 })

@@ -12,7 +12,7 @@ History is one of ShaderPad’s more unique features, and can assist with snapsh
 
 Enable history of the shader’s output in the constructor:
 
-```typescript
+```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
   canvas,
   history: 10,
@@ -30,7 +30,7 @@ uniform int u_historyFrameOffset;
 
 You can also keep history for an individual texture:
 
-```typescript
+```javascript
 shader.initializeTexture('u_webcam', videoElement, { history: 30 })
 ```
 
@@ -40,7 +40,7 @@ That creates a history texture plus a matching frame-offset uniform such as `u_w
 
 The `helpers` plugin provides `historyZ()` for sampling previous frames:
 
-```typescript
+```javascript
 import ShaderPad from 'shaderpad'
 import helpers from 'shaderpad/plugins/helpers'
 
@@ -69,24 +69,26 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 })
 ```
 
-Use `historyZ(..., 1)` to sample the previous stored frame. Larger values move further back in time. For texture and plugin history, `historyZ(..., 0)` is also valid and refers to the current/latest value.
+Use `historyZ(..., 1)` to sample the previous stored frame. Larger values move further back in time. For texture and plugin history, `historyZ(..., 0)` is also valid and refers to the current value.
 
 ## Skipping History Writes
 
 Each frame is written to the history buffer by default. You can prevent a step from updating history with:
 
-```typescript
+```javascript
 { skipHistoryWrite: true }
 ```
 
 This option is either returned from the `play()` callback or passed to `step()` as an argument:
 
-```typescript
+```javascript
 // Only write every 10th frame to history.
 shader.play((time, frame) => {
   return { skipHistoryWrite: !!(frame % 10) }
 })
+```
 
+```javascript
 // Skip writing this frame to history.
 shader.step({ skipHistoryWrite: true })
 ```
@@ -95,7 +97,7 @@ shader.step({ skipHistoryWrite: true })
 
 Some plugins can maintain history for the textures they generate. For example, MediaPipe-backed plugins such as `face`, `hands`, `pose`, and `segmenter` expose a `history` option so their output textures can be sampled across earlier frames too.
 
-```typescript
+```javascript
 import face from 'shaderpad/plugins/face'
 
 const shader = new ShaderPad(fragmentShaderSrc, {
@@ -103,13 +105,13 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 })
 ```
 
-When plugin history is enabled, `historyZ(..., 1)` refers to the previous stored plugin output, and larger values move further back. As with normal texture history, `historyZ(..., 0)` is also valid and refers to the current/latest value. If you skip a history write on the watched texture, the plugin history skips that frame as well.
+When plugin history is enabled, `historyZ(..., 1)` refers to the previous stored plugin output, and larger values move further back. As with normal texture history, `historyZ(..., 0)` is also valid and refers to the current value. If you skip a history write on the watched texture, the plugin history skips that frame as well.
 
 ## History Precision
 
 By default, history uses 8-bit storage. For float pipelines, history will follow the precision of the internal render texture.
 
-```typescript
+```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
   history: 60,
   internalFormat: 'RGBA32F',
@@ -125,7 +127,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 ## Related
 
-- [helpers plugin](/docs/plugins/helpers)
+- [Helpers plugin](/docs/plugins/helpers)
 - [Format and precision](/docs/core-concepts/format-and-precision)
 - [Chaining shaders](/docs/guides/chaining-shaders)
 - [ShaderPad API reference](/docs/api/shaderpad)

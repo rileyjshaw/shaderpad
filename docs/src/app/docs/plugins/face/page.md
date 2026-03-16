@@ -17,7 +17,7 @@ npm install @mediapipe/tasks-vision
 
 The `face` plugin uses MediaPipe’s [Face Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) and exposes ShaderPad-specific uniforms, helper functions, and events for face-driven effects.
 
-```typescript
+```javascript
 import face from 'shaderpad/plugins/face'
 
 const shader = new ShaderPad(fragmentShaderSrc, {
@@ -49,7 +49,7 @@ Subscribe with `shader.on(name, callback)`.
 | `face:ready`  | `() => void`                                  | model assets are loaded and the plugin is ready        |
 | `face:result` | `(result: FaceLandmarkerResult) => void`      | latest MediaPipe result for the current analyzed frame |
 
-```typescript
+```javascript
 shader.on('face:result', result => {
   console.log(`${result.faceLandmarks.length} faces detected`)
 })

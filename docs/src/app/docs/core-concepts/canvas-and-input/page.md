@@ -10,7 +10,7 @@ ShaderPad can render into an existing canvas, or create an offscreen canvas for 
 
 ## Canvas Options
 
-```typescript
+```javascript
 const shader = new ShaderPad(fragmentShaderSrc, { canvas })
 ```
 
@@ -25,7 +25,7 @@ Valid values for `canvas`:
 
 Use the utility helper if you want a simple fullscreen canvas. For responsive resolution, combine it with the autosize plugin:
 
-```typescript
+```javascript
 import ShaderPad from 'shaderpad'
 import { createFullscreenCanvas } from 'shaderpad/util'
 import autosize from 'shaderpad/plugins/autosize'
@@ -38,7 +38,7 @@ const shader = new ShaderPad(fragmentShaderSrc, { canvas, plugins: [autosize()] 
 
 `cursorTarget` controls how `u_cursor` and `u_click` are normalized.
 
-```typescript
+```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
   canvas,
   cursorTarget: window,
@@ -62,5 +62,5 @@ If you want to run a callback after resolution changes, use `shader.on('updateRe
 ## Related
 
 - [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [autosize plugin](/docs/plugins/autosize)
+- [Autosize plugin](/docs/plugins/autosize)
 - [Utilities](/docs/api/utilities)

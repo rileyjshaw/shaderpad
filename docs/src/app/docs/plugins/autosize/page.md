@@ -8,7 +8,7 @@ nextjs:
 
 The `autosize` plugin updates the canvas resolution on resize to match its rendered size. If your canvas can be resized, you should probably use this plugin.
 
-```typescript
+```javascript
 import autosize from 'shaderpad/plugins/autosize'
 
 const shader = new ShaderPad(fragmentShaderSrc, {

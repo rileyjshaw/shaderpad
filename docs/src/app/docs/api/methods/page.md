@@ -47,7 +47,7 @@ play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void
 | ---------------- | -------------------------------------------------- | ----------- | ----- |
 | `onBeforeStep`   | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every animation frame before `_step()` runs. `time` is measured in seconds from the current start time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
 
-```typescript
+```javascript
 shader.play((time, frame) => {
   shader.updateUniforms({ u_speed: Math.sin(time) })
 

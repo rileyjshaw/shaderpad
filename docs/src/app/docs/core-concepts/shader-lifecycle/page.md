@@ -17,7 +17,7 @@ You can go over the details of each method in the [Methods](/docs/api/methods) A
 
 ## Constructor
 
-```typescript
+```javascript
 const shader = new ShaderPad(fragmentShaderSrc, { canvas })
 ```
 
@@ -33,7 +33,7 @@ const shader = new ShaderPad(fragmentShaderSrc, { canvas })
 
 `play()` starts the animation loop. `u_time` and `u_frame` uniforms are updated automatically, and history is kept up to date.
 
-```typescript
+```javascript
 shader.play((time, frame) => {
   shader.updateUniforms({ u_speed: Math.sin(time) })
 })
@@ -47,29 +47,30 @@ Use it when:
 
 ### `step(options?)`
 
-`step()` advances exactly one frame, and renders without triggering the animation loop. `u_time` and `u_frame` uniforms are updated automatically, and history is kept up to date.
+`step()` advances exactly one frame, and renders without triggering an ongoing animation loop. `u_time` and `u_frame` uniforms are updated automatically, and history is kept up to date.
 
-```typescript
+```javascript
 shader.step({ skipHistoryWrite: true })
 ```
 
 Use it when:
 
 - You want deterministic manual control over the animation frame
-- Another loop owns timing
-- You are building a chained or offscreen pipeline
+- You are building a chained pipeline, and/or another loop owns timing
+- Inputs change infrequently, or you want fine control over frame rate
 
 ### `draw(options?)`
 
 `draw()` renders without updating `u_time`, `u_frame`, or history.
 
-```typescript
+```javascript
 shader.draw({ skipClear: true })
 ```
 
 Use it when:
 
-- The current uniforms already represent the exact state you want
+- You want to redraw the last frame without updating time, frame, or history
+- You want a lightweight “no-frills” render pass
 - The output should not count as a new animation step
 
 ## Pause, Reset, Destroy
@@ -77,7 +78,7 @@ Use it when:
 - `pause()` stops the animation loop started by `play()`
 - `resetFrame()` resets the clock and frame counter
 - `reset()` resets the clock and frame counter, and also clears history buffers
-- `destroy()` releases WebGL resources and event listeners
+- `destroy()` stops everything and releases WebGL resources and event listeners
 
 ## Related
 

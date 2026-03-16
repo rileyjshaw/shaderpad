@@ -8,7 +8,7 @@ nextjs:
 
 Let’s start with a simple animated ShaderPad that tracks your cursor:
 
-```typescript
+```javascript
 import ShaderPad from 'shaderpad'
 
 const fragmentShaderSrc = `#version 300 es
@@ -39,13 +39,13 @@ shader.play()
 
 ## Required GLSL Declarations
 
-In your fragment shader, you must declare `in vec2 v_uv` (pixel coordinates) and `out vec4 outColor` (the output color). You can also declare any of the [built-in uniforms](/docs/core-concepts/built-in-inputs) like `u_time`, `u_cursor`, or `u_resolution`, as shown in the shader above. The complete built-in uniform list is documented in the [Uniforms API reference](/docs/api/uniforms).
+In your fragment shader, you must declare `in vec2 v_uv` (normalized shader coordinates) and `out vec4 outColor` (the output color). You can also declare any of the [built-in uniforms](/docs/core-concepts/built-in-inputs) like `u_time`, `u_cursor`, or `u_resolution`, as shown in the shader above. The complete built-in uniform list is documented in the [Uniforms API reference](/docs/api/uniforms).
 
 ## Make It Fullscreen
 
 To make a fullscreen ShaderPad, use the `createFullscreenCanvas` utility along with the `autosize` plugin.
 
-```typescript
+```javascript
 import ShaderPad from 'shaderpad'
 import { createFullscreenCanvas } from 'shaderpad/util'
 import autosize from 'shaderpad/plugins/autosize'
@@ -71,7 +71,7 @@ shader.play()
 
 You can synchronize dynamic data from JavaScript to your shader through custom uniforms and textures, and update them with a callback passed to `play()`.
 
-```typescript
+```javascript
 import ShaderPad from 'shaderpad'
 import { createFullscreenCanvas } from 'shaderpad/util'
 import autosize from 'shaderpad/plugins/autosize'
@@ -109,11 +109,6 @@ These examples show some very basic applications of ShaderPad to get you started
 
 ## Next Useful Things To Learn
 
-- [Learning shaders](/docs/getting-started/learning-shaders)
 - [Shader lifecycle](/docs/core-concepts/shader-lifecycle)
 - [Built-in inputs](/docs/core-concepts/built-in-inputs)
 - [Uniforms API reference](/docs/api/uniforms)
-
-{% callout title="Keep quickstart simple" %}
-Do not start with plugins, webcam input, or history buffers unless that is the first thing you need. ShaderPad is easiest to learn when the first success is just one fragment shader and one canvas.
-{% /callout %}

@@ -31,7 +31,7 @@ If multiple passes share the same canvas or context, ShaderPad can keep chained 
 
 Prefer this:
 
-```typescript
+```javascript
 const sharedCanvas = new OffscreenCanvas(width, height)
 
 const passA = new ShaderPad(fragmentA, { canvas: sharedCanvas })
@@ -55,7 +55,7 @@ Downsample when a pass is only used for:
 - Coarse simulation fields
 - Preprocessing before a full-resolution composite
 
-```typescript
+```javascript
 const lowResPass = new ShaderPad(fragmentShaderSrc, {
   canvas: { width: 512, height: 512 },
 })
@@ -72,7 +72,7 @@ History increases texture bandwidth, so use it mindfully.
 
 For instance, let's say you want to store one sample per second for the past 10 seconds. Instead of storing every rendered frame, you can do something like this:
 
-```typescript
+```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
   canvas,
   history: 10,
@@ -95,7 +95,7 @@ shader.play(time => {
 
 If a typed-array texture changes in a small region, update only that region instead of reallocating or reuploading the whole texture.
 
-```typescript
+```javascript
 shader.updateTextures({
   u_data: {
     data: patch,
@@ -130,8 +130,8 @@ If you attach a MediaPipe plugin to multiple `ShaderPad` instances, ShaderPad sh
 
 That means you can run a chained pipeline like this without paying for multiple pose detections per frame:
 
-```typescript
-const camera = document.querySelector('video')!
+```javascript
+const camera = document.querySelector('video')
 const sharedCanvas = new OffscreenCanvas(1, 1)
 
 const preprocess = new ShaderPad(preprocessFrag, {

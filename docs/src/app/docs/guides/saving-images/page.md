@@ -22,5 +22,5 @@ await shader.save('My Shader', 'Made with ShaderPad')
 
 ## Related
 
-- [save plugin](/docs/plugins/save)
+- [Save plugin](/docs/plugins/save)
 - [Chaining shaders](/docs/guides/chaining-shaders)

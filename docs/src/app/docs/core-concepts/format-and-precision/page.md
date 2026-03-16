@@ -30,7 +30,7 @@ When used in the constructor, these options define how ShaderPad stores:
 - The history texture when `history` is enabled
 - Chained passes when another `ShaderPad` samples this instance
 
-```typescript
+```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
   canvas,
   history: 24,
@@ -47,7 +47,7 @@ Due to browser limitations, constructor texture options cannot increase the colo
 
 Use texture options to specify a specific format, type, filter, or wrap mode. Input textures do not inherit the main shader's constructor texture settings.
 
-```typescript
+```javascript
 shader.initializeTexture(
   'u_mask',
   { data: new Uint8Array(width * height), width, height },
@@ -96,7 +96,7 @@ If you omit `format`, ShaderPad derives one from `internalFormat`. The defaults 
 
 If you initialize a texture from another `ShaderPad` without overriding its texture options, the destination texture inherits the source’s format settings. That means high-precision and integer data are transferred correctly by default, even when the two `ShaderPad` instances use different WebGL contexts.
 
-{% callout title="Important" type="warning" %}
+{% callout title="Chain Performance" %}
 Cross-context chains preserve the data format, but they do not share a GPU texture. They are correct, but slower.
 {% /callout %}
 

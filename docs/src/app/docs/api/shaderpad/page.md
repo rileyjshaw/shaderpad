@@ -8,7 +8,7 @@ nextjs:
 
 `ShaderPad` is the core class exported by the library.
 
-```typescript
+```javascript
 import ShaderPad from 'shaderpad'
 ```
 
@@ -28,7 +28,7 @@ new ShaderPad(fragmentShaderSrc: string, options?: Options)
 | `plugins`        | `Plugin[]`                                                         | `[]`                                                 | Installed during construction, before the final fragment shader is compiled, so plugins can inject GLSL and hooks. |
 | `history`        | `number`                                                           | `0`                                                  | Number of previous output frames to retain. `0` disables output history entirely. |
 | `debug`          | `boolean`                                                          | `false` | Enables internal debug logging such as skipped uniform updates. |
-| `cursorTarget`   | `Window \| Element`                                                | The HTML canvas passed as `canvas`, otherwise `undefined` | Used to normalize built-in `u_cursor` and `u_click` input tracking. Offscreen or headless setups only get pointer listeners if you pass a target explicitly. |
+| `cursorTarget`   | `Window \| Element`                                                | The HTML canvas passed as `canvas`, otherwise `undefined` | Used for built-in `u_cursor` and `u_click` input tracking. Offscreen or headless setups only get pointer listeners if you pass a target explicitly. |
 | `internalFormat` | `GLInternalFormatString`                                           | Derived from `type`, otherwise `'RGBA8'`             | Applies to ShaderPad's internal render texture and output history texture. Float color targets such as `'RGBA16F'` and `'RGBA32F'` require `EXT_color_buffer_float`. |
 | `format`         | `GLFormatString`                                                   | Derived from `internalFormat`                        | Defaults to `'RGBA'` for normalized and float color formats, and `'RGBA_INTEGER'` for integer color formats. |
 | `type`           | `GLTypeString`                                                     | Derived from `internalFormat`, otherwise `'UNSIGNED_BYTE'` | Controls the texel data type used for the internal render target and output history. |

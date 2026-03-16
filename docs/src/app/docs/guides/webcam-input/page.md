@@ -6,7 +6,7 @@ nextjs:
     description: Use webcam video as a live texture in ShaderPad.
 ---
 
-Webcam input is just a live texture plus a per-frame update.
+ShaderPad makes it easy to ingest video textures, including live webcam streams.
 
 ## Basic Flow
 
@@ -15,42 +15,68 @@ Webcam input is just a live texture plus a per-frame update.
 3. initialize a texture from that video
 4. update the texture every frame
 
-```typescript
-const shader = new ShaderPad(fragmentShaderSrc, { canvas })
-shader.initializeTexture('u_webcam', video)
+## Example
 
-shader.play(() => {
-  shader.updateTextures({ u_webcam: video })
-})
-```
+```javascript
+import ShaderPad from 'shaderpad'
+import { createFullscreenCanvas } from 'shaderpad/util'
+import autosize from 'shaderpad/plugins/autosize'
+import helpers from 'shaderpad/plugins/helpers'
 
-## Common Shader Pattern
+async function init() {
+  const fragmentShaderSrc = `#version 300 es
+precision highp float;
 
-```glsl
+in vec2 v_uv;
+out vec4 outColor;
 uniform sampler2D u_webcam;
 
 void main() {
-  vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
-  vec4 webcamColor = texture(u_webcam, uv);
-  outColor = webcamColor;
+  vec2 uv = vec2(1.0 - v_uv.x, v_uv.y); // Flip x-axis for selfie-style preview.
+  uv = fitCover(uv, vec2(textureSize(u_webcam, 0))); // Fill the fullscreen canvas without stretching.
+  outColor = texture(u_webcam, uv); // Output the webcam color for this pixel.
+}`
+
+  const video = document.createElement('video')
+  video.autoplay = true
+  video.muted = true
+  video.playsInline = true
+
+  let stream
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true })
+  } catch (error) {
+    // Show fallback UI here to handle a rejected stream.
+    throw error
+  }
+
+  video.srcObject = stream
+  await new Promise((resolve) => {
+    video.onloadedmetadata = () => resolve()
+  })
+  await video.play()
+
+  const shader = new ShaderPad(fragmentShaderSrc, {
+    canvas: createFullscreenCanvas(),
+    plugins: [autosize(), helpers()],
+  })
+  shader.initializeTexture('u_webcam', video)
+  shader.play(() => {
+    shader.updateTextures({ u_webcam: video })
+  })
 }
+
+init()
 ```
 
-The horizontal flip is common for selfie-style previews.
-
-## Webcam Plus History
-
-For delay and echo effects, enable history on the texture itself:
-
-```typescript
-shader.initializeTexture('u_webcam', video, { history: 20 })
-```
+This mirrors the webcam for a selfie-style preview and uses `fitCover(...)` so the video fills the fullscreen canvas without stretching.
 
 ## Practical Tips
 
 - Wait for `loadedmetadata` before trusting `videoWidth` and `videoHeight`
 - Update the texture in `play()` or your own loop
-- Expect permission prompts and rejected access
+- Expect browser permission prompts and add handling for rejected access
+
 {% callout type="warning" title="Camera access can fail" %}
 Browsers can reject camera access because of permissions, insecure origins, unavailable devices, or user choice. If you’re not able to render the stream, ensure your app has proper camera access.
 {% /callout %}
@@ -58,5 +84,5 @@ Browsers can reject camera access because of permissions, insecure origins, unav
 ## Related
 
 - [Textures](/docs/core-concepts/textures)
-- [History](/docs/core-concepts/history)
+- [Helpers plugin](/docs/plugins/helpers)
 - [Format and precision](/docs/core-concepts/format-and-precision)

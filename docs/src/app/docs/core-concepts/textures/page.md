@@ -23,14 +23,14 @@ ShaderPad can ingest a variety of texture sources, including images, videos, can
 
 ## Initialize A Texture
 
-```typescript
+```javascript
 shader.initializeTexture('u_webcam', videoElement)
 shader.initializeTexture('u_image', imageElement)
 ```
 
 Custom typed-array textures are also supported:
 
-```typescript
+```javascript
 shader.initializeTexture(
   'u_data',
   { data: new Float32Array(width * height * 4), width, height },
@@ -47,7 +47,7 @@ shader.initializeTexture(
 
 Live sources such as videos should usually be updated each frame:
 
-```typescript
+```javascript
 shader.play(() => {
   shader.updateTextures({ u_webcam: videoElement })
 })
@@ -57,7 +57,7 @@ shader.play(() => {
 
 For typed-array textures, you can update a sub-region for efficiency:
 
-```typescript
+```javascript
 shader.updateTextures({
   u_data: { data, width, height, x, y, isPartial: true },
 })
@@ -73,7 +73,7 @@ shader.updateTextures({
 
 Any texture can maintain its own history:
 
-```typescript
+```javascript
 shader.initializeTexture('u_webcam', videoElement, { history: 30 })
 ```
 
@@ -89,13 +89,13 @@ float z = historyZ(u_webcam, u_webcamFrameOffset, 1);
 vec4 color = texture(u_webcam, vec3(v_uv, z));
 ```
 
-Here, `historyZ(..., 1)` means the previous stored texture sample. `historyZ(..., 0)` is also valid for texture history and refers to the current/latest value.
+Here, `historyZ(..., 1)` means the previous stored texture sample. `historyZ(..., 0)` is also valid for texture history and refers to the current value.
 
 ## ShaderPad As A Texture Source
 
 You can feed one ShaderPad instance into another:
 
-```typescript
+```javascript
 passB.initializeTexture('u_firstPass', passA)
 ```
 

@@ -17,7 +17,7 @@ npm install @mediapipe/tasks-vision
 
 The `segmenter` plugin uses MediaPipe's [Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) and exposes ShaderPad mask textures and GLSL helper functions.
 
-```typescript
+```javascript
 import segmenter from 'shaderpad/plugins/segmenter'
 
 const shader = new ShaderPad(fragmentShaderSrc, {
@@ -49,7 +49,7 @@ Subscribe with `shader.on(name, callback)`.
 | `segmenter:ready`  | `() => void`                                  | model assets are loaded and the plugin is ready        |
 | `segmenter:result` | `(result: ImageSegmenterResult) => void`      | latest MediaPipe result for the current analyzed frame |
 
-```typescript
+```javascript
 shader.on('segmenter:result', result => {
   console.log(result.categoryMask)
 })
