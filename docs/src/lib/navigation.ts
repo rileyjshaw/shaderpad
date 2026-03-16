@@ -9,6 +9,10 @@ export const navigation = [
         title: 'Learning shaders',
         href: '/docs/getting-started/learning-shaders',
       },
+      {
+        title: 'AI agent guide',
+        href: '/docs/getting-started/ai-agent-guide',
+      },
     ],
   },
   {

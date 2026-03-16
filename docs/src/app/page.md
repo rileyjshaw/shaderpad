@@ -14,8 +14,6 @@ ShaderPad handles the repetitive work required to render fragment shaders in the
 
 {% quick-link title="Quickstart" icon="lightbulb" href="/docs/getting-started/quickstart" description="Render your first shader with the smallest complete example." /%}
 
-{% quick-link title="Chaining shaders" icon="presets" href="/docs/guides/chaining-shaders" description="Use offscreen rendering, multi-pass workflows, and ShaderPad-as-texture." /%}
-
 {% quick-link title="API reference" icon="plugins" href="/docs/api/shaderpad" description="Jump straight to constructor options, methods, events, and utilities." /%}
 
 {% /quick-links %}
@@ -31,7 +29,7 @@ ShaderPad is a minimal fragment shader library for the web. It handles WebGL2 sc
 - Create fullscreen interactive shaders with under 10 lines of JS code.
 - Make your own face filters or pose detection apps like [Strange Camera](https://strange.cam).
 - Add post-processing effects to `canvas`, `img` and `video` elements on an existing page.
-- Point your AI coding agent at the [Quickstart](/docs/getting-started/quickstart) and [API reference](/docs/api/shaderpad), describe the effect you want to see, and let it build from there.
+- Point your AI coding agent to the [AI agent guide](/docs/getting-started/ai-agent-guide), describe the effect you want to see, and let it build from there.
 
 ## Comparisons To Other Libraries
 
@@ -57,6 +55,7 @@ ShaderPad targets WebGL 2.0, which is [widely available across all major browser
 - [Installation](/docs/getting-started/installation)
 - [Quickstart](/docs/getting-started/quickstart)
 - [Learning shaders](/docs/getting-started/learning-shaders)
+- [AI agent guide](/docs/getting-started/ai-agent-guide)
 - [Built-in inputs](/docs/core-concepts/built-in-inputs)
 - [Shader lifecycle](/docs/core-concepts/shader-lifecycle)
 
