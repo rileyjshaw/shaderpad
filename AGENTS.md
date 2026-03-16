@@ -13,10 +13,10 @@ ShaderPad is a WebGL2-first library for fullscreen fragment shaders, live textur
 ## Canonical imports
 
 ```ts
-import ShaderPad from 'shaderpad'
-import { createFullscreenCanvas } from 'shaderpad/util'
-import autosize from 'shaderpad/plugins/autosize'
-import helpers from 'shaderpad/plugins/helpers'
+import ShaderPad from 'shaderpad';
+import { createFullscreenCanvas } from 'shaderpad/util';
+import autosize from 'shaderpad/plugins/autosize';
+import helpers from 'shaderpad/plugins/helpers';
 ```
 
 Plugin import paths:

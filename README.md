@@ -805,4 +805,4 @@ Add a `.ts` file in `examples/src/` that exports `init` and `destroy` functions.
 
 ## License
 
-This project is licensed under [GNU GPLv3](./LICENSE).
+This project is licensed under [MIT](./LICENSE).

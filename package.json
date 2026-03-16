@@ -96,5 +96,5 @@
 	"peerDependencies": {
 		"@mediapipe/tasks-vision": "*"
 	},
-	"license": "GNU GPLv3"
+	"license": "MIT"
 }
