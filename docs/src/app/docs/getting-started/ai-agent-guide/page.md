@@ -2,11 +2,18 @@
 title: AI agent guide
 nextjs:
   metadata:
-    title: AI agent guide
-    description: A single-page guide for AI agents writing correct ShaderPad programs.
+    title: AI agent guide for ShaderPad
+    description: A single-page guide for AI agents and coding assistants writing correct ShaderPad programs.
+    keywords:
+      - ShaderPad
+      - AI agent guide
+      - LLM instructions
+      - coding assistant
+      - WebGL2
+      - fragment shaders
 ---
 
-This page is the shortest path from “I need a shader effect” to a correct ShaderPad program. If you are an AI agent, start here, then pull in only the specific API or plugin pages you actually need. The machine-readable public entry point is [`/llms.txt`](/llms.txt). {% .lead %}
+This page is the shortest path from “I need a shader effect” to a correct ShaderPad program. If you are an AI agent, start here, then pull in only the specific API or plugin pages you actually need. The machine-readable public entry point is [`/llms.txt`](/llms.txt), and concrete examples live in [`examples/src` on GitHub](https://github.com/rileyjshaw/shaderpad/tree/main/examples/src). {% .lead %}
 
 ## Default Mental Model
 
@@ -223,4 +230,4 @@ When you need more than this page, pull context in this order:
 4. [Built-in inputs](/docs/core-concepts/built-in-inputs)
 5. [History](/docs/core-concepts/history), if the effect depends on previous frames
 6. [Chaining shaders](/docs/guides/chaining-shaders), if the effect is multi-pass
-7. the specific plugin page, but only if you are actually using that plugin
+7. The page for a specific plugin, but only if you are actually using that plugin

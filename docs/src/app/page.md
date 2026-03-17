@@ -58,21 +58,18 @@ ShaderPad targets WebGL 2.0, which is [widely available across all major browser
 - [Installation](/docs/getting-started/installation)
 - [Quickstart](/docs/getting-started/quickstart)
 - [Learning shaders](/docs/getting-started/learning-shaders)
-- [AI agent guide](/docs/getting-started/ai-agent-guide)
 - [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [Shader lifecycle](/docs/core-concepts/shader-lifecycle)
 
 ### Camera effects and filters
 
 - [Webcam input](/docs/guides/webcam-input)
 - [Textures](/docs/core-concepts/textures)
 - [History](/docs/core-concepts/history)
-- [face plugin](/docs/plugins/face)
-- [pose plugin](/docs/plugins/pose)
+- [Face plugin](/docs/plugins/face)
 
 ### Advanced / multi-pass effects
 
 - [Chaining shaders](/docs/guides/chaining-shaders)
 - [Format and precision](/docs/core-concepts/format-and-precision)
 - [Performance](/docs/guides/performance)
-- [Utilities](/docs/api/utilities)
+- [API reference](/docs/api/shaderpad)

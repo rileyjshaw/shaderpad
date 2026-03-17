@@ -78,6 +78,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <Header />
 
       <main className="flex flex-1 flex-col">
+        <nav aria-label="AI resources" className="sr-only">
+          <Link href="/docs/getting-started/ai-agent-guide">
+            ShaderPad AI agent guide
+          </Link>
+          <Link href="/llms.txt">ShaderPad llms.txt instructions</Link>
+          <a href="https://github.com/rileyjshaw/shaderpad/tree/main/examples/src">
+            ShaderPad examples on GitHub
+          </a>
+        </nav>
         {isHomePage && <Hero />}
 
         <div className="relative mx-auto w-full max-w-8xl flex-1 sm:px-2 lg:px-8 xl:px-12">

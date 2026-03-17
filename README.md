@@ -10,6 +10,19 @@ ShaderPad is a lightweight, dependency-free library that reduces boilerplate whe
 npm install shaderpad
 ```
 
+## Links
+
+### For humans:
+
+- [Docs](https://rileyjshaw.com/shaderpad/)
+- [Quickstart](https://rileyjshaw.com/shaderpad/docs/getting-started/quickstart/)
+
+### For AIs and coding agents:
+
+- [AI agent guide](https://rileyjshaw.com/shaderpad/docs/getting-started/ai-agent-guide/)
+- [llms.txt](https://rileyjshaw.com/shaderpad/llms.txt)
+- [Examples on GitHub](https://github.com/rileyjshaw/shaderpad/tree/main/examples/src)
+
 ## Example
 
 ```typescript
@@ -71,10 +84,10 @@ shader.initializeUniform('u_data', 'float', [1.0, 0.5, 0.0], { arrayLength: 3 })
 
 **Parameters:**
 
--   `name` (string): Uniform name
--   `type` ('float' | 'int' | 'uint'): Uniform type
--   `value` (number | number[] | (number | number[])[]): Initial value(s)
--   `options` (optional): `{ arrayLength?: number }` - Required for arrays
+- `name` (string): Uniform name
+- `type` ('float' | 'int' | 'uint'): Uniform type
+- `value` (number | number[] | (number | number[])[]): Initial value(s)
+- `options` (optional): `{ arrayLength?: number }` - Required for arrays
 
 #### `updateUniforms(updates, options?)`
 
@@ -89,8 +102,8 @@ shader.updateUniforms({
 
 **Parameters:**
 
--   `updates`: Object mapping uniform names to their new values
--   `options` (optional): `{ startIndex?: number }` - Starting index for partial array updates
+- `updates`: Object mapping uniform names to their new values
+- `options` (optional): `{ startIndex?: number }` - Starting index for partial array updates
 
 #### Uniform arrays
 
@@ -106,7 +119,7 @@ shader.initializeUniform(
 		[1, 1],
 		[2, 2],
 	],
-	{ arrayLength: 3 }
+	{ arrayLength: 3 },
 );
 
 // Update all elements.
@@ -126,7 +139,7 @@ shader.updateUniforms(
 			[3.5, 3.5],
 		],
 	},
-	{ startIndex: 2 }
+	{ startIndex: 2 },
 );
 ```
 
@@ -164,7 +177,7 @@ shader.initializeTexture(
 		type: 'FLOAT',
 		minFilter: 'NEAREST',
 		magFilter: 'NEAREST',
-	}
+	},
 );
 shader.initializeTexture('u_webcam', videoElement, { history: 30 });
 shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
@@ -172,21 +185,21 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 
 **Parameters:**
 
--   `name` (string): The name of the texture uniform as declared in your shader
--   `options` (optional): Texture options (see below)
--   `source`: Image, video, canvas, or `{ data, width, height }`
+- `name` (string): The name of the texture uniform as declared in your shader
+- `options` (optional): Texture options (see below)
+- `source`: Image, video, canvas, or `{ data, width, height }`
 
 **Texture Options:**
 
--   `history?: number` - Number of previous frames to store (creates a `sampler2DArray`)
--   `preserveY?: boolean` - For DOM sources only: if `true`, don't flip vertically (default: `false`, flips to match WebGL's bottom-up convention)
--   `internalFormat?: string` - Storage format in GPU memory (e.g., `'RGBA8'`, `'RGBA32F'`, `'R8'`). Defaults to `'RGBA8'` for 8-bit, or `'RGBA32F'` if `type` is `'FLOAT'`
--   `format?: string` - Source data layout (default: `'RGBA'`). Describes the channels in your input data (e.g., `'RGBA'`, `'RGB'`, `'RED'`)
--   `type?: string` - Source data type (default: `'UNSIGNED_BYTE'` for DOM sources, must be specified for typed arrays). Examples: `'UNSIGNED_BYTE'`, `'FLOAT'`, `'HALF_FLOAT'`
--   `minFilter?: string` - Minification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
--   `magFilter?: string` - Magnification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
--   `wrapS?: string` - Wrap mode for S coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
--   `wrapT?: string` - Wrap mode for T coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
+- `history?: number` - Number of previous frames to store (creates a `sampler2DArray`)
+- `preserveY?: boolean` - For DOM sources only: if `true`, don't flip vertically (default: `false`, flips to match WebGL's bottom-up convention)
+- `internalFormat?: string` - Storage format in GPU memory (e.g., `'RGBA8'`, `'RGBA32F'`, `'R8'`). Defaults to `'RGBA8'` for 8-bit, or `'RGBA32F'` if `type` is `'FLOAT'`
+- `format?: string` - Source data layout (default: `'RGBA'`). Describes the channels in your input data (e.g., `'RGBA'`, `'RGB'`, `'RED'`)
+- `type?: string` - Source data type (default: `'UNSIGNED_BYTE'` for DOM sources, must be specified for typed arrays). Examples: `'UNSIGNED_BYTE'`, `'FLOAT'`, `'HALF_FLOAT'`
+- `minFilter?: string` - Minification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
+- `magFilter?: string` - Magnification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
+- `wrapS?: string` - Wrap mode for S coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
+- `wrapT?: string` - Wrap mode for T coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
 
 **Note:** For typed array sources (`CustomTexture`), you must provide data in bottom-up orientation (WebGL convention). The `preserveY` option is ignored for typed arrays.
 
@@ -202,8 +215,8 @@ shader.updateTextures({ u_camera: videoElement }, { skipHistoryWrite: true });
 
 **Parameters:**
 
--   `updates`: Object mapping texture names to updated sources
--   `options?` (optional): `{ skipHistoryWrite?: boolean }`
+- `updates`: Object mapping texture names to updated sources
+- `options?` (optional): `{ skipHistoryWrite?: boolean }`
 
 ### Lifecycle methods
 
@@ -224,7 +237,7 @@ shader.play(() => {
 
 **Parameters:**
 
--   `onBeforeStep?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
+- `onBeforeStep?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
 
 #### `step(options?)`
 
@@ -232,7 +245,7 @@ Manually advance one frame. Updates `u_time` and `u_frame`, renders, then writes
 
 **Parameters:**
 
--   `options?` (optional): `StepOptions` - Options to control rendering behavior (see below)
+- `options?` (optional): `StepOptions` - Options to control rendering behavior (see below)
 
 #### `draw(options?)`
 
@@ -244,7 +257,7 @@ shader.draw({ skipClear: true });
 
 **Parameters:**
 
--   `options?` (optional): `StepOptions` - Options to control rendering behavior (see below)
+- `options?` (optional): `StepOptions` - Options to control rendering behavior (see below)
 
 #### `StepOptions`
 
@@ -257,8 +270,8 @@ interface StepOptions {
 
 **Options:**
 
--   `skipClear?: boolean` - If `true`, the canvas is not cleared before rendering. Useful for accumulating effects or multi-pass rendering.
--   `skipHistoryWrite?: boolean` - If `true`, history buffers are not updated. Useful when you want to render without affecting the history state.
+- `skipClear?: boolean` - If `true`, the canvas is not cleared before rendering. Useful for accumulating effects or multi-pass rendering.
+- `skipHistoryWrite?: boolean` - If `true`, history buffers are not updated. Useful when you want to render without affecting the history state.
 
 #### `pause()`, `reset()`, `destroy()`
 
@@ -271,7 +284,7 @@ shader.destroy(); // Clean up resources.
 
 ### Properties
 
--   `canvas` (HTMLCanvasElement | OffscreenCanvas): The canvas element used for rendering
+- `canvas` (HTMLCanvasElement | OffscreenCanvas): The canvas element used for rendering
 
 ### Event Listeners
 
@@ -287,8 +300,8 @@ shader.on('updateResolution', (width, height) => {
 
 **Parameters:**
 
--   `event` (string): The event name
--   `callback` (Function): The callback function
+- `event` (string): The event name
+- `callback` (Function): The callback function
 
 #### `off(event, callback)`
 
@@ -296,8 +309,8 @@ Remove a previously registered callback.
 
 **Parameters:**
 
--   `event` (string): The event name
--   `callback` (Function): The callback function to remove
+- `event` (string): The event name
+- `callback` (Function): The callback function to remove
 
 #### Available Events
 
@@ -435,9 +448,9 @@ shader.save('filename', 'Optional mobile share text', { preventShare: true });
 
 **Function parameters:**
 
--   `filename?` (string) - Output filename. Defaults to `export.png`
--   `text?` (string) - Optional share text for platforms that support the Web Share API
--   `options.preventShare?: boolean` - If `true`, the Web Share API is not used and the file is always downloaded. Default: `false`.
+- `filename?` (string) - Output filename. Defaults to `export.png`
+- `text?` (string) - Optional share text for platforms that support the Web Share API
+- `options.preventShare?: boolean` - If `true`, the Web Share API is not used and the file is always downloaded. Default: `false`.
 
 #### face
 
@@ -452,8 +465,8 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
--   `maxFaces?: number` - Maximum faces to detect (default: 1)
--   `history?: number` - Frames of history to store for landmarks and mask textures
+- `maxFaces?: number` - Maximum faces to detect (default: 1)
+- `history?: number` - Frames of history to store for landmarks and mask textures
 
 **Events:**
 
@@ -475,35 +488,35 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexed (-1 = no face). When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
--   `faceLandmark(int faceIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(faceLandmark(...))` to get just the screen position.
--   `leftEyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in left eyebrow, `vec2(0.0, -1.0)` otherwise.
--   `rightEyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in right eyebrow, `vec2(0.0, -1.0)` otherwise.
--   `leftEyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in left eye, `vec2(0.0, -1.0)` otherwise.
--   `rightEyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in right eye, `vec2(0.0, -1.0)` otherwise.
--   `lipsAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in lips, `vec2(0.0, -1.0)` otherwise.
--   `outerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in outer mouth (lips + inner mouth), `vec2(0.0, -1.0)` otherwise.
--   `innerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in inner mouth region, `vec2(0.0, -1.0)` otherwise.
--   `faceOvalAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face oval contour, `vec2(0.0, -1.0)` otherwise.
--   `faceAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face mesh or oval contour, `vec2(0.0, -1.0)` otherwise.
--   `eyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eye, `vec2(0.0, -1.0)` otherwise.
--   `eyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eyebrow, `vec2(0.0, -1.0)` otherwise.
+- `faceLandmark(int faceIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(faceLandmark(...))` to get just the screen position.
+- `leftEyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in left eyebrow, `vec2(0.0, -1.0)` otherwise.
+- `rightEyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in right eyebrow, `vec2(0.0, -1.0)` otherwise.
+- `leftEyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in left eye, `vec2(0.0, -1.0)` otherwise.
+- `rightEyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in right eye, `vec2(0.0, -1.0)` otherwise.
+- `lipsAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in lips, `vec2(0.0, -1.0)` otherwise.
+- `outerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in outer mouth (lips + inner mouth), `vec2(0.0, -1.0)` otherwise.
+- `innerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in inner mouth region, `vec2(0.0, -1.0)` otherwise.
+- `faceOvalAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face oval contour, `vec2(0.0, -1.0)` otherwise.
+- `faceAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face mesh or oval contour, `vec2(0.0, -1.0)` otherwise.
+- `eyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eye, `vec2(0.0, -1.0)` otherwise.
+- `eyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eyebrow, `vec2(0.0, -1.0)` otherwise.
 
 **Convenience functions** (return confidence 0-1 if found, `0.0` otherwise):
 
--   `inFace(vec2 pos) -> float` - Returns confidence (0-1) if position is in face mesh, `0.0` otherwise.
--   `inEye(vec2 pos) -> float` - Returns confidence (0-1) if position is in either eye, `0.0` otherwise.
--   `inEyebrow(vec2 pos) -> float` - Returns confidence (0-1) if position is in either eyebrow, `0.0` otherwise.
--   `inOuterMouth(vec2 pos) -> float` - Returns confidence (0-1) if position is in outer mouth (lips + inner mouth), `0.0` otherwise.
--   `inInnerMouth(vec2 pos) -> float` - Returns confidence (0-1) if position is in inner mouth, `0.0` otherwise.
--   `inLips(vec2 pos) -> float` - Returns confidence (0-1) if position is in lips, `0.0` otherwise.
+- `inFace(vec2 pos) -> float` - Returns confidence (0-1) if position is in face mesh, `0.0` otherwise.
+- `inEye(vec2 pos) -> float` - Returns confidence (0-1) if position is in either eye, `0.0` otherwise.
+- `inEyebrow(vec2 pos) -> float` - Returns confidence (0-1) if position is in either eyebrow, `0.0` otherwise.
+- `inOuterMouth(vec2 pos) -> float` - Returns confidence (0-1) if position is in outer mouth (lips + inner mouth), `0.0` otherwise.
+- `inInnerMouth(vec2 pos) -> float` - Returns confidence (0-1) if position is in inner mouth, `0.0` otherwise.
+- `inLips(vec2 pos) -> float` - Returns confidence (0-1) if position is in lips, `0.0` otherwise.
 
 **Landmark Constants:**
 
--   `FACE_LANDMARK_L_EYE_CENTER` - Left eye center landmark index
--   `FACE_LANDMARK_R_EYE_CENTER` - Right eye center landmark index
--   `FACE_LANDMARK_NOSE_TIP` - Nose tip landmark index
--   `FACE_LANDMARK_FACE_CENTER` - Face center landmark index (custom, calculated from all landmarks)
--   `FACE_LANDMARK_MOUTH_CENTER` - Mouth center landmark index (custom, calculated from inner mouth landmarks)
+- `FACE_LANDMARK_L_EYE_CENTER` - Left eye center landmark index
+- `FACE_LANDMARK_R_EYE_CENTER` - Right eye center landmark index
+- `FACE_LANDMARK_NOSE_TIP` - Nose tip landmark index
+- `FACE_LANDMARK_FACE_CENTER` - Face center landmark index (custom, calculated from all landmarks)
+- `FACE_LANDMARK_MOUTH_CENTER` - Mouth center landmark index (custom, calculated from inner mouth landmarks)
 
 **Example usage:**
 
@@ -545,8 +558,8 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
--   `maxPoses?: number` - Maximum poses to detect (default: 1)
--   `history?: number` - Frames of history to store for landmarks and mask textures
+- `maxPoses?: number` - Maximum poses to detect (default: 1)
+- `history?: number` - Frames of history to store for landmarks and mask textures
 
 **Events:**
 
@@ -568,28 +581,28 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
--   `poseLandmark(int poseIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(poseLandmark(...))` to get just the screen position.
--   `poseAt(vec2 pos) -> vec2` - Returns `vec2(confidence, poseIndex)`. poseIndex is 0-indexed (-1 = no pose), confidence is the segmentation confidence.
--   `inPose(vec2 pos) -> float` - Returns confidence (0-1) if position is in any pose, `0.0` otherwise.
+- `poseLandmark(int poseIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, visibility)`. Use `vec2(poseLandmark(...))` to get just the screen position.
+- `poseAt(vec2 pos) -> vec2` - Returns `vec2(confidence, poseIndex)`. poseIndex is 0-indexed (-1 = no pose), confidence is the segmentation confidence.
+- `inPose(vec2 pos) -> float` - Returns confidence (0-1) if position is in any pose, `0.0` otherwise.
 
 **Constants:**
 
--   `POSE_LANDMARK_LEFT_EYE` - Left eye landmark index (2)
--   `POSE_LANDMARK_RIGHT_EYE` - Right eye landmark index (5)
--   `POSE_LANDMARK_LEFT_SHOULDER` - Left shoulder landmark index (11)
--   `POSE_LANDMARK_RIGHT_SHOULDER` - Right shoulder landmark index (12)
--   `POSE_LANDMARK_LEFT_ELBOW` - Left elbow landmark index (13)
--   `POSE_LANDMARK_RIGHT_ELBOW` - Right elbow landmark index (14)
--   `POSE_LANDMARK_LEFT_HIP` - Left hip landmark index (23)
--   `POSE_LANDMARK_RIGHT_HIP` - Right hip landmark index (24)
--   `POSE_LANDMARK_LEFT_KNEE` - Left knee landmark index (25)
--   `POSE_LANDMARK_RIGHT_KNEE` - Right knee landmark index (26)
--   `POSE_LANDMARK_BODY_CENTER` - Body center landmark index (33, custom, calculated from all landmarks)
--   `POSE_LANDMARK_LEFT_HAND_CENTER` - Left hand center landmark index (34, custom, calculated from pinky, thumb, wrist, index)
--   `POSE_LANDMARK_RIGHT_HAND_CENTER` - Right hand center landmark index (35, custom, calculated from pinky, thumb, wrist, index)
--   `POSE_LANDMARK_LEFT_FOOT_CENTER` - Left foot center landmark index (36, custom, calculated from ankle, heel, foot index)
--   `POSE_LANDMARK_RIGHT_FOOT_CENTER` - Right foot center landmark index (37, custom, calculated from ankle, heel, foot index)
--   `POSE_LANDMARK_TORSO_CENTER` - Torso center landmark index (38, custom, calculated from shoulders and hips)
+- `POSE_LANDMARK_LEFT_EYE` - Left eye landmark index (2)
+- `POSE_LANDMARK_RIGHT_EYE` - Right eye landmark index (5)
+- `POSE_LANDMARK_LEFT_SHOULDER` - Left shoulder landmark index (11)
+- `POSE_LANDMARK_RIGHT_SHOULDER` - Right shoulder landmark index (12)
+- `POSE_LANDMARK_LEFT_ELBOW` - Left elbow landmark index (13)
+- `POSE_LANDMARK_RIGHT_ELBOW` - Right elbow landmark index (14)
+- `POSE_LANDMARK_LEFT_HIP` - Left hip landmark index (23)
+- `POSE_LANDMARK_RIGHT_HIP` - Right hip landmark index (24)
+- `POSE_LANDMARK_LEFT_KNEE` - Left knee landmark index (25)
+- `POSE_LANDMARK_RIGHT_KNEE` - Right knee landmark index (26)
+- `POSE_LANDMARK_BODY_CENTER` - Body center landmark index (33, custom, calculated from all landmarks)
+- `POSE_LANDMARK_LEFT_HAND_CENTER` - Left hand center landmark index (34, custom, calculated from pinky, thumb, wrist, index)
+- `POSE_LANDMARK_RIGHT_HAND_CENTER` - Right hand center landmark index (35, custom, calculated from pinky, thumb, wrist, index)
+- `POSE_LANDMARK_LEFT_FOOT_CENTER` - Left foot center landmark index (36, custom, calculated from ankle, heel, foot index)
+- `POSE_LANDMARK_RIGHT_FOOT_CENTER` - Right foot center landmark index (37, custom, calculated from ankle, heel, foot index)
+- `POSE_LANDMARK_TORSO_CENTER` - Torso center landmark index (38, custom, calculated from shoulders and hips)
 
 **Note:** For connecting pose landmarks (e.g., drawing skeleton lines), `PoseLandmarker.POSE_CONNECTIONS` from `@mediapipe/tasks-vision` provides an array of `{ start, end }` pairs that define which landmarks should be connected.
 
@@ -646,8 +659,8 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
--   `maxHands?: number` - Maximum hands to detect (default: 2)
--   `history?: number` - Frames of history to store for landmarks texture
+- `maxHands?: number` - Maximum hands to detect (default: 2)
+- `history?: number` - Frames of history to store for landmarks texture
 
 **Events:**
 
@@ -668,9 +681,9 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
--   `handLandmark(int handIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, handedness)`. Use `vec2(handLandmark(...))` to get just the screen position. Handedness: 0.0 = left hand, 1.0 = right hand.
--   `isRightHand(int handIndex) -> float` - Returns 1.0 if the hand is a right hand, 0.0 if left.
--   `isLeftHand(int handIndex) -> float` - Returns 1.0 if the hand is a left hand, 0.0 if right.
+- `handLandmark(int handIndex, int landmarkIndex) -> vec4` - Returns landmark data as `vec4(x, y, z, handedness)`. Use `vec2(handLandmark(...))` to get just the screen position. Handedness: 0.0 = left hand, 1.0 = right hand.
+- `isRightHand(int handIndex) -> float` - Returns 1.0 if the hand is a right hand, 0.0 if left.
+- `isLeftHand(int handIndex) -> float` - Returns 1.0 if the hand is a left hand, 0.0 if right.
 
 **Landmark Indices:**
 
@@ -736,9 +749,9 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
--   `modelPath?: string` - Path to the segmentation model (default: MediaPipe selfie segmenter)
--   `outputConfidenceMasks?: boolean` - Whether to output per-category confidence masks (default: `false`). If `false`, confidence is always 1.
--   `history?: number` - Frames of history to store for mask texture
+- `modelPath?: string` - Path to the segmentation model (default: MediaPipe selfie segmenter)
+- `outputConfidenceMasks?: boolean` - Whether to output per-category confidence masks (default: `false`). If `false`, confidence is always 1.
+- `history?: number` - Frames of history to store for mask texture
 
 **Events:**
 
@@ -758,7 +771,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 When `history` is enabled, all functions accept an optional `int framesAgo` parameter.
 
--   `segmentAt(vec2 pos) -> vec2` - Returns `vec2(confidence, category)`. confidence is the segmentation confidence (0–1, or 1 if `outputConfidenceMasks` is false). category is the normalized category index (0–1).
+- `segmentAt(vec2 pos) -> vec2` - Returns `vec2(confidence, category)`. confidence is the segmentation confidence (0–1, or 1 if `outputConfidenceMasks` is false). category is the normalized category index (0–1).
 
 **Example usage:**
 
@@ -778,9 +791,9 @@ The `autosize` plugin handles automatic canvas resolution updates with ResizeObs
 
 **Options:**
 
--   `ignorePixelRatio?: boolean` - If `true`, don't scale with devicePixelRatio (default: `false`)
--   `target?: Element | Window` - What to observe for resize (default: canvas itself for HTMLCanvasElement, window for OffscreenCanvas)
--   `throttle?: number` - Throttle interval in milliseconds (default: 33ms)
+- `ignorePixelRatio?: boolean` - If `true`, don't scale with devicePixelRatio (default: `false`)
+- `target?: Element | Window` - What to observe for resize (default: canvas itself for HTMLCanvasElement, window for OffscreenCanvas)
+- `throttle?: number` - Throttle interval in milliseconds (default: 33ms)
 
 **Events:**
 
