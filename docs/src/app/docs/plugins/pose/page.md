@@ -15,7 +15,7 @@ npm install @mediapipe/tasks-vision
 
 {% /callout %}
 
-The `pose` plugin uses MediaPipe's [Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) and exposes landmark and mask data in ShaderPad-friendly GLSL form.
+The `pose` plugin uses MediaPipe's [Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) and exposes landmark and mask data in a ShaderPad-friendly GLSL format.
 
 ```javascript
 import pose from 'shaderpad/plugins/pose'
@@ -25,7 +25,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 })
 ```
 
-The plugin reads from the texture named by `textureName`. Initialize and update that exact ShaderPad texture name, or the detector will have no live source to read from.
+The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
 ## Options
 
@@ -49,33 +49,32 @@ Subscribe with `shader.on(name, callback)`.
 
 ```javascript
 shader.on('pose:result', result => {
-  console.log(result.landmarks.length)
+  console.log(`${result.landmarks.length} poses detected`)
 })
 ```
 
 ## Uniforms
 
-| Uniform              | Meaning                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| `u_maxPoses`         | configured maximum number of poses                                                    |
-| `u_nPoses`           | current detected pose count for the latest frame                                      |
-| `u_poseLandmarksTex` | raw landmark texture used internally by `nPosesAt()` and `poseLandmark()`            |
-| `u_poseMask`         | body mask texture used internally by `poseAt()` and `inPose()`                        |
+| Uniform              | Meaning                                                                   |
+| -------------------- | ------------------------------------------------------------------------- |
+| `u_maxPoses`         | maximum number of poses from initial config                               |
+| `u_nPoses`           | detected pose count for the latest frame                                  |
+| `u_poseLandmarksTex` | raw landmark texture used internally by `nPosesAt()` and `poseLandmark()` |
+| `u_poseMask`         | body mask texture used internally by `poseAt()` and `inPose()`            |
 
 Most shaders should use the helper functions below instead of sampling `u_poseLandmarksTex` or `u_poseMask` directly.
 
 ## Helper Functions
 
-If `history` is enabled, every helper below also has an overload with a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
+If `history` is enabled, every helper below also has a a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
 
 ### `nPosesAt`
 
 ```glsl
-int nPosesAt()
 int nPosesAt(int framesAgo)
 ```
 
-Returns the number of poses stored for the current or historical frame.
+Returns the number of poses stored for the specified frame.
 
 ### `poseLandmark`
 
@@ -154,11 +153,6 @@ Commonly useful named constants include:
 
 For the full MediaPipe landmark index map, use the upstream [Pose Landmarker model reference](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model).
 
----
-
-This page covers the ShaderPad-facing API surface. For MediaPipe result object structure and model changes, use the upstream [MediaPipe docs](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker).
-
-## Related
-
-- [History](/docs/core-concepts/history)
-- [Webcam input](/docs/guides/webcam-input)
+{% callout title="MediaPipe Documentation" %}
+This page covers the ShaderPad-facing API surface. For MediaPipe result object structure and model details, use the upstream [MediaPipe docs](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker).
+{% /callout %}

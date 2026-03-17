@@ -25,7 +25,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 })
 ```
 
-The plugin reads from the texture named by `textureName`. Initialize and update that exact ShaderPad texture name, or the detector will have no live source to read from.
+The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
 ## Options
 
@@ -49,32 +49,32 @@ Subscribe with `shader.on(name, callback)`.
 
 ```javascript
 shader.on('hands:result', result => {
-  console.log(result.landmarks.length)
+  console.log(`${result.handLandmarks.length} hands detected`)
 })
 ```
 
 ## Uniforms
 
-| Uniform              | Meaning                                                                                   |
-| -------------------- | ----------------------------------------------------------------------------------------- |
-| `u_maxHands`         | configured maximum number of hands                                                        |
-| `u_nHands`           | current detected hand count for the latest frame                                          |
+| Uniform              | Meaning                                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| `u_maxHands`         | maximum number of hands from initial config                                                    |
+| `u_nHands`           | detected hand count for the latest frame                                                       |
 | `u_handLandmarksTex` | raw landmark texture used internally by `nHandsAt()`, `handLandmark()`, and handedness helpers |
 
 Most shaders should use the helper functions below instead of sampling `u_handLandmarksTex` directly.
 
 ## Helper Functions
 
-If `history` is enabled, every helper below also has an overload with a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
+If `history` is enabled, every helper below also has a a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
+
 
 ### `nHandsAt`
 
 ```glsl
-int nHandsAt()
 int nHandsAt(int framesAgo)
 ```
 
-Returns the number of hands stored for the current or historical frame.
+Returns the number of hands stored for the specified frame.
 
 ### `handLandmark`
 
@@ -148,11 +148,6 @@ The plugin exposes MediaPipe’s standard 21 hand landmarks plus one derived `HA
 
 `HAND_CENTER` is a ShaderPad convenience landmark derived from the wrist and MCP joints. It is useful when you want a stable center point for sprites, particles, or gesture indicators without averaging landmarks yourself.
 
----
-
-This page covers the ShaderPad-facing API surface. For MediaPipe result object structure and model changes, use the upstream [MediaPipe docs](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker).
-
-## Related
-
-- [Webcam input](/docs/guides/webcam-input)
-- [History](/docs/core-concepts/history)
+{% callout title="MediaPipe Documentation" %}
+This page covers the ShaderPad-facing API surface. For MediaPipe result object structure and model details, use the upstream [MediaPipe docs](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker).
+{% /callout %}

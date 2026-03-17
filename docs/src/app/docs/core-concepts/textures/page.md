@@ -101,8 +101,3 @@ passB.initializeTexture('u_firstPass', passA)
 
 This is the basis for chaining and multi-pass workflows, which are covered in detail [here](/docs/guides/chaining-shaders).
 
-## Related
-
-- [History](/docs/core-concepts/history)
-- [Webcam input](/docs/guides/webcam-input)
-- [Chaining shaders](/docs/guides/chaining-shaders)

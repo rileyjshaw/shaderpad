@@ -106,9 +106,3 @@ shader.play(() => {
 ```
 
 These examples show some very basic applications of ShaderPad to get you started quickly. Continue reading for a closer look at how it works.
-
-## Next Useful Things To Learn
-
-- [Shader lifecycle](/docs/core-concepts/shader-lifecycle)
-- [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [Uniforms API reference](/docs/api/uniforms)

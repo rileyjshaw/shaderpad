@@ -6,7 +6,7 @@ nextjs:
     description: Add PNG export support to a ShaderPad instance.
 ---
 
-The `save` plugin adds a `save()` method to a ShaderPad instance.
+The `save` plugin adds a `save()` method that exports the current frame as a PNG file. On mobile, a share dialog is shown by default.
 
 ```typescript
 import ShaderPad from 'shaderpad'
@@ -27,5 +27,5 @@ save(filename?: string, text?: string, options?: {
 ```
 
 - `filename` defaults to `export.png`
-- `text` adds a message alongside the image file when using the Web Share API on mobile
+- `text` adds a message alongside the image when using the Web Share API on mobile
 - `preventShare` forces download behavior on mobile instead of using the Web Share API

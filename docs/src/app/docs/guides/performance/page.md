@@ -6,7 +6,7 @@ nextjs:
     description: ShaderPad-specific ways to reduce bandwidth, copies, and unnecessary work.
 ---
 
-ShaderPad does a lot of work under the hood to make your graphics pipeline performant by default. If you want to fine-tune performance even further, the most valuable changes typically involve reducing texture bandwidth and avoiding unnecessary transfers between the CPU and GPU.
+ShaderPad does a lot of work under the hood to make your graphics pipeline performant. If you want to fine-tune performance even further, the most valuable changes typically involve reducing texture bandwidth and avoiding unnecessary transfers between the CPU and GPU.
 
 ## Use The Smallest Format That Works
 
@@ -61,7 +61,7 @@ const lowResPass = new ShaderPad(fragmentShaderSrc, {
 })
 ```
 
-If your passes already share one WebGL context, resizing that shared canvas between intermediate steps can be much cheaper than splitting the work across two separate contexts. It keeps the data on the GPU instead of forcing readbacks and reuploads. This is not a good fit for effects that rely on history, since those buffers need a stable size.
+If your passes already share one WebGL context, resizing that shared canvas between intermediate steps can be much cheaper than splitting the work across two separate contexts. It keeps the data on the GPU instead of forcing readbacks and reuploads. This won’t work for effects that rely on history, since those buffers need a stable size.
 
 ## Reduce History Size
 
@@ -70,7 +70,7 @@ History increases texture bandwidth, so use it mindfully.
 - Disable history entirely when the effect or texture does not sample prior frames
 - Use `skipHistoryWrite: true` on updates or steps that should not become a new history frame
 
-For instance, let's say you want to store one sample per second for the past 10 seconds. Instead of storing every rendered frame, you can do something like this:
+For instance, let's say you want to store one sample per second for the previous 10 seconds. Instead of storing every rendered frame, you can do something like this:
 
 ```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
@@ -79,7 +79,6 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 })
 
 let lastStoredSecond = -1
-
 shader.play(time => {
   const currentSecond = Math.floor(time)
 
@@ -158,7 +157,7 @@ To keep batching effective:
 - Keep plugin options aligned across passes
 - Avoid creating duplicate plugins with tiny option differences unless you really need separate detectors
 
-This is especially useful when several passes need the same tracking data, such as a mask-generation pass plus a later stylization or composite pass.
+Batching can be useful when several passes need the same tracking data, such as a mask-generation pass plus a later stylization or composite pass.
 
 ## Be Deliberate With Plugins
 
@@ -174,14 +173,8 @@ With ShaderPad, the slow part is often not the fragment shader itself. It can be
 
 - Updating a large texture every step
 - Keeping unnecessary history buffers alive
-- Transferring chained data across contexts
+- Transferring chained data across different WebGL contexts
 - Storing more channels or precision than the effect needs
 
 The most significant performance optimizations are often structural.
 
-## Related
-
-- [Format and precision](/docs/core-concepts/format-and-precision)
-- [Textures](/docs/core-concepts/textures)
-- [History](/docs/core-concepts/history)
-- [Chaining shaders](/docs/guides/chaining-shaders)

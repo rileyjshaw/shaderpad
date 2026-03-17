@@ -12,7 +12,7 @@ If you are already confident programming in WebGL2, you can probably skip this p
 
 ## Click Around ShaderToy
 
-If you have not already, go to [ShaderToy](https://www.shadertoy.com) and click around for 15 minutes. You are almost guaranteed to find a few inspiring projects, and you will come back with a much better feel for what shaders can do.
+If you have not already, go to [ShaderToy](https://www.shadertoy.com/results?query=&sort=hot) and click around for 15 minutes. You are almost guaranteed to find a few inspiring projects, and you will come back with a much better feel for what shaders can do.
 
 Don’t worry yet if you don’t understand every line. At this stage, it is more useful to build taste and curiosity than to force all the technical details at once.
 
@@ -27,8 +27,10 @@ Find graphics programmers and shader artists online and pay attention to how the
 Some examples worth exploring:
 
 - [Inigo Quilez](https://iquilezles.org/articles/distfunctions/)
+- [Gary “Shane” Warne](https://www.shadertoy.com/user/Shane)
 - [FrostKiwi](https://blog.frost.kiwi/dual-kawase/)
 - [Liam Egan](https://codepen.io/shubniggurath)
+- [kishimisu](https://www.instagram.com/kishimisu/)
 - [The Art of Code](https://www.youtube.com/@TheArtofCodeIsCool)
 
 These are only starting points. Find more people whose work speaks to you, and build your own list over time. Having a strong personal reference library is one of the best ways to keep improving.
@@ -36,9 +38,3 @@ These are only starting points. Find more people whose work speaks to you, and b
 ## When To Use ShaderPad
 
 Use ShaderPad when you want to move from inspiration into a real project quickly. The wider shader community can help sharpen your visual taste, technical intuition, and sense of what is possible.
-
-## Next
-
-- [Quickstart](/docs/getting-started/quickstart)
-- [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [Shader lifecycle](/docs/core-concepts/shader-lifecycle)

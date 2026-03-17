@@ -42,36 +42,3 @@ Use `step()` when the pass should advance time, frame count, or history.
 Use `draw()` when the pass should simply render current state without advancing those values.
 
 This distinction matters in multi-pass and feedback workflows.
-
-## Why Constructor Texture Options Exist
-
-ShaderPad constructor options accept render-texture settings such as:
-
-- `internalFormat`
-- `format`
-- `type`
-- `minFilter`
-- `magFilter`
-- `wrapS`
-- `wrapT`
-
-These apply to ShaderPad’s internal render targets and history textures.
-
-They matter when you want:
-
-- Float or integer pipelines
-- Reduced-channel storage such as `R8`
-- Precision preservation across passes
-- Explicit filtering behavior in chained shaders
-## Example Pattern
-
-The `webcam-bw` example demonstrates a good chained workflow:
-
-- First pass renders webcam to a compact grayscale buffer
-- Second pass samples that buffer and its history
-## Related
-
-- [Textures](/docs/core-concepts/textures)
-- [History](/docs/core-concepts/history)
-- [Format and precision](/docs/core-concepts/format-and-precision)
-- [Performance](/docs/guides/performance)

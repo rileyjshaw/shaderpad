@@ -6,7 +6,7 @@ nextjs:
     description: Learn the built-in varying and uniforms that ShaderPad updates for you.
 ---
 
-ShaderPad programs come with a few built-in inputs for convenience. To use them, add the corresponding declarations at the top of your fragment shader. If your program does not use a uniform, ShaderPad will automatically free up the resources used to manage it.
+ShaderPad programs come with a few built-in inputs for convenience. To use them, add the corresponding declarations at the top of your fragment shader. If your program does not use a particular uniform, ShaderPad will automatically free up the resources used to manage it.
 
 ## `v_uv`
 
@@ -25,13 +25,13 @@ in vec2 v_uv;
 | `u_time` | `float` | elapsed time in seconds |
 | `u_frame` | `int` | frame counter |
 | `u_resolution` | `vec2` | drawing buffer size in pixels |
-| `u_cursor` | `vec2` | normalized cursor position from bottom/left (0.0) to top/right (1.0) |
+| `u_cursor` | `vec2` | normalized cursor position from bottom-left (0.0) to top-right (1.0) |
 | `u_click` | `vec3` | normalized position of last click plus boolean pressed state |
 
 More complete documentation is available in the [Uniforms API reference](/docs/api/uniforms).
 
 {% callout title="Note about u_resolution" type="warning" %}
-If you use the [`helpers` plugin](/docs/plugins/helpers), it injects the `u_resolution` declaration for you. Do not declare `u_resolution` manually in that case.
+If you use the [helpers plugin](/docs/plugins/helpers), it injects the `u_resolution` declaration for you. Do not declare `u_resolution` manually in that case.
 {% /callout %}
 
 ## Example
@@ -97,8 +97,3 @@ shader.play((time) => {
 
 {% built-in-inputs-preview /%}
 
-## Related
-
-- [Quickstart](/docs/getting-started/quickstart)
-- [Canvas and input](/docs/core-concepts/canvas-and-input)
-- [Helpers plugin](/docs/plugins/helpers)

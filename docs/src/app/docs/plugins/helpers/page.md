@@ -1,4 +1,4 @@
-<!-- --- -->
+---
 title: helpers
 nextjs:
   metadata:
@@ -22,7 +22,7 @@ When you use `helpers()`, it injects the `u_resolution` declaration for you. Do 
 
 ## `vec2 fitContain(vec2 uv, vec2 textureSize)`
 
-Returns UVs that preserve the source aspect ratio while fitting the entire source inside the current viewport. This may result in letterboxing if the source aspect ratio differs from the viewport. This is the GLSL equivalent of CSS `object-fit: contain`.
+Returns UVs that preserve the source aspect ratio while fitting the entire source inside the current viewport. This may result in letterboxing if the source aspect ratio differs from the viewport. This is the GLSL equivalent of [CSS `object-fit: contain`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/object-fit#contain).
 
 Example:
 
@@ -33,7 +33,7 @@ vec4 color = texture(u_webcam, uv);
 
 ## `vec2 fitCover(vec2 uv, vec2 textureSize)`
 
-Returns UVs that preserve the source aspect ratio while filling the entire viewport. This may result in cropping if the source aspect ratio differs from the viewport. This is the GLSL equivalent of CSS `object-fit: cover`.
+Returns UVs that preserve the source aspect ratio while filling the entire viewport. This may result in cropping if the source aspect ratio differs from the viewport. This is the GLSL equivalent of [CSS `object-fit: cover`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/object-fit#cover).
 
 Example:
 
@@ -50,13 +50,13 @@ float historyZ(highp usampler2DArray tex, int frameOffset, int framesAgo)
 float historyZ(highp isampler2DArray tex, int frameOffset, int framesAgo)
 ```
 
-Returns the `z` index to use when sampling a history texture, like `u_history` or texture/plugin history buffers. It handles the ring-buffer offset and wraparound for you, so you can simply ask for “the frame from N steps ago”.
+Returns the `z` index to use when sampling a history texture like `u_history` or texture/plugin history buffers. It handles the ring-buffer offset and wraparound for you, so you can simply ask for the frame from N steps ago.
 
 Arguments:
 
 - `tex`: the history texture array you want to sample
-- `frameOffset`: the current write position, such as `u_historyFrameOffset`
-- `framesAgo`: how many stored frames back to read
+- `frameOffset`: the current ShaderPad-generated write position, such as `u_historyFrameOffset`
+- `framesAgo`: how many steps back to read
 
 Returns:
 
@@ -65,13 +65,9 @@ Returns:
 Example:
 
 ```glsl
-float z = historyZ(u_history, u_historyFrameOffset, 1);
+float z = historyZ(u_history, u_historyFrameOffset, 1); // 1 frame ago
 vec4 color = texture(u_history, vec3(v_uv, z));
 ```
 
 `historyZ(..., 1)` means the previous stored frame. For textures and plugins, `historyZ(..., 0)` refers to the current or latest stored value. For all history buffers, if you set `history: N`, the oldest stored frame will be at index `historyZ(..., N)`.
 
-## Related
-
-- [Textures](/docs/core-concepts/textures)
-- [History](/docs/core-concepts/history)

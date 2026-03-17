@@ -70,7 +70,3 @@ shader.updateUniforms(
 )
 ```
 
-## Related
-
-- [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [API: methods](/docs/api/methods)

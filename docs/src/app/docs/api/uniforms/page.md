@@ -29,11 +29,6 @@ uniform vec3 u_click;
 ```
 
 {% callout title="Note about u_resolution" type="warning" %}
-If you use the [`helpers` plugin](/docs/plugins/helpers), it injects the `u_resolution` declaration for you. Do not declare `u_resolution` manually in that case.
+If you use the [helpers plugin](/docs/plugins/helpers), it injects the `u_resolution` declaration for you. Do not declare `u_resolution` manually in that case.
 {% /callout %}
 
-## Related
-
-- [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [ShaderPad API](/docs/api/shaderpad)
-- [Methods](/docs/api/methods)

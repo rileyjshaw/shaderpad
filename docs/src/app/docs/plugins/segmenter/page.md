@@ -30,7 +30,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 })
 ```
 
-The plugin reads from the texture named by `textureName`. Initialize and update that exact ShaderPad texture name, or the detector will have no live source to read from.
+The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
 ## Options
 
@@ -75,7 +75,7 @@ int categoryIndex = int(floor(segment.y * float(u_numCategories - 1) + 0.5));
 
 ## Helper Functions
 
-If `history` is enabled, the helper below also has an overload with a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
+If `history` is enabled, every helper below also has a a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
 
 ### `segmentAt`
 
@@ -99,11 +99,6 @@ float isForeground = float(categoryIndex != 0) * confidence;
 color.rgb = mix(color.rgb, vec3(1.0, 0.0, 1.0), isForeground);
 ```
 
----
-
-This page covers the ShaderPad-facing API surface. For MediaPipe result object structure and model changes, use the upstream [MediaPipe docs](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter).
-
-## Related
-
-- [History](/docs/core-concepts/history)
-- [Webcam input](/docs/guides/webcam-input)
+{% callout title="MediaPipe Documentation" %}
+This page covers the ShaderPad-facing API surface. For MediaPipe result object structure and model details, use the upstream [MediaPipe docs](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter).
+{% /callout %}

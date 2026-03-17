@@ -10,10 +10,10 @@ ShaderPad makes it easy to ingest video textures, including live webcam streams.
 
 ## Basic Flow
 
-1. get a `MediaStream`
-2. attach it to a `<video>`
-3. initialize a texture from that video
-4. update the texture every frame
+1. Get a `MediaStream`
+2. Attach it to a `<video>`
+3. Initialize a texture from that video
+4. Update the texture every frame
 
 ## Example
 
@@ -69,20 +69,14 @@ void main() {
 init()
 ```
 
-This mirrors the webcam for a selfie-style preview and uses `fitCover(...)` so the video fills the fullscreen canvas without stretching.
+This mirrors the webcam for a selfie-style preview and uses `fitCover(...)` so the video fills the canvas without stretching.
 
 ## Practical Tips
 
 - Wait for `loadedmetadata` before trusting `videoWidth` and `videoHeight`
-- Update the texture in `play()` or your own loop
-- Expect browser permission prompts and add handling for rejected access
+- Update the texture in a callback passed to `play()`
 
 {% callout type="warning" title="Camera access can fail" %}
 Browsers can reject camera access because of permissions, insecure origins, unavailable devices, or user choice. If you’re not able to render the stream, ensure your app has proper camera access.
 {% /callout %}
 
-## Related
-
-- [Textures](/docs/core-concepts/textures)
-- [Helpers plugin](/docs/plugins/helpers)
-- [Format and precision](/docs/core-concepts/format-and-precision)

@@ -45,12 +45,11 @@ play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void
 
 | Parameter        | Type                                               | Default     | Notes |
 | ---------------- | -------------------------------------------------- | ----------- | ----- |
-| `onBeforeStep`   | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every animation frame before `_step()` runs. `time` is measured in seconds from the current start time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
+| `onBeforeStep`   | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every frame before the animation step runs. `time` is measured in seconds from the current start time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
 
 ```javascript
 shader.play((time, frame) => {
   shader.updateUniforms({ u_speed: Math.sin(time) })
-
   if (frame < 5) {
     return { skipHistoryWrite: true }
   }
@@ -85,7 +84,7 @@ draw(options?: StepOptions): void
 
 | Option             | Type      | Default | Applies to | Notes |
 | ------------------ | --------- | ------- | ---------- | ----- |
-| `skipClear`        | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Rebinds the intermediate render target without clearing it first. Useful for accumulation, trails, and some multi-pass patterns. |
+| `skipClear`        | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Draws to the render target without clearing it first. Useful for accumulation, trails, and some multi-pass patterns. |
 | `skipHistoryWrite` | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Prevents output-history writes for that frame. `draw()` accepts the field for API consistency, but it has no effect there because `draw()` never advances history. |
 
 ### `initializeUniform(name, type, value, options?)`
@@ -99,7 +98,7 @@ initializeUniform(
 ): void
 ```
 
-Registers a shader uniform once, then seeds it with an initial value.
+Registers a shader uniform and seeds it with an initial value.
 
 ### `initializeUniform()` Options
 
@@ -142,7 +141,7 @@ If `source` is another `ShaderPad` instance and you omit texture options, the de
 
 | Option           | Type                   | Default                                  | Notes |
 | ---------------- | ---------------------- | ---------------------------------------- | ----- |
-| `history`        | `number`               | `0`                                      | Number of previous frames to retain for this texture. Publicly, `history: N` means current frame plus `N` previous frames; ShaderPad allocates `N + 1` internal layers to make `framesAgo` access work naturally. |
+| `history`        | `number`               | `0`                                      | Number of previous frames to store for this texture. Publicly, `history: N` gives you access to the current frame plus `N` previous frames. |
 | `preserveY`      | `boolean`              | Omitted, which behaves like `false` for DOM-backed sources | DOM-backed sources are vertically flipped by default to match WebGL coordinates. Set `preserveY: true` to keep their original orientation. Typed-array sources are never flipped. |
 | `internalFormat` | `GLInternalFormatString` | Derived from `type`, otherwise `'RGBA8'` | GPU storage format for this texture. Float color formats require `EXT_color_buffer_float` when used as renderable textures. |
 | `format`         | `GLFormatString`       | Derived from `internalFormat`            | Defaults to `'RGBA'` for normalized and float color formats, and `'RGBA_INTEGER'` for integer color formats. |
@@ -167,4 +166,4 @@ Updates one or more previously initialized textures.
 
 | Option             | Type      | Default | Notes |
 | ------------------ | --------- | ------- | ----- |
-| `skipHistoryWrite` | `boolean` | `false` | Only relevant for textures that were initialized with per-texture history. When `true`, the texture data is updated without advancing that texture's history layers. |
+| `skipHistoryWrite` | `boolean` | `false` | Only relevant for textures that were initialized with history. When `true`, the texture data is updated without advancing that texture's history layers. |

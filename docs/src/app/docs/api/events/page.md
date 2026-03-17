@@ -6,7 +6,7 @@ nextjs:
     description: Lifecycle and plugin events emitted by ShaderPad.
 ---
 
-Subscribe to an event with `shader.on(eventName, callback)` and remove a listener with `shader.off(eventName, callback)`.
+Subscribe to an event with `shader.on(eventName, callback)` and remove an event listener with `shader.off(eventName, callback)`.
 
 ## Core Events
 
@@ -14,7 +14,7 @@ Subscribe to an event with `shader.on(eventName, callback)` and remove a listene
 | ------------------- | ------------------------------- | ------------------------------------------- |
 | `updateResolution`  | `(width, height)`               | drawing buffer resolution changed           |
 | `play`              | none                            | render loop started                         |
-| `pause`             | none                            | render loop actually transitioned to paused |
+| `pause`             | none                            | render loop paused                          |
 | `reset`             | none                            | frame/time and history were reset           |
 | `destroy`           | none                            | resources were released                     |
 | `beforeStep`        | `(time, frame, options?)`       | before a render step                        |

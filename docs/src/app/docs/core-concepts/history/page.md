@@ -109,15 +109,7 @@ When plugin history is enabled, `historyZ(..., 1)` refers to the previous stored
 
 ## History Precision
 
-By default, history uses 8-bit storage. For float pipelines, history will follow the precision of the internal render texture.
-
-```javascript
-const shader = new ShaderPad(fragmentShaderSrc, {
-  history: 60,
-  internalFormat: 'RGBA32F',
-  type: 'FLOAT',
-})
-```
+History buffers match the [precision and format options](/docs/core-concepts/format-and-precision) of their corresponding texture. This applies to framebuffer history (configured in the `ShaderPad` constructor) and texture history (configured in `initializeTexture()`).
 
 ---
 
@@ -125,9 +117,3 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 `draw()` renders the current state only. Use `step()` when a pass should count as a new frame in history.
 {% /callout %}
 
-## Related
-
-- [Helpers plugin](/docs/plugins/helpers)
-- [Format and precision](/docs/core-concepts/format-and-precision)
-- [Chaining shaders](/docs/guides/chaining-shaders)
-- [ShaderPad API reference](/docs/api/shaderpad)

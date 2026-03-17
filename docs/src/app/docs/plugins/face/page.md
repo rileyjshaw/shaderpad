@@ -25,7 +25,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 })
 ```
 
-The plugin reads from the texture named by `textureName`. Initialize and update that exact ShaderPad texture name, or the detector will have no live source to read from.
+The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
 ## Options
 
@@ -57,18 +57,18 @@ shader.on('face:result', result => {
 
 ## Uniforms
 
-| Uniform              | Meaning                                                                                   |
-| -------------------- | ----------------------------------------------------------------------------------------- |
-| `u_maxFaces`         | configured maximum number of faces                                                        |
-| `u_nFaces`           | current detected face count for the latest frame                                          |
-| `u_faceLandmarksTex` | raw landmark texture used internally by `nFacesAt()` and `faceLandmark()`                |
-| `u_faceMask`         | region mask texture used internally by the `*At()` and `in*()` face-region helper calls  |
+| Uniform              | Meaning                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| `u_maxFaces`         | maximum number of faces from initial config                                             |
+| `u_nFaces`           | detected face count for the latest frame                                        |
+| `u_faceLandmarksTex` | raw landmark texture used internally by `nFacesAt()` and `faceLandmark()`               |
+| `u_faceMask`         | region mask texture used internally by the `*At()` and `in*()` face-region helper calls |
 
 Most shaders should use the helper functions below instead of sampling `u_faceLandmarksTex` or `u_faceMask` directly.
 
 ## Helper Functions
 
-If `history` is enabled, every helper below also has an overload with a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
+If `history` is enabled, every helper below also has a a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
 
 ### `nFacesAt`
 
@@ -76,7 +76,7 @@ If `history` is enabled, every helper below also has an overload with a trailing
 int nFacesAt(int framesAgo)
 ```
 
-Returns the number of faces stored for the current or historical frame. This is useful when `history` is enabled and you want loop bounds that match an older frame.
+Returns the number of faces stored for the specified frame. This is useful when `history` is enabled and you want loop bounds that match an older frame.
 
 ### `faceLandmark`
 
@@ -95,7 +95,6 @@ Use `vec2(faceLandmark(...))` when you only need the screen position.
 
 ```glsl
 vec2 nosePos = vec2(faceLandmark(0, FACE_LANDMARK_NOSE_TIP));
-vec4 mouthCenter = faceLandmark(0, FACE_LANDMARK_MOUTH_CENTER);
 ```
 
 ### `leftEyeAt`
@@ -275,16 +274,9 @@ The most commonly used named constants are:
 - `FACE_LANDMARK_L_EYE_CENTER`
 - `FACE_LANDMARK_R_EYE_CENTER`
 - `FACE_LANDMARK_NOSE_TIP`
-- `FACE_LANDMARK_FACE_CENTER`
-- `FACE_LANDMARK_MOUTH_CENTER`
 
 For the full MediaPipe landmark index map, use the upstream [Face Landmarker model reference](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker#face_landmarker_model).
 
----
-
-This page covers the ShaderPad-facing API surface. For MediaPipe result object structure and model changes, use the upstream [MediaPipe docs](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker).
-
-## Related
-
-- [Webcam input](/docs/guides/webcam-input)
-- [History](/docs/core-concepts/history)
+{% callout title="MediaPipe Documentation" %}
+This page covers the ShaderPad-facing API surface. For MediaPipe result object structure and model details, use the upstream [MediaPipe docs](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker).
+{% /callout %}

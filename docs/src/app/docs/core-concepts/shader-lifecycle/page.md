@@ -80,8 +80,3 @@ Use it when:
 - `reset()` resets the clock and frame counter, and also clears history buffers
 - `destroy()` stops everything and releases WebGL resources and event listeners
 
-## Related
-
-- [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [History](/docs/core-concepts/history)
-- [Chaining shaders](/docs/guides/chaining-shaders)

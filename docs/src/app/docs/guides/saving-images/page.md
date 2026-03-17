@@ -6,7 +6,7 @@ nextjs:
     description: Export ShaderPad output to PNG with the save plugin.
 ---
 
-The `save` plugin adds a `save()` method that exports the current frame as PNG. On mobile, a share dialog is shown by default.
+The `save` plugin adds a `save()` method that exports the current frame as a PNG file. On mobile, a share dialog is shown by default.
 
 ```typescript
 import ShaderPad from 'shaderpad'
@@ -20,7 +20,3 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 await shader.save('My Shader', 'Made with ShaderPad')
 ```
 
-## Related
-
-- [Save plugin](/docs/plugins/save)
-- [Chaining shaders](/docs/guides/chaining-shaders)
