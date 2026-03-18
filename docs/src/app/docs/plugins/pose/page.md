@@ -138,7 +138,7 @@ The plugin exposes MediaPipe’s standard 33 pose landmarks plus six derived lan
 - `POSE_LANDMARK_RIGHT_FOOT_CENTER`
 - `POSE_LANDMARK_TORSO_CENTER`
 
-Commonly useful named constants include:
+Some landmark indices are given constants for convenience:
 
 - `POSE_LANDMARK_LEFT_EYE`
 - `POSE_LANDMARK_RIGHT_EYE`

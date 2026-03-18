@@ -29,7 +29,7 @@ ShaderPad is a minimal fragment shader library for the web. It handles WebGL2 sc
 ## What can I build with ShaderPad?
 
 - Create fullscreen interactive shaders in under 10 lines of JS code.
-- Add post-processing effects to `canvas`, `img` and `video` elements on an existing page.
+- Add post-processing effects to existing `canvas`, `img` and `video` elements.
 - Efficiently create multi-pass graphics pipelines with minimal overhead.
 - Make your own face filters or pose detection apps like [Strange Camera](https://strange.cam).
 - Point your AI coding agent to the [AI agent guide](/docs/getting-started/ai-agent-guide), describe the effect you want to see, and let it build from there.
@@ -38,7 +38,7 @@ ShaderPad is a minimal fragment shader library for the web. It handles WebGL2 sc
 
 [ThreeJS](https://threejs.org) is an incredible framework, but it’s nearly 30x the size of ShaderPad. If you want to use your GPU without a full 3D library, ShaderPad is a great choice.
 
-Hosted shader playgrounds like [ShaderToy](https://www.shadertoy.com) are perfect for sketches, but they keep your work locked on that platform. ShaderPad aims to provide a similar speed of iteration while giving you something you can drop into any project.
+Hosted shader playgrounds like [ShaderToy](https://www.shadertoy.com) are perfect for sketches, but they keep your work locked into that platform. ShaderPad aims to provide a similar speed of iteration while giving you something you can drop into any project.
 
 ## Inspiration
 

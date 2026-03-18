@@ -17,7 +17,6 @@ Prefer:
 - `R8` or `R32F` for single-channel masks
 - `RGBA8` for normal color work
 - `RGBA32F` only when the effect truly needs float precision
-- Integer formats only when GLSL logic depends on integer sampling
 
 Smaller formats reduce memory traffic in both ordinary rendering and history buffers.
 
@@ -25,7 +24,7 @@ Channel count matters as much as numeric precision. For example, `RGBA8` and `R3
 
 ## Keep Chained Passes On The Same WebGL Context
 
-This is one of the biggest ShaderPad-specific wins.
+This is one of the biggest ShaderPad-specific wins. 
 
 If multiple passes share the same canvas or context, ShaderPad can keep chained textures on the GPU. If the source and destination are on different contexts, it has to read pixels back to the CPU and upload them again.
 
@@ -106,6 +105,21 @@ shader.updateTextures({
   },
 })
 ```
+
+## Prefer Partial Updates For Uniform Arrays
+
+If only part of a uniform array changes, update that slice instead of resending the entire array.
+
+```javascript
+shader.updateUniforms(
+  {
+    u_points: [[mouseX, mouseY]],
+  },
+  { startIndex: activePointIndex },
+)
+```
+
+This works well for UI control points, palettes, or other small, incrementally changing arrays. If the dataset is large and changes often, a data texture is usually a better fit.
 
 ## Choose Filtering Deliberately
 

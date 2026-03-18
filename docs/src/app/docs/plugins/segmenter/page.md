@@ -62,17 +62,6 @@ shader.on('segmenter:result', result => {
 | `u_segmentMask`   | segmentation texture used internally by `segmentAt()`; direct sampling is only needed for custom decoding |
 | `u_numCategories` | number of segmentation categories, including background                                   |
 
-`u_segmentMask` stores:
-
-- `R`: confidence for the winning category at that pixel
-- `G`: normalized category index in the range `0.0` to `1.0`
-
-If you need the integer category index in GLSL, recover it with:
-
-```glsl
-int categoryIndex = int(floor(segment.y * float(u_numCategories - 1) + 0.5));
-```
-
 ## Helper Functions
 
 If `history` is enabled, every helper below also has a a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
@@ -90,6 +79,14 @@ Returns `vec2(confidence, normalizedCategoryIndex)`.
 - `y`: normalized category index in the range `0.0` to `1.0`
 
 When `outputConfidenceMasks` is `false`, the confidence component is always `1.0`.
+
+If you need the integer category index in GLSL, recover it with:
+
+```glsl
+int categoryIndex = int(floor(segment.y * float(u_numCategories - 1) + 0.5));
+```
+
+For instance:
 
 ```glsl
 vec2 segment = segmentAt(v_uv);

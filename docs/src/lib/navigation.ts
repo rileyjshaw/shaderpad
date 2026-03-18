@@ -63,6 +63,7 @@ export const navigation = [
       { title: 'ShaderPad', href: '/docs/api/shaderpad' },
       { title: 'Uniforms', href: '/docs/api/uniforms' },
       { title: 'Methods', href: '/docs/api/methods' },
+      { title: 'Properties', href: '/docs/api/properties' },
       { title: 'Events', href: '/docs/api/events' },
       { title: 'Utilities', href: '/docs/api/utilities' },
     ],

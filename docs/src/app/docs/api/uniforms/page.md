@@ -16,7 +16,7 @@ ShaderPad initializes the following built-in uniforms for every instance. Declar
 | `u_frame` | `int` | `0` | Updated by `play()` and `step()` before each rendered frame | Current frame index. `draw()` does not advance it. |
 | `u_resolution` | `vec2` | current drawing buffer size | Initialized during setup and updated whenever the drawing buffer changes size | Values are in pixels. |
 | `u_cursor` | `vec2` | `[0.5, 0.5]` | Updated on mouse or touch movement on `canvas` or `cursorTarget` | Normalized from `0.0` to `1.0` from left to right and bottom to top. |
-| `u_click` | `vec3` | `[0.5, 0.5, 0.0]` | Updated on mouse or touch press and release when `cursorTarget` is available | `xy` is the normalized press position and `z` is `1.0` while pressed, otherwise `0.0`. |
+| `u_click` | `vec3` | `[0.5, 0.5, 0.0]` | Updated on mouse or touch press and release on `canvas` or `cursorTarget` | `xy` is the normalized press position and `z` is `1.0` while pressed, otherwise `0.0`. |
 
 ## Typical GLSL Declarations
 

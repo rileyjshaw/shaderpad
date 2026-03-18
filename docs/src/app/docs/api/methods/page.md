@@ -58,9 +58,10 @@ shader.play((time, frame) => {
 
 This overlaps with the `beforeStep` event, but they are not identical:
 
-- Use `onBeforeStep` when the logic belongs to this specific `play()` call.
-- Use `beforeStep` when you want a reusable listener that also fires for manual `step()` calls.
-- Only `onBeforeStep` can return `StepOptions` to affect the current frame.
+- Use the `play()` callback for simplicity if your app only calls `play()` once.
+- Use the `play()` callback if the logic only belongs to this specific `play()` call.
+- Use `beforeStep` when you want a reusable listener that fires for any `play()` or `step()` calls.
+- Only the `play()` callback can return `StepOptions` to affect the current frame.
 
 ### `step(options?)`
 
@@ -76,7 +77,7 @@ step(options?: StepOptions): void
 draw(options?: StepOptions): void
 ```
 
-`draw()` renders immediately without advancing time, frame, or history. It accepts the same options shape, but only `skipClear` affects `draw()` directly.
+`draw()` renders immediately without advancing time, frame, or history.
 
 ### Render Step Options Reference
 
@@ -104,7 +105,7 @@ Registers a shader uniform and seeds it with an initial value.
 
 | Option        | Type     | Default     | Notes |
 | ------------- | -------- | ----------- | ----- |
-| `arrayLength` | `number` | `undefined` | Declares that the uniform is a fixed-length array. When set, initialization must include exactly that many elements, and ShaderPad will look up `name[0]` if needed. |
+| `arrayLength` | `number` | `undefined` | Declares that the uniform is a fixed-length array. When set, initialization must include exactly that many elements. |
 
 ### `updateUniforms(updates, options?)`
 
@@ -121,7 +122,7 @@ Updates one or more initialized uniforms.
 
 | Option       | Type     | Default     | Notes |
 | ------------ | -------- | ----------- | ----- |
-| `startIndex` | `number` | `undefined` | Only relevant for uniform arrays. Starts the write at `name[startIndex]` instead of `name[0]`. Passing an invalid index throws. |
+| `startIndex` | `number` | `undefined` | Only relevant for uniform arrays. Starts the write at `startIndex` instead of `0`. |
 
 ### `initializeTexture(name, source, options?)`
 
@@ -133,9 +134,7 @@ initializeTexture(
 ): void
 ```
 
-`initializeTexture()` registers a named texture input. The same options also control per-texture history when `history` is set on that texture.
-
-If `source` is another `ShaderPad` instance and you omit texture options, the destination texture inherits the source instance's internal render-texture settings.
+`initializeTexture()` registers a named texture input. If `source` is another `ShaderPad` instance and you omit texture options, the destination texture inherits the source instance's internal render-texture settings.
 
 ### Texture Options Reference
 
@@ -143,11 +142,11 @@ If `source` is another `ShaderPad` instance and you omit texture options, the de
 | ---------------- | ---------------------- | ---------------------------------------- | ----- |
 | `history`        | `number`               | `0`                                      | Number of previous frames to store for this texture. Publicly, `history: N` gives you access to the current frame plus `N` previous frames. |
 | `preserveY`      | `boolean`              | Omitted, which behaves like `false` for DOM-backed sources | DOM-backed sources are vertically flipped by default to match WebGL coordinates. Set `preserveY: true` to keep their original orientation. Typed-array sources are never flipped. |
-| `internalFormat` | `GLInternalFormatString` | Derived from `type`, otherwise `'RGBA8'` | GPU storage format for this texture. Float color formats require `EXT_color_buffer_float` when used as renderable textures. |
+| `internalFormat` | `GLInternalFormatString` | Derived from `type`, otherwise `'RGBA8'` | GPU storage format for this texture. |
 | `format`         | `GLFormatString`       | Derived from `internalFormat`            | Defaults to `'RGBA'` for normalized and float color formats, and `'RGBA_INTEGER'` for integer color formats. |
 | `type`           | `GLTypeString`         | Derived from `internalFormat`, otherwise `'UNSIGNED_BYTE'` | Source texel data type. |
-| `minFilter`      | `GLFilterString`       | `'LINEAR'`                               | Minification filter for the texture or texture history. |
-| `magFilter`      | `GLFilterString`       | `'LINEAR'`                               | Magnification filter for the texture or texture history. |
+| `minFilter`      | `GLFilterString`       | `'LINEAR'`                               | Minification filter. |
+| `magFilter`      | `GLFilterString`       | `'LINEAR'`                               | Magnification filter. |
 | `wrapS`          | `GLWrapString`         | `'CLAMP_TO_EDGE'`                        | Horizontal wrap mode. |
 | `wrapT`          | `GLWrapString`         | `'CLAMP_TO_EDGE'`                        | Vertical wrap mode. |
 
