@@ -100,6 +100,18 @@ export default function RootLayout({
           href={absoluteSiteUrl('/llms.txt')}
         />
         <link
+          rel="alternate"
+          type="text/plain"
+          title="ShaderPad full LLM corpus"
+          href={absoluteSiteUrl('/llms-full.txt')}
+        />
+        <link
+          rel="alternate"
+          type="application/json"
+          title="ShaderPad LLM index"
+          href={absoluteSiteUrl('/llms-index.json')}
+        />
+        <link
           rel="sitemap"
           type="application/xml"
           href={absoluteSiteUrl('/sitemap.xml')}
@@ -107,6 +119,14 @@ export default function RootLayout({
         <meta
           name="llms"
           content={absoluteSiteUrl('/llms.txt')}
+        />
+        <meta
+          name="llms-full"
+          content={absoluteSiteUrl('/llms-full.txt')}
+        />
+        <meta
+          name="llms-index"
+          content={absoluteSiteUrl('/llms-index.json')}
         />
         <meta
           name="ai-agent-guide"

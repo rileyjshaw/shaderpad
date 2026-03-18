@@ -8,13 +8,27 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+coverage
+build
+out
 docs/dist
 docs/out
 examples/dist
 dist-ssr
 *.local
+.env*
+*.pem
 *.tsbuildinfo
 .next
+next-env.d.ts
+.vercel
 
 # Editor directories and files
 .vscode/*
@@ -26,3 +40,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated LLM/source-mirror artifacts for the docs site.
+docs/public/README.md
+docs/public/index.md
+docs/public/llms.txt
+docs/public/llms-full.txt
+docs/public/llms-index.json
+docs/public/docs/
+docs/public/examples/

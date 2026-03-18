@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/generate-shaderpad-size.mjs",
+    "predev": "node scripts/generate-shaderpad-size.mjs && node scripts/generate-llm-artifacts.mjs",
     "dev": "next dev --webpack",
-    "prebuild": "node scripts/generate-shaderpad-size.mjs",
+    "prebuild": "node scripts/generate-shaderpad-size.mjs && node scripts/generate-llm-artifacts.mjs",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint"

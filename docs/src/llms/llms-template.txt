@@ -1,0 +1,59 @@
+# ShaderPad
+
+ShaderPad is a lightweight WebGL2 library for fragment shaders, live textures, history buffers, fullscreen canvas workflows, and optional MediaPipe-powered plugins for face, pose, hands, and segmentation.
+
+Use this file as the small discovery layer. If you want the full docs corpus in one fetch, use [llms-full.txt]({{LLMS_FULL_URL}}). If you want a structured machine-readable page catalog with titles, descriptions, and source URLs, use [llms-index.json]({{LLMS_INDEX_URL}}). If you want local example source mirrors without leaving the docs site, use [examples/index.md]({{EXAMPLES_INDEX_URL}}). The markdown documentation index below links to raw `.md` mirrors of the docs pages.
+
+Hard rules:
+
+- ShaderPad targets WebGL2.
+- Standard fragment shaders should include `#version 300 es`, `precision highp float;`, `in vec2 v_uv;`, and `out vec4 outColor;`.
+- Use the smallest working pattern first: one fragment shader, one `ShaderPad`, one visible canvas.
+- For browser demos, default to `createFullscreenCanvas()` plus `autosize()`.
+- Initialize uniforms before calling `updateUniforms()`.
+- Initialize textures before calling `updateTextures()`.
+- For live DOM-backed textures like video or webcam, call `updateTextures()` every frame.
+- Use `play()` for normal animation, `step()` for manual advancement, and `draw()` only for render-only passes. `draw()` does not advance time, frame count, or history.
+- If using `helpers()`, do not manually declare `u_resolution`; the plugin injects it.
+- For region-only MediaPipe effects, prefer helper calls like `inFace()`, `faceAt()`, `poseAt()`, `segmentAt()`, and `handLandmark()` instead of decoding raw plugin textures unless you truly need custom decoding.
+- MediaPipe plugins (`face`, `pose`, `hands`, `segmenter`) require `@mediapipe/tasks-vision`.
+- For MediaPipe plugins, the configured `textureName` must match the actual initialized live texture name.
+- Prefer one WebGL context whenever possible. Multi-pass pipelines should usually share one canvas/context, and the last draw in `requestAnimationFrame` is what appears on screen.
+- Downsample expensive intermediate passes before adding more passes or more detector work.
+- Use the smallest format and filtering that works: `R8` plus `NEAREST` for masks or grayscale, `RGBA16F` plus `HALF_FLOAT` for float accumulation, and integer textures plus `NEAREST` for data maps.
+- If plugin history is enabled, helper overloads accept `framesAgo`; consider `skipHistoryWrite` before increasing history depth.
+- Detector batching across passes works when plugin type, `textureName`, detector options, and the underlying source object all match.
+
+Start with these pages:
+
+- `/shaderpad/docs/getting-started/ai-agent-guide/` - best single-page overview for AI agents; includes decision tables, performance rules, and concrete recipes
+- `/shaderpad/docs/getting-started/quickstart/` - smallest working example
+- `/shaderpad/docs/api/shaderpad/` - constructor and options
+- `/shaderpad/docs/api/methods/` - methods and behavior
+- `/shaderpad/docs/core-concepts/built-in-inputs/` - built-in varying and uniforms
+- `/shaderpad/docs/core-concepts/history/` - history buffers, plugin history, and `historyZ()`
+- `/shaderpad/docs/guides/chaining-shaders/` - multi-pass workflows
+- `/shaderpad/docs/guides/performance/` - bandwidth, context sharing, texture formats, and detector batching
+- `/shaderpad/docs/plugins/helpers/` - GLSL helpers, `fitCover()`, and the `u_resolution` caveat
+
+Plugin docs:
+
+- `/shaderpad/docs/plugins/autosize/`
+- `/shaderpad/docs/plugins/save/`
+- `/shaderpad/docs/plugins/face/`
+- `/shaderpad/docs/plugins/pose/`
+- `/shaderpad/docs/plugins/hands/`
+- `/shaderpad/docs/plugins/segmenter/`
+
+Concrete local example starting points:
+
+{{CURATED_EXAMPLES_INDEX}}
+
+Markdown documentation index:
+
+{{MARKDOWN_DOCS_INDEX}}
+
+Additional repository reference:
+
+- [Repository README]({{README_MARKDOWN_URL}}) - raw markdown mirror of the repo README
+- [GitHub README](https://github.com/rileyjshaw/shaderpad/blob/main/README.md) - canonical repository copy

@@ -12,6 +12,8 @@ import { Navigation } from '@/components/Navigation'
 import { Search } from '@/components/Search'
 import { ThemeSelector } from '@/components/ThemeSelector'
 
+const AI_GUIDE_PATH = '/docs/getting-started/ai-agent-guide'
+
 function GitHubIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" {...props}>
@@ -20,7 +22,7 @@ function GitHubIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   )
 }
 
-function Header() {
+function Header({ hideExternalLinks = false }: { hideExternalLinks?: boolean }) {
   let [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
@@ -56,13 +58,15 @@ function Header() {
       </div>
       <div className="relative flex basis-0 justify-end gap-6 sm:gap-8 md:grow">
         <ThemeSelector className="relative z-10" />
-        <Link
-          href="https://github.com/rileyjshaw/shaderpad"
-          className="group"
-          aria-label="GitHub"
-        >
-          <GitHubIcon className="h-6 w-6 fill-slate-400 group-hover:fill-slate-500 dark:group-hover:fill-slate-300" />
-        </Link>
+        {!hideExternalLinks && (
+          <Link
+            href="https://github.com/rileyjshaw/shaderpad"
+            className="group"
+            aria-label="GitHub"
+          >
+            <GitHubIcon className="h-6 w-6 fill-slate-400 group-hover:fill-slate-500 dark:group-hover:fill-slate-300" />
+          </Link>
+        )}
       </div>
     </header>
   )
@@ -71,11 +75,13 @@ function Header() {
 export function Layout({ children }: { children: React.ReactNode }) {
   let pathname = usePathname()
   let isHomePage = pathname === '/'
+  let isAiGuidePage =
+    pathname === AI_GUIDE_PATH || pathname === `${AI_GUIDE_PATH}/`
   let currentYear = new Date().getFullYear()
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <Header />
+      <Header hideExternalLinks={isAiGuidePage} />
 
       <main className="flex flex-1 flex-col">
         <nav aria-label="AI resources" className="sr-only">
@@ -83,9 +89,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             ShaderPad AI agent guide
           </Link>
           <Link href="/llms.txt">ShaderPad llms.txt instructions</Link>
-          <a href="https://github.com/rileyjshaw/shaderpad/tree/main/examples/src">
-            ShaderPad examples on GitHub
-          </a>
+          <Link href="/llms-full.txt">ShaderPad llms-full corpus</Link>
+          <Link href="/llms-index.json">ShaderPad llms index</Link>
+          <Link href="/examples/index.md">ShaderPad example source mirrors</Link>
         </nav>
         {isHomePage && <Hero />}
 
@@ -104,15 +110,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </main>
-      <footer className="relative z-10 border-t border-slate-200 bg-white px-4 py-4 sm:px-6 lg:px-8 dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto flex w-full max-w-8xl justify-center">
-          <p className="max-w-2xl text-balance text-center text-sm text-slate-600 dark:text-slate-400">
-            Written by <a className="underline" href="https://rileyjshaw.com">Riley</a> at <a className="underline" href="https://misery.co">Misery &amp; Company</a>,
-            {' '}
-            2024-{currentYear}. MIT license.
-          </p>
-        </div>
-      </footer>
+      {!isAiGuidePage && (
+        <footer className="relative z-10 border-t border-slate-200 bg-white px-4 py-4 sm:px-6 lg:px-8 dark:border-slate-800 dark:bg-slate-900">
+          <div className="mx-auto flex w-full max-w-8xl justify-center">
+            <p className="max-w-2xl text-balance text-center text-sm text-slate-600 dark:text-slate-400">
+              Written by <a className="underline" href="https://rileyjshaw.com">Riley</a> at <a className="underline" href="https://misery.co">Misery &amp; Company</a>,
+              {' '}
+              2024-{currentYear}. MIT license.
+            </p>
+          </div>
+        </footer>
+      )}
     </div>
   )
 }
