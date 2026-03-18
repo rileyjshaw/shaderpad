@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.63
+
+### Minor Changes
+
+- Rename "outer mouth" to "mouth"
+
 ## 1.0.0-beta.62
 
 ### Minor Changes
