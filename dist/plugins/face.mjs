@@ -45,11 +45,11 @@ ${L("rightEyebrow","RIGHT_EYEBROW")}
 ${L("leftEye","LEFT_EYE")}
 ${L("rightEye","RIGHT_EYE")}
 ${L("lips","OUTER_MOUTH")}
-${L("outerMouth","OUTER_MOUTH","INNER_MOUTH")}
+${L("mouth","OUTER_MOUTH","INNER_MOUTH")}
 ${L("innerMouth","INNER_MOUTH")}
 ${q("faceOval",.75)}
 ${q("face",.25)}
 ${J("eye","leftEyeAt","rightEyeAt")}
 ${J("eyebrow","leftEyebrowAt","rightEyebrowAt")}
-${ue(["eyebrow","eye","outerMouth","innerMouth","lips","face"])}`)}}var he=ge;export{he as default};
+${ue(["eyebrow","eye","mouth","innerMouth","lips","face"])}`)}}var he=ge;export{he as default};
 //# sourceMappingURL=face.mjs.map

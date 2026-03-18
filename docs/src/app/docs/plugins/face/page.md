@@ -161,16 +161,16 @@ vec2 lipsAt(vec2 pos)
 vec2 lipsAt(vec2 pos, int framesAgo)
 ```
 
-Returns `vec2(hit, faceIndex)` for the lip ring only. Unlike `outerMouthAt()`, this does not include the inner mouth opening.
+Returns `vec2(hit, faceIndex)` for the lip ring only. Unlike `mouthAt()`, this does not include the inner mouth opening.
 
-### `outerMouthAt`
+### `mouthAt`
 
 ```glsl
-vec2 outerMouthAt(vec2 pos)
-vec2 outerMouthAt(vec2 pos, int framesAgo)
+vec2 mouthAt(vec2 pos)
+vec2 mouthAt(vec2 pos, int framesAgo)
 ```
 
-Returns `vec2(hit, faceIndex)` for the full outer mouth area, including the lips and inner-mouth hole.
+Returns `vec2(hit, faceIndex)` for the full mouth area, including the lips and inner-mouth hole.
 
 ### `innerMouthAt`
 
@@ -235,14 +235,14 @@ float inEyebrow(vec2 pos, int framesAgo)
 
 Returns `1.0` when `pos` is inside either eyebrow, otherwise `0.0`.
 
-### `inOuterMouth`
+### `inMouth`
 
 ```glsl
-float inOuterMouth(vec2 pos)
-float inOuterMouth(vec2 pos, int framesAgo)
+float inMouth(vec2 pos)
+float inMouth(vec2 pos, int framesAgo)
 ```
 
-Returns `1.0` when `pos` is inside the outer mouth area, otherwise `0.0`.
+Returns `1.0` when `pos` is inside the mouth area, otherwise `0.0`.
 
 ### `inInnerMouth`
 

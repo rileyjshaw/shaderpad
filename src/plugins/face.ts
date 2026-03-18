@@ -39,7 +39,7 @@ const LEFT_EYEBROW_INDICES = [336, 296, 334, 293, 300, 276, 283, 282, 295, 285] 
 const LEFT_EYE_INDICES = [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382] as const;
 const RIGHT_EYEBROW_INDICES = [70, 63, 105, 66, 107, 55, 65, 52, 53, 46] as const;
 const RIGHT_EYE_INDICES = [33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7] as const;
-const OUTER_MOUTH_INDICES = [
+const MOUTH_INDICES = [
 	61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146,
 ] as const;
 const INNER_MOUTH_INDICES = [
@@ -54,7 +54,7 @@ const LANDMARK_INDICES = {
 	RIGHT_EYE: RIGHT_EYE_INDICES,
 	RIGHT_EYE_CENTER: 468,
 	NOSE_TIP: 4,
-	OUTER_MOUTH: OUTER_MOUTH_INDICES,
+	MOUTH: MOUTH_INDICES,
 	INNER_MOUTH: INNER_MOUTH_INDICES,
 	// Custom landmarks.
 	FACE_CENTER: STANDARD_LANDMARK_COUNT,
@@ -67,7 +67,7 @@ const REGION_NAMES = [
 	'RIGHT_EYEBROW',
 	'LEFT_EYE',
 	'RIGHT_EYE',
-	'OUTER_MOUTH',
+	'MOUTH',
 	'INNER_MOUTH',
 ] as const;
 const nFaceRegions = REGION_NAMES.length - 1;
@@ -116,7 +116,7 @@ function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 				RIGHT_EYEBROW: fanTriangulate(RIGHT_EYEBROW_INDICES),
 				LEFT_EYE: fanTriangulate(LEFT_EYE_INDICES),
 				RIGHT_EYE: fanTriangulate(RIGHT_EYE_INDICES),
-				OUTER_MOUTH: fanTriangulate(OUTER_MOUTH_INDICES),
+				MOUTH: fanTriangulate(MOUTH_INDICES),
 				INNER_MOUTH: fanTriangulate(INNER_MOUTH_INDICES),
 				TESSELATION: tesselation,
 				OVAL: fanTriangulate(ovalIndices),
@@ -280,7 +280,7 @@ function updateMask(detector: Detector, width: number, height: number) {
 		drawTriangles(mask, landmarksData, faceRegions.RIGHT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYEBROW, 0, b);
 		drawTriangles(mask, landmarksData, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, 0, b);
 		drawTriangles(mask, landmarksData, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, 0, b);
-		drawTriangles(mask, landmarksData, faceRegions.OUTER_MOUTH, faceIdx, RED_CHANNEL_VALUES.OUTER_MOUTH, 0, b);
+		drawTriangles(mask, landmarksData, faceRegions.MOUTH, faceIdx, RED_CHANNEL_VALUES.MOUTH, 0, b);
 		drawTriangles(mask, landmarksData, faceRegions.INNER_MOUTH, faceIdx, RED_CHANNEL_VALUES.INNER_MOUTH, 0, b);
 	}
 }
@@ -642,14 +642,14 @@ ${checkAt('leftEyebrow', 'LEFT_EYEBROW')}
 ${checkAt('rightEyebrow', 'RIGHT_EYEBROW')}
 ${checkAt('leftEye', 'LEFT_EYE')}
 ${checkAt('rightEye', 'RIGHT_EYE')}
-${checkAt('lips', 'OUTER_MOUTH')}
-${checkAt('outerMouth', 'OUTER_MOUTH', 'INNER_MOUTH')}
+${checkAt('lips', 'MOUTH')}
+${checkAt('mouth', 'MOUTH', 'INNER_MOUTH')}
 ${checkAt('innerMouth', 'INNER_MOUTH')}
 ${checkMaskG('faceOval', 0.75)}
 ${checkMaskG('face', 0.25)}
 ${combineLeftRight('eye', 'leftEyeAt', 'rightEyeAt')}
 ${combineLeftRight('eyebrow', 'leftEyebrowAt', 'rightEyebrowAt')}
-${checkIn(['eyebrow', 'eye', 'outerMouth', 'innerMouth', 'lips', 'face'])}`);
+${checkIn(['eyebrow', 'eye', 'mouth', 'innerMouth', 'lips', 'face'])}`);
 	};
 }
 

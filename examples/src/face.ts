@@ -61,9 +61,9 @@ void main() {
 	color = mix(color, vec3(0.0, 0.0, 1.0), rightEye.x * 0.7);
 
 	// Draw mouth.
-	vec2 outerMouth = outerMouthAt(v_uv);
+	vec2 mouth = mouthAt(v_uv);
 	vec2 innerMouth = innerMouthAt(v_uv);
-	color = mix(color, vec3(1.0, 0.0, 0.0), outerMouth.x * 0.6);
+	color = mix(color, vec3(1.0, 0.0, 0.0), mouth.x * 0.6);
 	color = mix(color, vec3(0.5, 0.0, 0.0), innerMouth.x * 0.8);
 
 	for (int i = 0; i < u_nFaces; ++i) {

@@ -177,4 +177,3 @@ With ShaderPad, the slow part is often not the fragment shader itself. It can be
 - Storing more channels or precision than the effect needs
 
 The most significant performance optimizations are often structural.
-
