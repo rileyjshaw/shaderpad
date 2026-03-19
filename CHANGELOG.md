@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.64
+
+### Patch Changes
+
+- Refactor face mask rendering to use overlap-safe scratch composition
+
 ## 1.0.0-beta.63
 
 ### Minor Changes
