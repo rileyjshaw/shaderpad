@@ -331,7 +331,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			: `vec4 mask = texture(u_segmentMask, pos);`;
 
 		injectGLSL(`
-uniform ${history ? 'highp' : 'mediump'} sampler2D${history ? 'Array' : ''} u_segmentMask;${
+uniform mediump sampler2D${history ? 'Array' : ''} u_segmentMask;${
 			history
 				? `
 uniform int u_segmentMaskFrameOffset;`

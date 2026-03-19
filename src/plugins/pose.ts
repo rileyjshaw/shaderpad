@@ -514,7 +514,7 @@ uniform highp sampler2D${history ? 'Array' : ''} u_poseLandmarksTex;${
 uniform int u_poseLandmarksTexFrameOffset;`
 				: ''
 		}
-uniform ${history ? 'highp' : 'mediump'} sampler2D${history ? 'Array' : ''} u_poseMask;${
+uniform mediump sampler2D${history ? 'Array' : ''} u_poseMask;${
 			history
 				? `
 uniform int u_poseMaskFrameOffset;`

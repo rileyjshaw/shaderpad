@@ -15,7 +15,7 @@ uniform int u_maxPoses;
 uniform int u_nPoses;
 uniform highp sampler2D${e?"Array":""} u_poseLandmarksTex;${e?`
 uniform int u_poseLandmarksTexFrameOffset;`:""}
-uniform ${e?"highp":"mediump"} sampler2D${e?"Array":""} u_poseMask;${e?`
+uniform mediump sampler2D${e?"Array":""} u_poseMask;${e?`
 uniform int u_poseMaskFrameOffset;`:""}
 
 #define POSE_LANDMARK_LEFT_EYE ${n.LEFT_EYE}

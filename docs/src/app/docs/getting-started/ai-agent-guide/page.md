@@ -128,7 +128,7 @@ All four MediaPipe plugins require `npm install @mediapipe/tasks-vision`, and al
 
 | Plugin | Use when | Fast region helper | Point helper | History support |
 | --- | --- | --- | --- | --- |
-| `face()` | face masks, eyes, mouth, eyebrows, facial centers | `inFace()`, `faceAt()`, `eyeAt()`, `innerMouthAt()` | `faceLandmark()` | Set `options.history` if you need older face masks or landmarks. |
+| `face()` | face masks, eyes, mouth, eyebrows, facial centers | `inFace()`, `faceAt()`, `eyeAt()`, `mouthAt()` | `faceLandmark()` | Set `options.history` if you need older face masks or landmarks. |
 | `pose()` | body ownership, body masks, torso/limb anchors | `inPose()`, `poseAt()` | `poseLandmark()` | Helper overloads accept `framesAgo` when `history` is enabled. |
 | `segmenter()` | foreground/background or category-based segmentation | `segmentAt()` | none | `segmentAt(..., framesAgo)` works when `history` is enabled. |
 | `hands()` | fingertips, handedness, hand centers, gesture anchors | none | `handLandmark()`, `isLeftHand()`, `isRightHand()` | Very powerful for trails, but keep history depth and write frequency under control. |

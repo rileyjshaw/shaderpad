@@ -22,12 +22,23 @@ export interface FacePluginOptions {
 
 const MASK_VERTEX_SHADER = `#version 300 es
 in vec2 a_pos;
-void main() { gl_Position = vec4(a_pos * 2.0 - 1.0, 0.0, 1.0); }`;
+out vec2 v_uv;
+void main() {
+	v_uv = a_pos;
+	gl_Position = vec4(a_pos * 2.0 - 1.0, 0.0, 1.0);
+}`;
 const MASK_FRAGMENT_SHADER = `#version 300 es
 precision mediump float;
 uniform vec4 u_color;
 out vec4 outColor;
 void main() { outColor = u_color; }`;
+const BLIT_FRAGMENT_SHADER = `#version 300 es
+precision mediump float;
+in vec2 v_uv;
+uniform sampler2D u_texture;
+out vec4 outColor;
+void main() { outColor = texture(u_texture, v_uv); }`;
+const FULLSCREEN_TRIANGLES = new Float32Array([0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]);
 
 const STANDARD_LANDMARK_COUNT = 478;
 const CUSTOM_LANDMARK_COUNT = 2;
@@ -61,8 +72,14 @@ const LANDMARK_INDICES = {
 	MOUTH_CENTER: STANDARD_LANDMARK_COUNT + 1,
 };
 
-const REGION_NAMES = [
-	'BACKGROUND',
+/* Face mask channel layout:
+- R: additive bitfield for face regions. Since it’s additive, it handles overlapping regions.
+- G/B: tessellation ownership. When maxFaces is <= 16, G stores one-hot bits for
+  faces 0-7 and B stores one-hot bits for faces 8-15 so overlapping faces
+  remain decodable. Above 16 maxFaces, B falls back to storing faceIndex + 1 as
+  an additive byte value, which will overcount on overlaps. */
+const RED_REGION_NAMES = [
+	'OVAL',
 	'LEFT_EYEBROW',
 	'RIGHT_EYEBROW',
 	'LEFT_EYE',
@@ -70,12 +87,36 @@ const REGION_NAMES = [
 	'MOUTH',
 	'INNER_MOUTH',
 ] as const;
-const nFaceRegions = REGION_NAMES.length - 1;
-const RED_CHANNEL_VALUES = Object.fromEntries(REGION_NAMES.map((name, i) => [name, i / nFaceRegions])) as Record<
-	(typeof REGION_NAMES)[number],
-	number
->;
-const HALF_GAP = 0.5 / nFaceRegions;
+const GREEN_REGION_NAMES = ['FACE_0', 'FACE_1', 'FACE_2', 'FACE_3', 'FACE_4', 'FACE_5', 'FACE_6', 'FACE_7'] as const;
+const BLUE_REGION_NAMES = [
+	'FACE_8',
+	'FACE_9',
+	'FACE_10',
+	'FACE_11',
+	'FACE_12',
+	'FACE_13',
+	'FACE_14',
+	'FACE_15',
+] as const;
+const CHANNEL_BIT_SCALE = 255;
+const GB_BITMASK_MAX_FACES = GREEN_REGION_NAMES.length + BLUE_REGION_NAMES.length;
+
+function createChannelBitValues<const T extends readonly string[]>(names: T): Record<T[number], number> {
+	return Object.fromEntries(names.map((name, i) => [name, 1 << i])) as Record<T[number], number>;
+}
+
+function normalizeChannelBitValues<T extends Record<string, number>>(bitValues: T): T {
+	return Object.fromEntries(
+		Object.entries(bitValues).map(([name, bitValue]) => [name, bitValue / CHANNEL_BIT_SCALE]),
+	) as T;
+}
+
+const RED_REGION_BIT_VALUES = createChannelBitValues(RED_REGION_NAMES);
+const GREEN_REGION_BIT_VALUES = createChannelBitValues(GREEN_REGION_NAMES);
+const BLUE_REGION_BIT_VALUES = createChannelBitValues(BLUE_REGION_NAMES);
+const RED_CHANNEL_VALUES = normalizeChannelBitValues(RED_REGION_BIT_VALUES);
+const GREEN_CHANNEL_VALUES = normalizeChannelBitValues(GREEN_REGION_BIT_VALUES);
+const BLUE_CHANNEL_VALUES = normalizeChannelBitValues(BLUE_REGION_BIT_VALUES);
 
 const DEFAULT_FACE_OPTIONS: Required<Omit<FacePluginOptions, 'history'>> = {
 	modelPath:
@@ -96,7 +137,7 @@ function fanTriangulate(indices: readonly number[]): number[] {
 	return tris;
 }
 
-type FaceRegion = { triangles: number[]; vertices: Float32Array };
+type FaceRegion = { indices: number[]; vertices: Float32Array };
 let faceRegions: Record<string, FaceRegion> | null = null;
 function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 	if (!faceRegions) {
@@ -120,7 +161,7 @@ function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 				INNER_MOUTH: fanTriangulate(INNER_MOUTH_INDICES),
 				TESSELATION: tesselation,
 				OVAL: fanTriangulate(ovalIndices),
-			}).map(([key, triangles]) => [key, { triangles, vertices: new Float32Array(triangles.length * 2) }]),
+			}).map(([key, indices]) => [key, { indices, vertices: new Float32Array(indices.length * 2) }]),
 		);
 	}
 }
@@ -128,9 +169,16 @@ function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 interface MaskRenderer {
 	canvas: OffscreenCanvas;
 	gl: WebGL2RenderingContext;
-	program: WebGLProgram;
-	positionBuffer: WebGLBuffer;
+	regionProgram: WebGLProgram;
+	blitProgram: WebGLProgram;
+	regionPositionBuffer: WebGLBuffer;
+	quadBuffer: WebGLBuffer;
+	regionPositionLocation: number;
+	blitPositionLocation: number;
 	colorLocation: WebGLUniformLocation;
+	textureLocation: WebGLUniformLocation;
+	scratchTexture: WebGLTexture;
+	scratchFramebuffer: WebGLFramebuffer;
 }
 
 interface Detector {
@@ -155,18 +203,13 @@ interface Detector {
 }
 const sharedDetectors = new Map<string, Detector>();
 
-function initMaskRenderer(canvas: OffscreenCanvas): MaskRenderer {
-	const gl = canvas.getContext('webgl2', {
-		antialias: false,
-		preserveDrawingBuffer: true,
-	})!;
-
+function createProgram(gl: WebGL2RenderingContext, vertexSource: string, fragmentSource: string): WebGLProgram {
 	const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
-	gl.shaderSource(vertexShader, MASK_VERTEX_SHADER);
+	gl.shaderSource(vertexShader, vertexSource);
 	gl.compileShader(vertexShader);
 
 	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!;
-	gl.shaderSource(fragmentShader, MASK_FRAGMENT_SHADER);
+	gl.shaderSource(fragmentShader, fragmentSource);
 	gl.compileShader(fragmentShader);
 
 	const program = gl.createProgram()!;
@@ -175,22 +218,71 @@ function initMaskRenderer(canvas: OffscreenCanvas): MaskRenderer {
 	gl.linkProgram(program);
 	gl.deleteShader(vertexShader);
 	gl.deleteShader(fragmentShader);
-
-	const positionBuffer = gl.createBuffer()!;
-	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-	const positionLocation = gl.getAttribLocation(program, 'a_pos');
-	gl.enableVertexAttribArray(positionLocation);
-	gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-	const colorLocation = gl.getUniformLocation(program, 'u_color')!;
-	gl.useProgram(program);
-	gl.enable(gl.BLEND);
-	gl.blendEquation(gl.MAX);
-
-	return { canvas, gl, program, positionBuffer, colorLocation };
+	return program;
 }
 
-function drawTriangles(
+function initMaskRenderer(canvas: OffscreenCanvas): MaskRenderer {
+	const gl = canvas.getContext('webgl2', {
+		antialias: false,
+		preserveDrawingBuffer: true,
+	})!;
+	const regionProgram = createProgram(gl, MASK_VERTEX_SHADER, MASK_FRAGMENT_SHADER);
+	const blitProgram = createProgram(gl, MASK_VERTEX_SHADER, BLIT_FRAGMENT_SHADER);
+
+	const regionPositionBuffer = gl.createBuffer()!;
+	const regionPositionLocation = gl.getAttribLocation(regionProgram, 'a_pos');
+
+	const quadBuffer = gl.createBuffer()!;
+	gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, FULLSCREEN_TRIANGLES, gl.STATIC_DRAW);
+	const blitPositionLocation = gl.getAttribLocation(blitProgram, 'a_pos');
+
+	const colorLocation = gl.getUniformLocation(regionProgram, 'u_color')!;
+	const textureLocation = gl.getUniformLocation(blitProgram, 'u_texture')!;
+
+	const scratchTexture = gl.createTexture()!;
+	gl.bindTexture(gl.TEXTURE_2D, scratchTexture);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+	const scratchFramebuffer = gl.createFramebuffer()!;
+	gl.bindFramebuffer(gl.FRAMEBUFFER, scratchFramebuffer);
+	gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, scratchTexture, 0);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+	gl.useProgram(blitProgram);
+	gl.uniform1i(textureLocation, 0);
+	gl.colorMask(true, true, true, false);
+
+	return {
+		canvas,
+		gl,
+		regionProgram,
+		blitProgram,
+		regionPositionBuffer,
+		quadBuffer,
+		regionPositionLocation,
+		blitPositionLocation,
+		colorLocation,
+		textureLocation,
+		scratchTexture,
+		scratchFramebuffer,
+	};
+}
+
+function resizeMaskRenderer(mask: MaskRenderer, width: number, height: number) {
+	const { gl, canvas, scratchTexture } = mask;
+	if (canvas.width === width && canvas.height === height) return;
+	canvas.width = width;
+	canvas.height = height;
+	gl.bindTexture(gl.TEXTURE_2D, scratchTexture);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+}
+
+function drawRegionToScratch(
 	mask: MaskRenderer,
 	landmarksData: Float32Array,
 	faceRegion: FaceRegion,
@@ -199,18 +291,46 @@ function drawTriangles(
 	g: number,
 	b: number,
 ) {
-	const { triangles, vertices } = faceRegion;
-	const { gl, colorLocation } = mask;
+	const { gl, regionProgram, regionPositionBuffer, regionPositionLocation, colorLocation, scratchFramebuffer } = mask;
+	const baseIdx = N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT;
+	const { indices, vertices } = faceRegion;
 
-	for (let i = 0; i < triangles.length; ++i) {
-		const landmarkIdx = (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + triangles[i]) * 4;
+	gl.bindFramebuffer(gl.FRAMEBUFFER, scratchFramebuffer);
+	gl.viewport(0, 0, mask.canvas.width, mask.canvas.height);
+	gl.clearColor(0, 0, 0, 0);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.useProgram(regionProgram);
+	gl.bindBuffer(gl.ARRAY_BUFFER, regionPositionBuffer);
+	gl.enableVertexAttribArray(regionPositionLocation);
+	gl.vertexAttribPointer(regionPositionLocation, 2, gl.FLOAT, false, 0, 0);
+	gl.enable(gl.BLEND);
+	gl.blendEquation(gl.MAX);
+	gl.blendFunc(gl.ONE, gl.ONE);
+
+	for (let i = 0; i < indices.length; ++i) {
+		const landmarkIdx = (baseIdx + indices[i]) * 4;
 		vertices[i * 2] = landmarksData[landmarkIdx];
 		vertices[i * 2 + 1] = landmarksData[landmarkIdx + 1];
 	}
-
 	gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
 	gl.uniform4f(colorLocation, r, g, b, 1.0);
-	gl.drawArrays(gl.TRIANGLES, 0, triangles.length);
+	gl.drawArrays(gl.TRIANGLES, 0, indices.length);
+}
+
+function accumulateScratch(mask: MaskRenderer) {
+	const { gl, blitProgram, quadBuffer, blitPositionLocation, scratchTexture } = mask;
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+	gl.viewport(0, 0, mask.canvas.width, mask.canvas.height);
+	gl.useProgram(blitProgram);
+	gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+	gl.enableVertexAttribArray(blitPositionLocation);
+	gl.vertexAttribPointer(blitPositionLocation, 2, gl.FLOAT, false, 0, 0);
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, scratchTexture);
+	gl.enable(gl.BLEND);
+	gl.blendEquation(gl.FUNC_ADD);
+	gl.blendFunc(gl.ONE, gl.ONE);
+	gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
 function updateLandmarksData(detector: Detector, faces: NormalizedLandmark[][]) {
@@ -258,30 +378,66 @@ function updateMask(detector: Detector, width: number, height: number) {
 	const { gl, canvas: maskCanvas } = mask;
 	const { data: landmarksData } = landmarks;
 
-	if (maskCanvas.width !== width || maskCanvas.height !== height) {
-		maskCanvas.width = width;
-		maskCanvas.height = height;
-	}
+	resizeMaskRenderer(mask, width, height);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	gl.viewport(0, 0, maskCanvas.width, maskCanvas.height);
 	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
 	if (!faceRegions) return;
 
+	const useTesselationBitmask = maxFaces <= GB_BITMASK_MAX_FACES;
 	for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
-		const b = (faceIdx + 1) / maxFaces;
+		const g =
+			useTesselationBitmask && faceIdx < GREEN_REGION_NAMES.length
+				? GREEN_CHANNEL_VALUES[GREEN_REGION_NAMES[faceIdx]]
+				: 0;
+		const b = useTesselationBitmask
+			? faceIdx < GREEN_REGION_NAMES.length
+				? 0
+				: BLUE_CHANNEL_VALUES[BLUE_REGION_NAMES[faceIdx - GREEN_REGION_NAMES.length]]
+			: (faceIdx + 1) / CHANNEL_BIT_SCALE;
 
-		// G channel: face mesh (0.5) and oval (1.0)
-		drawTriangles(mask, landmarksData, faceRegions.TESSELATION, faceIdx, 0, 0.5, b);
-		drawTriangles(mask, landmarksData, faceRegions.OVAL, faceIdx, 0, 1.0, b);
-
-		// R channel: feature regions
-		drawTriangles(mask, landmarksData, faceRegions.LEFT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.LEFT_EYEBROW, 0, b);
-		drawTriangles(mask, landmarksData, faceRegions.RIGHT_EYEBROW, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYEBROW, 0, b);
-		drawTriangles(mask, landmarksData, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, 0, b);
-		drawTriangles(mask, landmarksData, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, 0, b);
-		drawTriangles(mask, landmarksData, faceRegions.MOUTH, faceIdx, RED_CHANNEL_VALUES.MOUTH, 0, b);
-		drawTriangles(mask, landmarksData, faceRegions.INNER_MOUTH, faceIdx, RED_CHANNEL_VALUES.INNER_MOUTH, 0, b);
+		drawRegionToScratch(mask, landmarksData, faceRegions.TESSELATION, faceIdx, 0, g, b);
+		accumulateScratch(mask);
+		drawRegionToScratch(mask, landmarksData, faceRegions.OVAL, faceIdx, RED_CHANNEL_VALUES.OVAL, 0, 0);
+		accumulateScratch(mask);
+		drawRegionToScratch(
+			mask,
+			landmarksData,
+			faceRegions.LEFT_EYEBROW,
+			faceIdx,
+			RED_CHANNEL_VALUES.LEFT_EYEBROW,
+			0,
+			0,
+		);
+		accumulateScratch(mask);
+		drawRegionToScratch(
+			mask,
+			landmarksData,
+			faceRegions.RIGHT_EYEBROW,
+			faceIdx,
+			RED_CHANNEL_VALUES.RIGHT_EYEBROW,
+			0,
+			0,
+		);
+		accumulateScratch(mask);
+		drawRegionToScratch(mask, landmarksData, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, 0, 0);
+		accumulateScratch(mask);
+		drawRegionToScratch(mask, landmarksData, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, 0, 0);
+		accumulateScratch(mask);
+		drawRegionToScratch(mask, landmarksData, faceRegions.MOUTH, faceIdx, RED_CHANNEL_VALUES.MOUTH, 0, 0);
+		accumulateScratch(mask);
+		drawRegionToScratch(
+			mask,
+			landmarksData,
+			faceRegions.INNER_MOUTH,
+			faceIdx,
+			RED_CHANNEL_VALUES.INNER_MOUTH,
+			0,
+			0,
+		);
+		accumulateScratch(mask);
 	}
 }
 
@@ -522,8 +678,12 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				detector.subscribers.delete(onResult);
 				if (detector.subscribers.size === 0) {
 					detector.landmarker.close();
-					detector.mask.gl.deleteProgram(detector.mask.program);
-					detector.mask.gl.deleteBuffer(detector.mask.positionBuffer);
+					detector.mask.gl.deleteProgram(detector.mask.regionProgram);
+					detector.mask.gl.deleteProgram(detector.mask.blitProgram);
+					detector.mask.gl.deleteBuffer(detector.mask.regionPositionBuffer);
+					detector.mask.gl.deleteBuffer(detector.mask.quadBuffer);
+					detector.mask.gl.deleteTexture(detector.mask.scratchTexture);
+					detector.mask.gl.deleteFramebuffer(detector.mask.scratchFramebuffer);
 					sharedDetectors.delete(optionsKey);
 				}
 			}
@@ -532,31 +692,32 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 
 		const { fn, historyParams } = generateGLSLFn(history);
 		const sampleMask = history ? `_sampleFaceMask(pos, framesAgo)` : `texture(u_faceMask, pos)`;
+		const decodeFaceBitIndex = Array.from(
+			{ length: GB_BITMASK_MAX_FACES - 1 },
+			(_, i) => `step(${2 ** (i + 1)}.0, faceBitF)`,
+		).join(' + ');
+		const decodeFaceIndex =
+			options.maxFaces <= GB_BITMASK_MAX_FACES
+				? `uint faceBits = (uint(mask.b * ${CHANNEL_BIT_SCALE}.0 + 0.5) << 8) | uint(mask.g * ${CHANNEL_BIT_SCALE}.0 + 0.5);
+	uint faceBit = faceBits & (~faceBits + 1u);
+	float faceBitF = float(faceBit);
+	float hasFace = sign(faceBitF);
+	float faceIndex = ${decodeFaceBitIndex} - (1.0 - hasFace);`
+				: `float faceIndex = float(int(uint(mask.b * ${CHANNEL_BIT_SCALE}.0 + 0.5)) - 1);`;
 
-		const checkAt = (
-			fnName: string,
-			regionMin: keyof typeof RED_CHANNEL_VALUES,
-			regionMax: keyof typeof RED_CHANNEL_VALUES = regionMin,
-		) =>
+		const checkAt = (fnName: string, ...regionNames: (keyof typeof RED_REGION_BIT_VALUES)[]) =>
 			fn(
 				'vec2',
 				`${fnName}At`,
 				'vec2 pos',
 				`vec4 mask = ${sampleMask};
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return (mask.r > ${(RED_CHANNEL_VALUES[regionMin] - HALF_GAP).toFixed(4)} && mask.r < ${(
-		RED_CHANNEL_VALUES[regionMax] + HALF_GAP
-	).toFixed(4)}) ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`,
-			);
-
-		const checkMaskG = (fnName: string, threshold: number) =>
-			fn(
-				'vec2',
-				`${fnName}At`,
-				'vec2 pos',
-				`vec4 mask = ${sampleMask};
-	float faceIndex = floor(mask.b * float(u_maxFaces) + 0.5) - 1.0;
-	return mask.g > ${threshold.toFixed(2)} ? vec2(1.0, faceIndex) : vec2(0.0, -1.0);`,
+	${decodeFaceIndex}
+	uint bits = uint(mask.r * ${CHANNEL_BIT_SCALE}.0 + 0.5);
+	float hit = sign(float(bits & ${regionNames.reduce(
+		(mask, regionName) => mask | RED_REGION_BIT_VALUES[regionName],
+		0,
+	)}u));
+	return vec2(hit, mix(-1.0, faceIndex, hit));`,
 			);
 
 		const combineLeftRight = (fnName: string, leftFn: string, rightFn: string) =>
@@ -565,7 +726,8 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				`${fnName}At`,
 				'vec2 pos',
 				`vec2 left = ${leftFn}(pos${historyParams});
-	return left.x > 0.0 ? left : ${rightFn}(pos${historyParams});`,
+	vec2 right = ${rightFn}(pos${historyParams});
+	return mix(right, left, left.x);`,
 			);
 
 		const checkIn = (fnNames: string[]) =>
@@ -589,7 +751,7 @@ uniform highp sampler2D${history ? 'Array' : ''} u_faceLandmarksTex;${
 uniform int u_faceLandmarksTexFrameOffset;`
 				: ''
 		}
-uniform ${history ? 'highp' : 'mediump'} sampler2D${history ? 'Array' : ''} u_faceMask;${
+uniform mediump sampler2D${history ? 'Array' : ''} u_faceMask;${
 			history
 				? `
 uniform int u_faceMaskFrameOffset;`
@@ -645,8 +807,15 @@ ${checkAt('rightEye', 'RIGHT_EYE')}
 ${checkAt('lips', 'MOUTH')}
 ${checkAt('mouth', 'MOUTH', 'INNER_MOUTH')}
 ${checkAt('innerMouth', 'INNER_MOUTH')}
-${checkMaskG('faceOval', 0.75)}
-${checkMaskG('face', 0.25)}
+${checkAt('faceOval', 'OVAL')}
+${fn(
+	'vec2',
+	'faceAt',
+	'vec2 pos',
+	`vec4 mask = ${sampleMask};
+	${decodeFaceIndex}
+	return vec2(step(0.0, faceIndex), faceIndex);`,
+)}
 ${combineLeftRight('eye', 'leftEyeAt', 'rightEyeAt')}
 ${combineLeftRight('eyebrow', 'leftEyebrowAt', 'rightEyebrowAt')}
 ${checkIn(['eyebrow', 'eye', 'mouth', 'innerMouth', 'lips', 'face'])}`);

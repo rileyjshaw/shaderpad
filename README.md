@@ -497,13 +497,13 @@ All region functions return `vec2(confidence, faceIndex)`. faceIndex is 0-indexe
 - `mouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in full mouth area (lips + inner mouth), `vec2(0.0, -1.0)` otherwise.
 - `innerMouthAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in inner mouth region, `vec2(0.0, -1.0)` otherwise.
 - `faceOvalAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face oval contour, `vec2(0.0, -1.0)` otherwise.
-- `faceAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in face mesh or oval contour, `vec2(0.0, -1.0)` otherwise.
+- `faceAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in the full face area, `vec2(0.0, -1.0)` otherwise.
 - `eyeAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eye, `vec2(0.0, -1.0)` otherwise.
 - `eyebrowAt(vec2 pos) -> vec2` - Returns `vec2(1.0, faceIndex)` if position is in either eyebrow, `vec2(0.0, -1.0)` otherwise.
 
 **Convenience functions** (return confidence 0-1 if found, `0.0` otherwise):
 
-- `inFace(vec2 pos) -> float` - Returns confidence (0-1) if position is in face mesh, `0.0` otherwise.
+- `inFace(vec2 pos) -> float` - Returns confidence (0-1) if position is in the full face area, `0.0` otherwise.
 - `inEye(vec2 pos) -> float` - Returns confidence (0-1) if position is in either eye, `0.0` otherwise.
 - `inEyebrow(vec2 pos) -> float` - Returns confidence (0-1) if position is in either eyebrow, `0.0` otherwise.
 - `inMouth(vec2 pos) -> float` - Returns confidence (0-1) if position is in full mouth area (lips + inner mouth), `0.0` otherwise.

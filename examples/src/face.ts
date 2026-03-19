@@ -42,11 +42,10 @@ void main() {
 	vec4 webcamColor = texture(u_webcam, v_uv);
 	vec3 color = webcamColor.rgb;
 
-	// Draw face mesh and oval regions.
-	vec2 faceMesh = faceAt(v_uv);
+	// Draw face and oval regions.
+	vec2 faceHit = faceAt(v_uv);
 	vec2 faceOval = faceOvalAt(v_uv);
-	color = mix(color, vec3(0.0, 1.0, 0.0), faceMesh.x * 0.5);
-	color = mix(color, vec3(0.0, 1.0, 0.0), faceOval.x * 0.2);
+	color = mix(color, vec3(0.0, 1.0, 0.0), faceHit.x * 0.5 + faceOval.x * 0.2);
 
 	// Draw eyebrows.
 	vec2 leftEyebrow = leftEyebrowAt(v_uv);

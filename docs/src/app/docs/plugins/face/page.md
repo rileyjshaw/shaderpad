@@ -188,7 +188,7 @@ vec2 faceOvalAt(vec2 pos)
 vec2 faceOvalAt(vec2 pos, int framesAgo)
 ```
 
-Returns `vec2(hit, faceIndex)` for pixels that fall inside the broader face-oval mask. This is usually the best match for full-face compositing or background replacement around the head.
+Returns `vec2(hit, faceIndex)` for pixels that fall inside the face-oval mask. This can be useful for directional effects, but might not cover the entire face in profile.
 
 ### `faceAt`
 
@@ -197,7 +197,7 @@ vec2 faceAt(vec2 pos)
 vec2 faceAt(vec2 pos, int framesAgo)
 ```
 
-Returns `vec2(hit, faceIndex)` for pixels inside the face mesh or face oval. Use this when you want one quick “is this part of a face?” check.
+Returns `vec2(hit, faceIndex)` for pixels inside the full face area. Use this when you want a thorough “is this part of a face?” check.
 
 ```glsl
 vec2 faceHit = faceAt(v_uv);
@@ -215,7 +215,7 @@ float inFace(vec2 pos)
 float inFace(vec2 pos, int framesAgo)
 ```
 
-Returns the `hit` component from `faceAt()`: `1.0` when the point belongs to a face, otherwise `0.0`.
+Returns `1.0` when the point is inside the full face area, otherwise `0.0`.
 
 ### `inEye`
 
