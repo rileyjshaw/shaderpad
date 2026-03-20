@@ -3,7 +3,8 @@
   "tag": "beta",
   "initialVersions": {
     "shaderpad": "1.0.0-alpha.16",
-    "create-shaderpad": "1.0.0-beta.66"
+    "create-shaderpad": "1.0.0-beta.66",
+    "shaderpad-docs": "0.1.0"
   },
   "changesets": [
     "all-baths-itch",
@@ -20,6 +21,7 @@
     "fair-lobsters-relate",
     "fancy-clubs-battle",
     "fifty-shrimps-yell",
+    "fine-garlics-find",
     "flat-avocados-raise",
     "flat-pears-greet",
     "floppy-eyes-help",
