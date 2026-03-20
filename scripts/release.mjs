@@ -325,35 +325,37 @@ async function confirmDeploy(options, releaseInfo) {
 }
 
 function deployRelease(options, releaseInfo) {
-	commitAndTagRelease(releaseInfo.label);
-
 	if (!options.skipLogin) {
 		ensureNpmAuth();
 	}
 
 	const packages = getPackageStates();
 	const unpublishedPackages = packages.filter(pkg => !isPublished(pkg.name, pkg.version));
+	const shaderpadPackage = unpublishedPackages.find(pkg => pkg.name === 'shaderpad');
+	const starterPackage = unpublishedPackages.find(pkg => pkg.name === 'create-shaderpad');
 
 	if (unpublishedPackages.length === 0) {
 		console.log('\nNo unpublished package versions found. Skipping npm publish.\n');
 	} else {
 		console.log('\nPublishing packages:');
 
-		const shaderpadPackage = unpublishedPackages.find(pkg => pkg.name === 'shaderpad');
 		if (shaderpadPackage) {
 			console.log(`- ${shaderpadPackage.name}@${shaderpadPackage.version} (${options.tag})`);
 			publishPackage(shaderpadPackage, options.tag);
 			addLatestDistTag(shaderpadPackage);
 		}
+	}
 
-		const starterPackage = unpublishedPackages.find(pkg => pkg.name === 'create-shaderpad');
-		if (starterPackage) {
-			refreshStarterTemplateLockfiles();
-			console.log(`- ${starterPackage.name}@${starterPackage.version} (${options.tag})`);
-			publishPackage(starterPackage, options.tag);
-			addLatestDistTag(starterPackage);
-		}
+	if (starterPackage) {
+		refreshStarterTemplateLockfiles();
+	}
 
+	commitAndTagRelease(releaseInfo.label);
+
+	if (starterPackage) {
+		console.log(`- ${starterPackage.name}@${starterPackage.version} (${options.tag})`);
+		publishPackage(starterPackage, options.tag);
+		addLatestDistTag(starterPackage);
 		console.log('');
 	}
 
