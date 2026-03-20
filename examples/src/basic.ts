@@ -3,7 +3,6 @@
  * and custom uniforms with dynamic updates. Spacebar to pause/play.
  */
 import ShaderPad from 'shaderpad';
-import save, { WithSave } from 'shaderpad/plugins/save';
 import autosize from 'shaderpad/plugins/autosize';
 import { createFullscreenCanvas } from 'shaderpad/util';
 
@@ -45,7 +44,7 @@ void main() {
   outColor = vec4(color, 1.);
 }`;
 
-let shader: WithSave<ShaderPad> | null = null;
+let shader: ShaderPad | null = null;
 let isPlaying = true;
 let canvas: HTMLCanvasElement | null = null;
 
@@ -53,9 +52,9 @@ export async function init() {
 	// Initialize the shader.
 	canvas = createFullscreenCanvas();
 	shader = new ShaderPad(fragmentShaderSrc, {
-		plugins: [save(), autosize()],
+		plugins: [autosize()],
 		canvas,
-	}) as WithSave<ShaderPad>;
+	});
 
 	// Add your own custom uniforms.
 	const getColor = (time: number) =>
@@ -67,7 +66,7 @@ export async function init() {
 		shader!.updateUniforms({ u_cursorColor: getColor(time) });
 	});
 
-	// Add keyboard controls
+	// Add keyboard controls.
 	const handleKeydown = (e: KeyboardEvent) => {
 		if (e.key === ' ') {
 			isPlaying = !isPlaying;
@@ -76,7 +75,7 @@ export async function init() {
 	};
 	document.addEventListener('keydown', handleKeydown);
 
-	// Store cleanup function
+	// Store cleanup function.
 	return () => {
 		document.removeEventListener('keydown', handleKeydown);
 	};

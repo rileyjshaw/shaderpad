@@ -6,9 +6,28 @@ ShaderPad is a lightweight, dependency-free library that reduces boilerplate whe
 
 ## Installation
 
+To install the library into an existing project:
+
 ```bash
 npm install shaderpad
 ```
+
+## Starters
+
+To scaffold a local fullscreen starter app:
+
+```bash
+npm create shaderpad@latest
+```
+
+The CLI will walk you through the available starters interactively.
+
+To try the same templates online:
+
+- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
+- [Open the basic starter (JS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-js?title=ShaderPad%20Basic%20JavaScript)
+- [Open the face filter starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20Face%20TypeScript)
+- [Open the face filter starter (JS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-face-js?title=ShaderPad%20Face%20JavaScript)
 
 ## Links
 
@@ -16,6 +35,7 @@ npm install shaderpad
 
 - [Docs](https://rileyjshaw.com/shaderpad/)
 - [Quickstart](https://rileyjshaw.com/shaderpad/docs/getting-started/quickstart/)
+- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
 
 ### For AIs and coding agents:
 

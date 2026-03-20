@@ -1,0 +1,33 @@
+{
+	"name": "create-shaderpad",
+	"version": "0.0.0",
+	"description": "Scaffold a ShaderPad starter project.",
+	"keywords": [
+		"shaderpad",
+		"create",
+		"scaffold",
+		"vite",
+		"webgl"
+	],
+	"author": "rileyjshaw",
+	"license": "MIT",
+	"bin": {
+		"create-shaderpad": "./bin/index.js"
+	},
+	"files": [
+		"bin",
+		"template-basic-js",
+		"template-basic-ts",
+		"template-face-js",
+		"template-face-ts"
+	],
+	"engines": {
+		"node": ">=18"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"dependencies": {
+		"@clack/prompts": "^1.1.0"
+	}
+}
