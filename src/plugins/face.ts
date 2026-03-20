@@ -46,31 +46,13 @@ const LANDMARK_COUNT = STANDARD_LANDMARK_COUNT + CUSTOM_LANDMARK_COUNT;
 const LANDMARKS_TEXTURE_WIDTH = 512;
 const N_LANDMARK_METADATA_SLOTS = 1;
 
-const LEFT_EYEBROW_INDICES = [336, 296, 334, 293, 300, 276, 283, 282, 295, 285] as const;
-const LEFT_EYE_INDICES = [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382] as const;
-const RIGHT_EYEBROW_INDICES = [70, 63, 105, 66, 107, 55, 65, 52, 53, 46] as const;
-const RIGHT_EYE_INDICES = [33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7] as const;
-const MOUTH_INDICES = [
-	61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146,
-] as const;
-const INNER_MOUTH_INDICES = [
-	78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95,
-] as const;
 const ALL_STANDARD_INDICES = Array.from({ length: STANDARD_LANDMARK_COUNT }, (_, i) => i);
-const LANDMARK_INDICES = {
-	LEFT_EYEBROW: LEFT_EYEBROW_INDICES,
-	LEFT_EYE: LEFT_EYE_INDICES,
-	LEFT_EYE_CENTER: 473,
-	RIGHT_EYEBROW: RIGHT_EYEBROW_INDICES,
-	RIGHT_EYE: RIGHT_EYE_INDICES,
-	RIGHT_EYE_CENTER: 468,
-	NOSE_TIP: 4,
-	MOUTH: MOUTH_INDICES,
-	INNER_MOUTH: INNER_MOUTH_INDICES,
-	// Custom landmarks.
-	FACE_CENTER: STANDARD_LANDMARK_COUNT,
-	MOUTH_CENTER: STANDARD_LANDMARK_COUNT + 1,
-};
+const FACE_LANDMARK_L_EYE_CENTER = 473;
+const FACE_LANDMARK_R_EYE_CENTER = 468;
+const FACE_LANDMARK_NOSE_TIP = 4;
+const FACE_LANDMARK_FACE_CENTER = STANDARD_LANDMARK_COUNT;
+const FACE_LANDMARK_MOUTH_CENTER = STANDARD_LANDMARK_COUNT + 1;
+let innerMouthIndices: number[] | null = null;
 
 /* Face mask channel layout:
 - R: additive bitfield for face regions. Since it’s additive, it handles overlapping regions.
@@ -137,28 +119,72 @@ function fanTriangulate(indices: readonly number[]): number[] {
 	return tris;
 }
 
+function contourPath(connections: readonly { start: number; end: number }[]): number[] {
+	const indices = new Array<number>(connections.length + 1);
+	indices[0] = connections[0].start;
+	for (let i = 0; i < connections.length; ++i) indices[i + 1] = connections[i].end;
+	return indices;
+}
+
+function stripTriangulate(a: readonly number[], b: readonly number[]): number[] {
+	const tris: number[] = [];
+	const n = Math.min(a.length, b.length);
+	for (let i = 0; i < n - 1; ++i) {
+		tris.push(a[i], b[i], b[i + 1], a[i], b[i + 1], a[i + 1]);
+	}
+	return tris;
+}
+
 type FaceRegion = { indices: number[]; vertices: Float32Array };
 let faceRegions: Record<string, FaceRegion> | null = null;
 function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 	if (!faceRegions) {
 		const tesselationConnections = LandmarkerClass.FACE_LANDMARKS_TESSELATION;
+		const leftEyebrowIndices = contourPath(LandmarkerClass.FACE_LANDMARKS_LEFT_EYEBROW);
+		const rightEyebrowIndices = contourPath(LandmarkerClass.FACE_LANDMARKS_RIGHT_EYEBROW);
+		const leftEyeConnections = LandmarkerClass.FACE_LANDMARKS_LEFT_EYE;
+		const rightEyeConnections = LandmarkerClass.FACE_LANDMARKS_RIGHT_EYE;
+		const lipConnections = LandmarkerClass.FACE_LANDMARKS_LIPS;
+		// MediaPipe ships eyes as 2 open chains of 8 connections and lips as 4 open chains of 10.
+		const leftEyeUpper = contourPath(leftEyeConnections.slice(0, 8));
+		const leftEyeLower = contourPath(leftEyeConnections.slice(8, 16));
+		const rightEyeUpper = contourPath(rightEyeConnections.slice(0, 8));
+		const rightEyeLower = contourPath(rightEyeConnections.slice(8, 16));
+		const outerUpperLip = contourPath(lipConnections.slice(0, 10));
+		const outerLowerLip = contourPath(lipConnections.slice(10, 20));
+		const innerUpperLip = contourPath(lipConnections.slice(20, 30));
+		const innerLowerLip = contourPath(lipConnections.slice(30, 40));
+		const leftEyeIndices = [...leftEyeUpper, ...leftEyeLower.slice(1, -1)];
+		const rightEyeIndices = [...rightEyeUpper, ...rightEyeLower.slice(1, -1)];
+		innerMouthIndices = [...innerUpperLip, ...innerLowerLip.slice(1, -1)];
+		const tessellationHoleRemap = new Int16Array(LANDMARK_COUNT).fill(-1);
+		for (const index of leftEyeIndices) tessellationHoleRemap[index] = FACE_LANDMARK_L_EYE_CENTER;
+		for (const index of rightEyeIndices) tessellationHoleRemap[index] = FACE_LANDMARK_R_EYE_CENTER;
+		for (const index of innerMouthIndices) tessellationHoleRemap[index] = FACE_LANDMARK_MOUTH_CENTER;
+		const remapTessellationHole = (index: number) => {
+			const remapped = tessellationHoleRemap[index];
+			return remapped >= 0 ? remapped : index;
+		};
 		const tesselation: number[] = [];
 		for (let i = 0; i < tesselationConnections.length - 2; i += 3) {
-			tesselation.push(
-				tesselationConnections[i].start,
-				tesselationConnections[i + 1].start,
-				tesselationConnections[i + 2].start,
-			);
+			const a = remapTessellationHole(tesselationConnections[i].start);
+			const b = remapTessellationHole(tesselationConnections[i + 1].start);
+			const c = remapTessellationHole(tesselationConnections[i + 2].start);
+			if (a !== b && a !== c && b !== c) tesselation.push(a, b, c);
 		}
-		const ovalIndices = LandmarkerClass.FACE_LANDMARKS_FACE_OVAL.map(({ start }) => start);
+		const leftEyeFill = stripTriangulate(leftEyeUpper, leftEyeLower);
+		const rightEyeFill = stripTriangulate(rightEyeUpper, rightEyeLower);
+		const mouthFill = [...stripTriangulate(outerUpperLip, innerUpperLip), ...stripTriangulate(outerLowerLip, innerLowerLip)];
+		const innerMouthFill = stripTriangulate(innerUpperLip, innerLowerLip);
+		const ovalIndices = contourPath(LandmarkerClass.FACE_LANDMARKS_FACE_OVAL).slice(0, -1);
 		faceRegions = Object.fromEntries(
 			Object.entries({
-				LEFT_EYEBROW: fanTriangulate(LEFT_EYEBROW_INDICES),
-				RIGHT_EYEBROW: fanTriangulate(RIGHT_EYEBROW_INDICES),
-				LEFT_EYE: fanTriangulate(LEFT_EYE_INDICES),
-				RIGHT_EYE: fanTriangulate(RIGHT_EYE_INDICES),
-				MOUTH: fanTriangulate(MOUTH_INDICES),
-				INNER_MOUTH: fanTriangulate(INNER_MOUTH_INDICES),
+				LEFT_EYEBROW: fanTriangulate(leftEyebrowIndices),
+				RIGHT_EYEBROW: fanTriangulate(rightEyebrowIndices),
+				LEFT_EYE: leftEyeFill,
+				RIGHT_EYE: rightEyeFill,
+				MOUTH: mouthFill,
+				INNER_MOUTH: innerMouthFill,
 				TESSELATION: tesselation,
 				OVAL: fanTriangulate(ovalIndices),
 			}).map(([key, indices]) => [key, { indices, vertices: new Float32Array(indices.length * 2) }]),
@@ -356,13 +382,9 @@ function updateLandmarksData(detector: Detector, faces: NormalizedLandmark[][]) 
 			LANDMARK_COUNT,
 			N_LANDMARK_METADATA_SLOTS,
 		);
-		data.set(faceCenter, (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.FACE_CENTER) * 4);
-
-		const mouthCenter = calculateBoundingBoxCenter(data, faceIdx, INNER_MOUTH_INDICES, LANDMARK_COUNT, 1);
-		data.set(
-			mouthCenter,
-			(N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + LANDMARK_INDICES.MOUTH_CENTER) * 4,
-		);
+		data.set(faceCenter, (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + FACE_LANDMARK_FACE_CENTER) * 4);
+		const mouthCenter = calculateBoundingBoxCenter(data, faceIdx, innerMouthIndices!, LANDMARK_COUNT, 1);
+		data.set(mouthCenter, (N_LANDMARK_METADATA_SLOTS + faceIdx * LANDMARK_COUNT + FACE_LANDMARK_MOUTH_CENTER) * 4);
 	}
 
 	detector.state.nFaces = nFaces;
@@ -422,9 +444,9 @@ function updateMask(detector: Detector, width: number, height: number) {
 			0,
 		);
 		accumulateScratch(mask);
-		drawRegionToScratch(mask, landmarksData, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, g, b);
+		drawRegionToScratch(mask, landmarksData, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, 0, 0);
 		accumulateScratch(mask);
-		drawRegionToScratch(mask, landmarksData, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, g, b);
+		drawRegionToScratch(mask, landmarksData, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, 0, 0);
 		accumulateScratch(mask);
 		drawRegionToScratch(mask, landmarksData, faceRegions.MOUTH, faceIdx, RED_CHANNEL_VALUES.MOUTH, 0, 0);
 		accumulateScratch(mask);
@@ -434,8 +456,8 @@ function updateMask(detector: Detector, width: number, height: number) {
 			faceRegions.INNER_MOUTH,
 			faceIdx,
 			RED_CHANNEL_VALUES.INNER_MOUTH,
-			g,
-			b,
+			0,
+			0,
 		);
 		accumulateScratch(mask);
 	}
@@ -758,11 +780,11 @@ uniform int u_faceMaskFrameOffset;`
 				: ''
 		}
 
-#define FACE_LANDMARK_L_EYE_CENTER ${LANDMARK_INDICES.LEFT_EYE_CENTER}
-#define FACE_LANDMARK_R_EYE_CENTER ${LANDMARK_INDICES.RIGHT_EYE_CENTER}
-#define FACE_LANDMARK_NOSE_TIP ${LANDMARK_INDICES.NOSE_TIP}
-#define FACE_LANDMARK_FACE_CENTER ${LANDMARK_INDICES.FACE_CENTER}
-#define FACE_LANDMARK_MOUTH_CENTER ${LANDMARK_INDICES.MOUTH_CENTER}
+#define FACE_LANDMARK_L_EYE_CENTER ${FACE_LANDMARK_L_EYE_CENTER}
+#define FACE_LANDMARK_R_EYE_CENTER ${FACE_LANDMARK_R_EYE_CENTER}
+#define FACE_LANDMARK_NOSE_TIP ${FACE_LANDMARK_NOSE_TIP}
+#define FACE_LANDMARK_FACE_CENTER ${FACE_LANDMARK_FACE_CENTER}
+#define FACE_LANDMARK_MOUTH_CENTER ${FACE_LANDMARK_MOUTH_CENTER}
 
 ${fn(
 	'int',
