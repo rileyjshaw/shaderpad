@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.65
+
+### Patch Changes
+
+- Fill eyes/mouth in face tessellation
+
 ## 1.0.0-beta.64
 
 ### Patch Changes
