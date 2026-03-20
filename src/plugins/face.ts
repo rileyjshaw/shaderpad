@@ -422,9 +422,9 @@ function updateMask(detector: Detector, width: number, height: number) {
 			0,
 		);
 		accumulateScratch(mask);
-		drawRegionToScratch(mask, landmarksData, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, 0, 0);
+		drawRegionToScratch(mask, landmarksData, faceRegions.LEFT_EYE, faceIdx, RED_CHANNEL_VALUES.LEFT_EYE, g, b);
 		accumulateScratch(mask);
-		drawRegionToScratch(mask, landmarksData, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, 0, 0);
+		drawRegionToScratch(mask, landmarksData, faceRegions.RIGHT_EYE, faceIdx, RED_CHANNEL_VALUES.RIGHT_EYE, g, b);
 		accumulateScratch(mask);
 		drawRegionToScratch(mask, landmarksData, faceRegions.MOUTH, faceIdx, RED_CHANNEL_VALUES.MOUTH, 0, 0);
 		accumulateScratch(mask);
@@ -434,8 +434,8 @@ function updateMask(detector: Detector, width: number, height: number) {
 			faceRegions.INNER_MOUTH,
 			faceIdx,
 			RED_CHANNEL_VALUES.INNER_MOUTH,
-			0,
-			0,
+			g,
+			b,
 		);
 		accumulateScratch(mask);
 	}
