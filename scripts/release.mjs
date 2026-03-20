@@ -6,6 +6,9 @@ import { cancel, confirm, intro, isCancel, outro } from '@clack/prompts';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
+const changesetConfigPath = join(repoRoot, '.changeset', 'config.json');
+const docsDir = join(repoRoot, 'docs');
+const docsChangelogPath = join(docsDir, 'CHANGELOG.md');
 const shaderpadDir = join(repoRoot, 'packages', 'shaderpad');
 const createShaderpadDir = join(repoRoot, 'packages', 'create-shaderpad');
 const createShaderpadChangelogPath = join(createShaderpadDir, 'CHANGELOG.md');
@@ -119,11 +122,78 @@ function writePackageJson(packageDir, packageJson) {
 	writeFileSync(join(packageDir, 'package.json'), `${JSON.stringify(packageJson, null, '\t')}\n`);
 }
 
+function readChangesetConfig() {
+	return JSON.parse(readFileSync(changesetConfigPath, 'utf8'));
+}
+
+function versionsPrivatePackages(changesetConfig) {
+	if (changesetConfig.privatePackages === false) {
+		return false;
+	}
+
+	if (
+		changesetConfig.privatePackages &&
+		typeof changesetConfig.privatePackages === 'object'
+	) {
+		return changesetConfig.privatePackages.version ?? true;
+	}
+
+	return true;
+}
+
 function getPackageStates() {
 	return managedPackages.map(pkg => ({
 		...pkg,
 		version: readPackageJson(pkg.dir).version,
 	}));
+}
+
+function ensureDocsStayOutOfRelease() {
+	const docsPackageJson = readPackageJson(docsDir);
+	const changesetConfig = readChangesetConfig();
+	const ignoredPackages = Array.isArray(changesetConfig.ignore) ? changesetConfig.ignore : [];
+	const docsIsIgnored = ignoredPackages.includes(docsPackageJson.name);
+
+	if (!docsPackageJson.private) {
+		throw new Error(
+			[
+				`Docs workspace "${docsPackageJson.name}" must remain private.`,
+				'Docs are deployed by GitHub Actions on push to main, not by npm publish.',
+			].join('\n'),
+		);
+	}
+
+	if (existsSync(docsChangelogPath)) {
+		throw new Error(
+			[
+				`Docs changelog found at ${docsChangelogPath}.`,
+				'Docs should deploy on push to main and should not need their own release changelog.',
+			].join('\n'),
+		);
+	}
+
+	if (versionsPrivatePackages(changesetConfig) && !docsIsIgnored) {
+		throw new Error(
+			[
+				`Changesets is allowed to version the docs workspace "${docsPackageJson.name}".`,
+				'Set `.changeset/config.json` to `"privatePackages": false` or ignore the docs workspace.',
+				'Docs should not need npm versioning, a changelog, or npm publish.',
+			].join('\n'),
+		);
+	}
+}
+
+function ensureDocsWereNotVersioned(previousVersion) {
+	const docsPackageJson = readPackageJson(docsDir);
+
+	if (docsPackageJson.version !== previousVersion) {
+		throw new Error(
+			[
+				`Docs version changed during release: ${previousVersion} -> ${docsPackageJson.version}.`,
+				'Docs should deploy on push to main and should not be versioned or published through npm.',
+			].join('\n'),
+		);
+	}
 }
 
 function ensureCleanWorktree() {
@@ -196,6 +266,18 @@ function syncStarterTemplateVersion(shaderpadVersion) {
 	return didChange;
 }
 
+function syncDocsShaderpadVersion(shaderpadVersion) {
+	const docsPackageJson = readPackageJson(docsDir);
+
+	if (docsPackageJson.dependencies.shaderpad === shaderpadVersion) {
+		return false;
+	}
+
+	docsPackageJson.dependencies.shaderpad = shaderpadVersion;
+	writePackageJson(docsDir, docsPackageJson);
+	return true;
+}
+
 function syncCreateShaderpadVersion(shaderpadVersion) {
 	const starterPackageJson = readPackageJson(createShaderpadDir);
 	if (starterPackageJson.version === shaderpadVersion) {
@@ -227,7 +309,9 @@ function deleteCreateShaderpadChangelog() {
 
 function prepareRelease(options) {
 	ensureCleanWorktree();
+	ensureDocsStayOutOfRelease();
 	const before = getPackageStates();
+	const docsVersionBefore = readPackageJson(docsDir).version;
 
 	run('npm', ['run', 'build']);
 
@@ -236,6 +320,7 @@ function prepareRelease(options) {
 	}
 
 	run('npx', ['changeset', 'version']);
+	ensureDocsWereNotVersioned(docsVersionBefore);
 
 	const versionedPackages = getPackageStates();
 	const shaderpadBefore = before.find(pkg => pkg.name === 'shaderpad');
@@ -246,6 +331,7 @@ function prepareRelease(options) {
 	}
 
 	if (shaderpadBefore.version !== shaderpadAfter.version) {
+		syncDocsShaderpadVersion(shaderpadAfter.version);
 		syncCreateShaderpadVersion(shaderpadAfter.version);
 		syncStarterTemplateVersion(shaderpadAfter.version);
 	}
