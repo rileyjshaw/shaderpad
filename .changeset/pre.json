@@ -2,7 +2,8 @@
   "mode": "pre",
   "tag": "beta",
   "initialVersions": {
-    "shaderpad": "1.0.0-alpha.16"
+    "shaderpad": "1.0.0-alpha.16",
+    "create-shaderpad": "1.0.0-beta.66"
   },
   "changesets": [
     "all-baths-itch",
@@ -17,6 +18,7 @@
     "dull-deers-guess",
     "early-pens-train",
     "fair-lobsters-relate",
+    "fancy-clubs-battle",
     "fifty-shrimps-yell",
     "flat-avocados-raise",
     "flat-pears-greet",
