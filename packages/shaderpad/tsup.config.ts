@@ -1,10 +1,16 @@
 import { defineConfig } from 'tsup';
 import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { createRequire } from 'module';
 
-const visionPkg = JSON.parse(readFileSync('node_modules/@mediapipe/tasks-vision/package.json', 'utf-8'));
+const require = createRequire(import.meta.url);
+const visionEntry = require.resolve('@mediapipe/tasks-vision');
+const visionPkg = JSON.parse(
+	readFileSync(join(dirname(visionEntry), 'package.json'), 'utf-8'),
+);
 
 export default defineConfig({
-	entry: ['src/index.ts'],
+	entry: ['src/index.ts', 'src/plugins/*.ts', 'src/util.ts'],
 	format: ['esm', 'cjs'],
 	target: 'esnext',
 	sourcemap: true,

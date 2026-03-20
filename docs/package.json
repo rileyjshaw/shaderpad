@@ -30,7 +30,7 @@
     "react": "^19",
     "react-dom": "^19",
     "react-highlight-words": "^0.21.0",
-    "shaderpad": "file:..",
+    "shaderpad": "file:../packages/shaderpad",
     "simple-functional-loader": "^1.2.1",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3"

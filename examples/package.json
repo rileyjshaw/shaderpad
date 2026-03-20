@@ -14,7 +14,7 @@
 		"vite": "^7.3.1"
 	},
 	"dependencies": {
-		"shaderpad": "file:..",
+		"shaderpad": "file:../packages/shaderpad",
 		"@mediapipe/tasks-vision": "^0.10.32"
 	}
 }

@@ -1,0 +1,94 @@
+{
+	"name": "shaderpad",
+	"version": "1.0.0-beta.66",
+	"description": "A lightweight, dependency-free library to reduce boilerplate when writing fragment shaders.",
+	"keywords": [
+		"shaders",
+		"webgl",
+		"frontend"
+	],
+	"author": "rileyjshaw",
+	"license": "MIT",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		},
+		"./plugins/face": {
+			"import": "./dist/plugins/face.mjs",
+			"require": "./dist/plugins/face.js"
+		},
+		"./plugins/helpers": {
+			"import": "./dist/plugins/helpers.mjs",
+			"require": "./dist/plugins/helpers.js"
+		},
+		"./plugins/save": {
+			"import": "./dist/plugins/save.mjs",
+			"require": "./dist/plugins/save.js"
+		},
+		"./plugins/pose": {
+			"import": "./dist/plugins/pose.mjs",
+			"require": "./dist/plugins/pose.js"
+		},
+		"./plugins/hands": {
+			"import": "./dist/plugins/hands.mjs",
+			"require": "./dist/plugins/hands.js"
+		},
+		"./plugins/segmenter": {
+			"import": "./dist/plugins/segmenter.mjs",
+			"require": "./dist/plugins/segmenter.js"
+		},
+		"./plugins/autosize": {
+			"import": "./dist/plugins/autosize.mjs",
+			"require": "./dist/plugins/autosize.js"
+		},
+		"./util": {
+			"import": "./dist/util.mjs",
+			"require": "./dist/util.js"
+		}
+	},
+	"typesVersions": {
+		"*": {
+			"plugins/face": [
+				"dist/plugins/face.d.ts"
+			],
+			"plugins/helpers": [
+				"dist/plugins/helpers.d.ts"
+			],
+			"plugins/save": [
+				"dist/plugins/save.d.ts"
+			],
+			"plugins/pose": [
+				"dist/plugins/pose.d.ts"
+			],
+			"plugins/hands": [
+				"dist/plugins/hands.d.ts"
+			],
+			"plugins/segmenter": [
+				"dist/plugins/segmenter.d.ts"
+			],
+			"plugins/autosize": [
+				"dist/plugins/autosize.d.ts"
+			],
+			"util": [
+				"dist/util.d.ts"
+			]
+		}
+	},
+	"sideEffects": false,
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup"
+	},
+	"peerDependencies": {
+		"@mediapipe/tasks-vision": "*"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

@@ -6,6 +6,7 @@ import { createInterface } from 'node:readline/promises';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
+const shaderpadDir = join(repoRoot, 'packages', 'shaderpad');
 const createShaderpadDir = join(repoRoot, 'packages', 'create-shaderpad');
 const starterTemplateDirs = [
 	join(createShaderpadDir, 'template-basic-js'),
@@ -17,8 +18,8 @@ const starterTemplateDirs = [
 const managedPackages = [
 	{
 		name: 'shaderpad',
-		dir: repoRoot,
-		publishArgs: ['publish'],
+		dir: shaderpadDir,
+		publishArgs: ['publish', '--workspace', 'shaderpad'],
 		latestTag: true,
 	},
 	{
