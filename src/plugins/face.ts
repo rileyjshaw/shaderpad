@@ -139,17 +139,21 @@ type FaceRegion = { indices: number[]; vertices: Float32Array };
 let faceRegions: Record<string, FaceRegion> | null = null;
 function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 	if (!faceRegions) {
+		// Eyes: 2 open chains / 8 connections each. Eyebrows: 2/4. Lips: 4/10.
 		const tesselationConnections = LandmarkerClass.FACE_LANDMARKS_TESSELATION;
-		const leftEyebrowIndices = contourPath(LandmarkerClass.FACE_LANDMARKS_LEFT_EYEBROW);
-		const rightEyebrowIndices = contourPath(LandmarkerClass.FACE_LANDMARKS_RIGHT_EYEBROW);
+		const leftEyebrowConnections = LandmarkerClass.FACE_LANDMARKS_LEFT_EYEBROW;
+		const leftEyebrowUpper = contourPath(leftEyebrowConnections.slice(0, 4));
+		const leftEyebrowLower = contourPath(leftEyebrowConnections.slice(4, 8));
+		const rightEyebrowConnections = LandmarkerClass.FACE_LANDMARKS_RIGHT_EYEBROW;
+		const rightEyebrowUpper = contourPath(rightEyebrowConnections.slice(0, 4));
+		const rightEyebrowLower = contourPath(rightEyebrowConnections.slice(4, 8));
 		const leftEyeConnections = LandmarkerClass.FACE_LANDMARKS_LEFT_EYE;
-		const rightEyeConnections = LandmarkerClass.FACE_LANDMARKS_RIGHT_EYE;
-		const lipConnections = LandmarkerClass.FACE_LANDMARKS_LIPS;
-		// MediaPipe ships eyes as 2 open chains of 8 connections and lips as 4 open chains of 10.
 		const leftEyeUpper = contourPath(leftEyeConnections.slice(0, 8));
 		const leftEyeLower = contourPath(leftEyeConnections.slice(8, 16));
+		const rightEyeConnections = LandmarkerClass.FACE_LANDMARKS_RIGHT_EYE;
 		const rightEyeUpper = contourPath(rightEyeConnections.slice(0, 8));
 		const rightEyeLower = contourPath(rightEyeConnections.slice(8, 16));
+		const lipConnections = LandmarkerClass.FACE_LANDMARKS_LIPS;
 		const outerUpperLip = contourPath(lipConnections.slice(0, 10));
 		const outerLowerLip = contourPath(lipConnections.slice(10, 20));
 		const innerUpperLip = contourPath(lipConnections.slice(20, 30));
@@ -172,15 +176,20 @@ function initFaceRegions(LandmarkerClass: typeof FaceLandmarker): void {
 			const c = remapTessellationHole(tesselationConnections[i + 2].start);
 			if (a !== b && a !== c && b !== c) tesselation.push(a, b, c);
 		}
+		const leftEyebrowFill = stripTriangulate(leftEyebrowUpper, leftEyebrowLower);
+		const rightEyebrowFill = stripTriangulate(rightEyebrowUpper, rightEyebrowLower);
 		const leftEyeFill = stripTriangulate(leftEyeUpper, leftEyeLower);
 		const rightEyeFill = stripTriangulate(rightEyeUpper, rightEyeLower);
-		const mouthFill = [...stripTriangulate(outerUpperLip, innerUpperLip), ...stripTriangulate(outerLowerLip, innerLowerLip)];
+		const mouthFill = [
+			...stripTriangulate(outerUpperLip, innerUpperLip),
+			...stripTriangulate(outerLowerLip, innerLowerLip),
+		];
 		const innerMouthFill = stripTriangulate(innerUpperLip, innerLowerLip);
 		const ovalIndices = contourPath(LandmarkerClass.FACE_LANDMARKS_FACE_OVAL).slice(0, -1);
 		faceRegions = Object.fromEntries(
 			Object.entries({
-				LEFT_EYEBROW: fanTriangulate(leftEyebrowIndices),
-				RIGHT_EYEBROW: fanTriangulate(rightEyebrowIndices),
+				LEFT_EYEBROW: leftEyebrowFill,
+				RIGHT_EYEBROW: rightEyebrowFill,
 				LEFT_EYE: leftEyeFill,
 				RIGHT_EYE: rightEyeFill,
 				MOUTH: mouthFill,

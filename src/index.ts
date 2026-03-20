@@ -999,8 +999,7 @@ class ShaderPad {
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 				const partialSource = nonShaderPadSource as PartialCustomTexture;
 				const sourceData =
-					partialSource.data ??
-					(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>);
+					partialSource.data ?? (nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>);
 				const xOffset = isPartial ? (partialSource.x ?? 0) : 0;
 				const yOffset = isPartial ? (partialSource.y ?? 0) : 0;
 
