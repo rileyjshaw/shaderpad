@@ -812,7 +812,7 @@ The `autosize` plugin handles automatic canvas resolution updates with ResizeObs
 
 **Options:**
 
-- `ignorePixelRatio?: boolean` - If `true`, don't scale with devicePixelRatio (default: `false`)
+- `scale?: number` - Resolution multiplier relative to CSS pixels (default: current `devicePixelRatio`; use `1` to match CSS pixel size)
 - `target?: Element | Window` - What to observe for resize (default: canvas itself for HTMLCanvasElement, window for OffscreenCanvas)
 - `throttle?: number` - Throttle interval in milliseconds (default: 33ms)
 

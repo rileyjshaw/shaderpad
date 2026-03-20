@@ -1,7 +1,7 @@
 import ShaderPad, { PluginContext } from '../index.mjs';
 
 interface AutosizeOptions {
-    ignorePixelRatio?: boolean;
+    scale?: number;
     target?: Element | Window;
     throttle?: number;
 }

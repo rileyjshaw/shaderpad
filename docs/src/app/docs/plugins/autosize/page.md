@@ -21,7 +21,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 | Option | Meaning |
 | --- | --- |
-| `scale?: number` | backing-resolution multiplier relative to CSS pixels; defaults to the current `devicePixelRatio`, so use `1` to match CSS pixel size |
+| `scale?: number` | resolution multiplier relative to CSS pixels; defaults to the current `devicePixelRatio`, so use `1` to ignore `devicePixelRatio` |
 | `target?: Element \| Window` | match the size of a specific element or the window |
 | `throttle?: number` | throttle resize handling in milliseconds (default is 1/30th of a second) |
 

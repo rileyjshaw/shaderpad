@@ -3,7 +3,7 @@ import ShaderPad, { PluginContext } from '..';
 const THROTTLE_INTERVAL_DEFAULT = 1000 / 30;
 
 export interface AutosizeOptions {
-	ignorePixelRatio?: boolean;
+	scale?: number;
 	target?: Element | Window;
 	throttle?: number;
 }
@@ -12,11 +12,10 @@ function autosize(options: AutosizeOptions = {}) {
 	return function (shaderPad: ShaderPad, context: PluginContext) {
 		const { canvas, emitHook } = context;
 		const {
-			ignorePixelRatio = false,
+			scale = window.devicePixelRatio || 1,
 			target = canvas instanceof HTMLCanvasElement ? canvas : window,
 			throttle = THROTTLE_INTERVAL_DEFAULT,
 		} = options;
-		const pixelRatio = ignorePixelRatio ? 1 : window.devicePixelRatio || 1;
 
 		let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
 		let lastResizeTime = -Infinity;
@@ -35,12 +34,14 @@ function autosize(options: AutosizeOptions = {}) {
 		function handleResize() {
 			let width, height;
 			if (target instanceof Window) {
-				width = window.innerWidth * pixelRatio;
-				height = window.innerHeight * pixelRatio;
+				width = window.innerWidth * scale;
+				height = window.innerHeight * scale;
 			} else {
-				width = target.clientWidth * pixelRatio;
-				height = target.clientHeight * pixelRatio;
+				width = target.clientWidth * scale;
+				height = target.clientHeight * scale;
 			}
+			width = Math.max(1, Math.round(width));
+			height = Math.max(1, Math.round(height));
 			if (canvas.width !== width || canvas.height !== height) {
 				canvas.width = width;
 				canvas.height = height;
