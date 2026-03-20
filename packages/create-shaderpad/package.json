@@ -1,6 +1,6 @@
 {
 	"name": "create-shaderpad",
-	"version": "0.0.0",
+	"version": "1.0.0-beta.66",
 	"description": "Scaffold a ShaderPad starter project.",
 	"keywords": [
 		"shaderpad",
