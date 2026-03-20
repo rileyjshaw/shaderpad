@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { createInterface } from 'node:readline/promises';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
@@ -34,6 +35,7 @@ function printHelp() {
 Options:
   --tag <name>     npm publish tag to use (default: beta)
   --skip-add       Skip the interactive "npx changeset" step
+  --yes            Skip the final deploy confirmation prompt
   --skip-push      Skip "git push" and "git push --tags" during publish
   --skip-login     Skip npm auth check/login during publish
   --help, -h       Show this help message
@@ -52,6 +54,7 @@ function parseArgs(argv) {
 	const options = {
 		tag: 'beta',
 		skipAdd: false,
+		yes: false,
 		skipPush: false,
 		skipLogin: false,
 	};
@@ -65,6 +68,10 @@ function parseArgs(argv) {
 		}
 		if (arg === '--skip-add') {
 			options.skipAdd = true;
+			continue;
+		}
+		if (arg === '--yes') {
+			options.yes = true;
 			continue;
 		}
 		if (arg === '--skip-push') {
@@ -307,7 +314,28 @@ function publishRelease(options) {
 	return { unpublishedPackages };
 }
 
-function main() {
+async function confirmDeploy(options) {
+	if (options.yes) {
+		return;
+	}
+
+	if (!process.stdin.isTTY || !process.stdout.isTTY) {
+		throw new Error('Release is ready. Re-run with --yes to deploy from a non-interactive shell.');
+	}
+
+	const rl = createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	try {
+		await rl.question('Release is prepared. Press ENTER to deploy, or Ctrl+C to cancel. ');
+	} finally {
+		rl.close();
+	}
+}
+
+async function main() {
 	const argv = process.argv.slice(2);
 	if (argv.includes('--help') || argv.includes('-h')) {
 		printHelp();
@@ -315,11 +343,12 @@ function main() {
 	}
 	const { options } = parseArgs(argv);
 	prepareRelease(options);
+	await confirmDeploy(options);
 	publishRelease(options);
 }
 
 try {
-	main();
+	await main();
 } catch (error) {
 	console.error(`\n${error instanceof Error ? error.message : String(error)}\n`);
 	process.exit(1);
