@@ -100,7 +100,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link href="/llms.txt">ShaderPad llms.txt instructions</Link>
           <Link href="/llms-full.txt">ShaderPad llms-full corpus</Link>
           <Link href="/llms-index.json">ShaderPad llms index</Link>
-          <Link href="/examples">ShaderPad interactive examples</Link>
+          <Link href="/docs/getting-started/examples">
+            ShaderPad interactive examples
+          </Link>
           <Link href="/examples/source">ShaderPad example source mirrors</Link>
         </nav>
         {isHomePage && <Hero />}

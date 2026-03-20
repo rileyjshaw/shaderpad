@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { type MetadataRoute } from 'next'
 
 import { examples } from '@/examples/registry'
@@ -12,6 +14,22 @@ function markdownPathForRoute(route: string) {
   return `${route}.md`
 }
 
+function hasMarkdownMirror(route: string) {
+  if (route === '/') {
+    return existsSync(join(process.cwd(), 'src', 'app', 'page.md'))
+  }
+
+  return existsSync(
+    join(
+      process.cwd(),
+      'src',
+      'app',
+      ...route.split('/').filter(Boolean),
+      'page.md',
+    ),
+  )
+}
+
 const staticPaths = [
   '/',
   '/index.md',
@@ -19,7 +37,6 @@ const staticPaths = [
   '/llms-full.txt',
   '/llms-index.json',
   '/README.md',
-  '/examples',
   '/examples/source',
 ]
 export const dynamic = 'force-static'
@@ -34,7 +51,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const section of navigation) {
     for (const link of section.links) {
       paths.add(link.href)
-      paths.add(markdownPathForRoute(link.href))
+      if (hasMarkdownMirror(link.href)) {
+        paths.add(markdownPathForRoute(link.href))
+      }
     }
   }
 

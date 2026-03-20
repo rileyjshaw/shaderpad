@@ -59,7 +59,6 @@ ShaderPad targets WebGL 2.0, which is [widely available across all major browser
 - [Quickstart](/docs/getting-started/quickstart)
 - [Learning shaders](/docs/getting-started/learning-shaders)
 - [Built-in inputs](/docs/core-concepts/built-in-inputs)
-- [Examples](/examples)
 
 ### Camera effects and filters
 

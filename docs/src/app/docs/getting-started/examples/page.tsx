@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { DocsHeader } from '@/components/DocsHeader'
+import { PrevNextLinks } from '@/components/PrevNextLinks'
 import { examples } from '@/examples/registry'
 
 type ExampleTag = {
@@ -244,6 +245,8 @@ export default function ExamplesIndexPage() {
               Browse raw source mirrors
             </Link>
           </div>
+
+          <PrevNextLinks />
         </div>
       </div>
     </div>
