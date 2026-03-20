@@ -17,7 +17,7 @@ nextjs:
 This page is for AI coding agents, not human-first onboarding. If you are using Codex, Cursor, Claude, ChatGPT, or another coding assistant, point the agent here; if you are reading the docs yourself, start with [Quickstart](/docs/getting-started/quickstart) instead. Treat this page as the synthesis layer: use it for routing, defaults, and pattern selection, then open narrower API or plugin pages for exact option names.
 {% /callout %}
 
-This page is intentionally table-heavy and recipe-heavy: pick the smallest pattern that fits, then open only the linked deep-dive pages you actually need. The machine-readable entry point is [`/llms.txt`](/llms.txt); if you want a structured page catalog, use [`/llms-index.json`](/llms-index.json); if you want the full docs corpus in one fetch, use [`/llms-full.txt`](/llms-full.txt); if you want local raw example source, use [`/examples/index.md`](/examples/index.md). {% .lead %}
+This page is intentionally table-heavy and recipe-heavy: pick the smallest pattern that fits, then open only the linked deep-dive pages you actually need. The machine-readable entry point is [`/llms.txt`](/llms.txt); if you want a structured page catalog, use [`/llms-index.json`](/llms-index.json); if you want the full docs corpus in one fetch, use [`/llms-full.txt`](/llms-full.txt); if you want local raw example source, use [`/examples/source`](/examples/source). {% .lead %}
 
 ## Decision Order
 
@@ -37,7 +37,7 @@ Use the smallest source that answers the question precisely.
 | Structured page catalog for tools or retrieval pipelines | [`/llms-index.json`](/llms-index.json) |
 | Bulk ingest of the whole docs corpus | [`/llms-full.txt`](/llms-full.txt) |
 | Exact page source in raw markdown | the matching `.md` mirror, such as [`/docs/getting-started/ai-agent-guide.md`](/docs/getting-started/ai-agent-guide.md) |
-| Concrete code patterns and public example source | [`/examples/index.md`](/examples/index.md) and the linked `/examples/src/*.ts` mirrors |
+| Concrete code patterns and public example source | [`/examples/source`](/examples/source) and the linked `/examples/source/*.ts` mirrors |
 | Exact option names, helper names, uniform names, and behavior | the specific API or plugin page |
 | Broader narrative and longer example walkthroughs | [`README.md`](/README.md) |
 
@@ -110,16 +110,16 @@ Add `helpers()` only when you actually need helper GLSL like `fitCover()` or `hi
 
 | Goal | Default move | Performance-first note | Good public starting point |
 | --- | --- | --- | --- |
-| Fullscreen browser shader | `createFullscreenCanvas()` plus `autosize()` | Start with one visible canvas and one pass. | [`basic.ts`](/examples/src/basic.ts) |
-| Webcam or video compositing | One live texture, update it every frame | Use `fitCover()` instead of stretching when aspect ratios differ. | [`webcam.ts`](/examples/src/webcam.ts) |
-| Shader output feedback or trails | Enable `history`, add `helpers()`, sample with `historyZ()` | Keep history depth as small as the max delay really needs. | [`history.ts`](/examples/src/history.ts) |
-| Webcam time delays or RGB echoes | Put `{ history: N }` on the webcam texture | Compute `N` from the largest frame offset and stop there. | [`history-webcam-delay.ts`](/examples/src/history-webcam-delay.ts), [`history-webcam-channels.ts`](/examples/src/history-webcam-channels.ts) |
-| Face, mouth, eye, or eyebrow region effects | Use `face()` plus `faceAt()`, `inFace()`, or the specific region helpers | Use a region helper first, then only do expensive math inside the hit region. | [`face.ts`](/examples/src/face.ts), [`face-camo.ts`](/examples/src/face-camo.ts) |
-| Body region effects | Use `pose()` plus `poseAt()` or `inPose()` and `poseLandmark()` | `poseAt()` tells you which pose owns a pixel without manual mask decoding. | [`pose.ts`](/examples/src/pose.ts), [`body-camo.ts`](/examples/src/body-camo.ts) |
-| Generic segmentation recolor or cutout | Use `segmenter()` plus `segmentAt()` | Request `outputConfidenceMasks` only if the shader uses category or confidence. | [`segmenter.ts`](/examples/src/segmenter.ts) |
-| Gesture trails from landmarks | Put `history` on the plugin options, then use helper overloads with `framesAgo` | Before increasing history depth, try decimating writes with `skipHistoryWrite`. | [`hands-finger-pens.ts`](/examples/src/hands-finger-pens.ts) |
-| Two-pass compositing | Pass the first `ShaderPad` into the second as a texture | Keep the same source object and matching plugin config so detector work can be shared. | [`face-dual.ts`](/examples/src/face-dual.ts) |
-| Low-bandwidth preprocessing | Use an offscreen pass with a smaller canvas and a smaller format | `R8` plus `NEAREST` is often enough for masks or grayscale. | [`webcam-bw.ts`](/examples/src/webcam-bw.ts) |
+| Fullscreen browser shader | `createFullscreenCanvas()` plus `autosize()` | Start with one visible canvas and one pass. | [`basic.ts`](/examples/source/basic.ts) |
+| Webcam or video compositing | One live texture, update it every frame | Use `fitCover()` instead of stretching when aspect ratios differ. | [`webcam.ts`](/examples/source/webcam.ts) |
+| Shader output feedback or trails | Enable `history`, add `helpers()`, sample with `historyZ()` | Keep history depth as small as the max delay really needs. | [`history.ts`](/examples/source/history.ts) |
+| Webcam time delays or RGB echoes | Put `{ history: N }` on the webcam texture | Compute `N` from the largest frame offset and stop there. | [`webcam-trails.ts`](/examples/source/webcam-trails.ts), [`webcam-channel-trails.ts`](/examples/source/webcam-channel-trails.ts) |
+| Face, mouth, eye, or eyebrow region effects | Use `face()` plus `faceAt()`, `inFace()`, or the specific region helpers | Use a region helper first, then only do expensive math inside the hit region. | [`face.ts`](/examples/source/face.ts), [`camo.ts`](/examples/source/camo.ts) |
+| Body region effects | Use `pose()` plus `poseAt()` or `inPose()` and `poseLandmark()` | `poseAt()` tells you which pose owns a pixel without manual mask decoding. | [`pose.ts`](/examples/source/pose.ts), [`camo.ts`](/examples/source/camo.ts) |
+| Generic segmentation recolor or cutout | Use `segmenter()` plus `segmentAt()` | Request `outputConfidenceMasks` only if the shader uses category or confidence. | [`segmenter.ts`](/examples/source/segmenter.ts) |
+| Gesture trails from landmarks | Put `history` on the plugin options, then use helper overloads with `framesAgo` | Before increasing history depth, try decimating writes with `skipHistoryWrite`. | [`finger-pens.ts`](/examples/source/finger-pens.ts) |
+| Two-pass compositing | Pass the first `ShaderPad` into the second as a texture | Keep the same source object and matching plugin config so detector work can be shared. | [`mediapipe-chaining.ts`](/examples/source/mediapipe-chaining.ts) |
+| Low-bandwidth preprocessing | Use an offscreen pass with a smaller canvas and a smaller format | `R8` plus `NEAREST` is often enough for masks or grayscale. | [`single-channel-textures.ts`](/examples/source/single-channel-textures.ts) |
 | Heavy blur, glow, simulation, or sorting pipelines | Build a composite object that owns several internal `ShaderPad` passes | Keep one context, shrink intermediates, cap iterations, and show only the final pass. | See the recipes below. |
 
 ## Vision Plugin Quick Map

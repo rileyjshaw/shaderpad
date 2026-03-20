@@ -1,4 +1,4 @@
-const basePath = '/shaderpad'
+import { withBasePath } from '@/lib/site'
 
 export function MarkdownImage(
   props: React.ImgHTMLAttributes<HTMLImageElement>,
@@ -7,7 +7,7 @@ export function MarkdownImage(
     typeof props.src === 'string' &&
     props.src.startsWith('/') &&
     !props.src.startsWith('//')
-      ? `${basePath}${props.src}`
+      ? withBasePath(props.src)
       : props.src
 
   return <img {...props} src={src} />

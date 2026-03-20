@@ -77,7 +77,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
   let isHomePage = pathname === '/'
   let isAiGuidePage =
     pathname === AI_GUIDE_PATH || pathname === `${AI_GUIDE_PATH}/`
+  let isInteractiveExamplePage =
+    pathname.startsWith('/examples/') &&
+    pathname !== '/examples/' &&
+    pathname !== '/examples' &&
+    !pathname.startsWith('/examples/source')
   let currentYear = new Date().getFullYear()
+
+  if (isInteractiveExamplePage) {
+    return <div className="min-h-screen w-full">{children}</div>
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -91,7 +100,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link href="/llms.txt">ShaderPad llms.txt instructions</Link>
           <Link href="/llms-full.txt">ShaderPad llms-full corpus</Link>
           <Link href="/llms-index.json">ShaderPad llms index</Link>
-          <Link href="/examples/index.md">ShaderPad example source mirrors</Link>
+          <Link href="/examples">ShaderPad interactive examples</Link>
+          <Link href="/examples/source">ShaderPad example source mirrors</Link>
         </nav>
         {isHomePage && <Hero />}
 

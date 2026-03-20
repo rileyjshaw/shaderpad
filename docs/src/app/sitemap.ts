@@ -1,7 +1,6 @@
-import { readdirSync } from 'node:fs'
-import { join } from 'node:path'
 import { type MetadataRoute } from 'next'
 
+import { examples } from '@/examples/registry'
 import { navigation } from '@/lib/navigation'
 import { absoluteSiteUrl } from '@/lib/site'
 
@@ -13,21 +12,24 @@ function markdownPathForRoute(route: string) {
   return `${route}.md`
 }
 
-const staticPaths = ['/', '/index.md', '/llms.txt', '/llms-full.txt', '/llms-index.json', '/README.md']
+const staticPaths = [
+  '/',
+  '/index.md',
+  '/llms.txt',
+  '/llms-full.txt',
+  '/llms-index.json',
+  '/README.md',
+  '/examples',
+  '/examples/source',
+]
 export const dynamic = 'force-static'
 
-function examplePaths() {
-  try {
-    return readdirSync(join(process.cwd(), 'public', 'examples', 'src'))
-      .filter((name) => name.endsWith('.ts'))
-      .map((name) => `/examples/src/${name}`)
-  } catch {
-    return []
-  }
-}
-
 export default function sitemap(): MetadataRoute.Sitemap {
-  const paths = new Set([...staticPaths, '/examples/index.md', ...examplePaths()])
+  const paths = new Set([
+    ...staticPaths,
+    ...examples.map((example) => `/examples/${example.slug}`),
+    ...examples.map((example) => example.sourcePath),
+  ])
 
   for (const section of navigation) {
     for (const link of section.links) {

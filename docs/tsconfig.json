@@ -39,6 +39,6 @@
   "exclude": [
     "node_modules",
     "out/**/*",
-    "public/examples/src/**/*.ts"
+    "public/examples/source/**/*.ts"
   ]
 }

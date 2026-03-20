@@ -36,12 +36,13 @@ To try the same templates online:
 - [Docs](https://rileyjshaw.com/shaderpad/)
 - [Quickstart](https://rileyjshaw.com/shaderpad/docs/getting-started/quickstart/)
 - [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
+- [Browse interactive examples](https://rileyjshaw.com/shaderpad/examples/)
 
 ### For AIs and coding agents:
 
 - [AI agent guide](https://rileyjshaw.com/shaderpad/docs/getting-started/ai-agent-guide/)
 - [llms.txt](https://rileyjshaw.com/shaderpad/llms.txt)
-- [Examples on GitHub](https://github.com/rileyjshaw/shaderpad/tree/main/examples/src)
+- [Examples on GitHub](https://github.com/rileyjshaw/shaderpad/tree/main/docs/src/examples/demos)
 
 ## Example
 
@@ -84,7 +85,7 @@ shader.play(time => {
 });
 ```
 
-See the [`examples/` directory](./examples/src) for more.
+See the [interactive examples](https://rileyjshaw.com/shaderpad/examples/) or browse the source in [`docs/src/examples/demos/`](./docs/src/examples/demos).
 
 ## Usage
 
@@ -827,14 +828,14 @@ The `autosize` plugin handles automatic canvas resolution updates with ResizeObs
 
 ```bash
 git clone https://github.com/rileyjshaw/shaderpad.git
-cd shaderpad/examples
+cd shaderpad
 npm install
-npm run dev
+npm run docs:dev
 ```
 
 ### Adding an example
 
-Add a `.ts` file in `examples/src/` that exports `init` and `destroy` functions. Add it to the `demos` array in `examples/src/main.ts`.
+Add a `.ts` file in `docs/src/examples/demos/` that exports `init` and `destroy` functions. Then register it in [`docs/src/examples/registry-data.mjs`](./docs/src/examples/registry-data.mjs) and [`docs/src/examples/registry.ts`](./docs/src/examples/registry.ts).
 
 ## License
 

@@ -4,13 +4,15 @@ import { fileURLToPath } from 'node:url';
 import fg from 'fast-glob';
 import yaml from 'js-yaml';
 
+import { exampleRegistry } from '../src/examples/registry-data.mjs';
+
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const docsRoot = resolve(scriptsDir, '..');
 const repoRoot = resolve(docsRoot, '..');
 const appDir = join(docsRoot, 'src', 'app');
 const publicDir = join(docsRoot, 'public');
 const llmsTemplatePath = join(docsRoot, 'src', 'llms', 'llms-template.txt');
-const examplesDir = join(repoRoot, 'examples', 'src');
+const examplesDir = join(docsRoot, 'src', 'examples', 'demos');
 const repoReadmePath = join(repoRoot, 'README.md');
 const generatedSizePath = join(docsRoot, 'src', 'generated', 'shaderpad-size.ts');
 const repoBlobBase = 'https://github.com/rileyjshaw/shaderpad/blob/main/';
@@ -234,7 +236,7 @@ function renderLlmsIndex(entries) {
       docsBasePath,
       llmsUrl: absoluteSiteUrl('/llms.txt'),
       llmsFullUrl: absoluteSiteUrl('/llms-full.txt'),
-      examplesIndexUrl: absoluteSiteUrl('/examples/index.md'),
+      examplesIndexUrl: absoluteSiteUrl('/examples/source'),
       aiAgentGuideUrl: absoluteSiteUrl('/docs/getting-started/ai-agent-guide'),
       entries: entries.map(entry => ({
         kind: entry.kind,
@@ -262,7 +264,7 @@ function renderLlmsFull(entries) {
     '',
     'This file aggregates the raw markdown content that powers the ShaderPad docs site.',
     `Prefer [llms.txt](${absoluteSiteUrl('/llms.txt')}) first for the smaller curated index.`,
-    `For local example source mirrors, use [examples/index.md](${absoluteSiteUrl('/examples/index.md')}).`,
+    `For local example source mirrors, use [examples/source](${absoluteSiteUrl('/examples/source')}).`,
   ];
 
   for (const entry of entries) {
@@ -347,6 +349,12 @@ const exampleFiles = await fg('*.ts', {
   onlyFiles: true,
   ignore: ['*.d.ts', 'main.ts'],
 });
+const exampleMetadataBySlug = new Map(
+  exampleRegistry.map(entry => [entry.slug, entry]),
+);
+const exampleOrderBySlug = new Map(
+  exampleRegistry.map((entry, index) => [entry.slug, index]),
+);
 
 const generatedSizeSource = await readFile(generatedSizePath, 'utf8');
 const shaderpadSizeValue =
@@ -404,43 +412,48 @@ for (const filePath of exampleFiles) {
   const raw = (await readFile(filePath, 'utf8')).replace(/\r\n/g, '\n');
   const filename = relative(examplesDir, filePath).replace(/\\/g, '/');
   const stem = filename.replace(/\.ts$/, '');
+  const metadata = exampleMetadataBySlug.get(stem);
 
   exampleEntries.push({
     kind: 'example',
-    title: guessTitleFromFileStem(stem),
-    description: descriptionFromLeadingComment(raw),
+    title: metadata?.title ?? guessTitleFromFileStem(stem),
+    description: metadata?.description ?? descriptionFromLeadingComment(raw),
     route: null,
     group: 'Examples',
     raw,
     body: raw,
     llmsBody: `\`\`\`ts\n${raw.trim()}\n\`\`\``,
-    assetPath: `/examples/src/${filename}`,
-    assetUrl: absoluteSiteUrl(`/examples/src/${filename}`),
+    assetPath: `/examples/source/${filename}`,
+    assetUrl: absoluteSiteUrl(`/examples/source/${filename}`),
     htmlUrl: null,
     language: 'ts',
-    sourceUrl: new URL(`examples/src/${filename}`, repoBlobBase).toString(),
+    slug: stem,
+    sourceUrl: new URL(`docs/src/examples/demos/${filename}`, repoBlobBase).toString(),
   });
 }
 
-exampleEntries.sort(compareEntries);
+exampleEntries.sort(
+  (a, b) =>
+    (exampleOrderBySlug.get(a.slug) ?? Number.MAX_SAFE_INTEGER) -
+    (exampleOrderBySlug.get(b.slug) ?? Number.MAX_SAFE_INTEGER),
+);
 
 const curatedExampleTitles = [
   'Basic',
   'Webcam',
-  'History',
-  'History Webcam Delay',
-  'Face Dual',
-  'Face Camo',
-  'Body Camo',
-  'Hands Finger Pens',
-  'Webcam Bw',
+  'Cursor feedback',
+  'Webcam trails',
+  'MediaPipe chaining',
+  'Camo',
+  'Finger pens',
+  'Single-channel textures',
 ];
 
 const llmsTemplate = await readFile(llmsTemplatePath, 'utf8');
 const llmsOutput = llmsTemplate
   .replace('{{LLMS_FULL_URL}}', absoluteSiteUrl('/llms-full.txt'))
   .replace('{{LLMS_INDEX_URL}}', absoluteSiteUrl('/llms-index.json'))
-  .replace('{{EXAMPLES_INDEX_URL}}', absoluteSiteUrl('/examples/index.md'))
+  .replace('{{EXAMPLES_INDEX_URL}}', absoluteSiteUrl('/examples/source'))
   .replace('{{README_MARKDOWN_URL}}', repoReadmeEntry.markdownUrl)
   .replace(
     '{{CURATED_EXAMPLES_INDEX}}',
@@ -461,7 +474,9 @@ if (llmsOutput.includes('{{')) {
 
 await mkdir(publicDir, { recursive: true });
 await rm(join(publicDir, 'docs'), { recursive: true, force: true });
-await rm(join(publicDir, 'examples'), { recursive: true, force: true });
+await rm(join(publicDir, 'examples', 'source'), { recursive: true, force: true });
+await rm(join(publicDir, 'examples', 'src'), { recursive: true, force: true });
+await rm(join(publicDir, 'examples', 'index.md'), { force: true });
 await writeFile(join(publicDir, 'llms.txt'), `${llmsOutput.trim()}\n`, 'utf8');
 await writeFile(
   join(publicDir, 'llms-full.txt'),
@@ -473,9 +488,6 @@ await writeFile(
   `${renderLlmsIndex([...docEntries, ...exampleEntries, repoReadmeEntry])}\n`,
   'utf8',
 );
-const examplesIndexPath = join(publicDir, 'examples', 'index.md');
-await mkdir(dirname(examplesIndexPath), { recursive: true });
-await writeFile(examplesIndexPath, renderExampleIndex(exampleEntries), 'utf8');
 
 for (const entry of [...docEntries, repoReadmeEntry]) {
   const outputPath = join(publicDir, entry.markdownPath.replace(/^\//, ''));

@@ -2,7 +2,7 @@
 
 ShaderPad is a lightweight WebGL2 library for fragment shaders, live textures, history buffers, fullscreen canvas workflows, and optional MediaPipe-powered plugins for face, pose, hands, and segmentation.
 
-Use this file as the small discovery layer. If you want the full docs corpus in one fetch, use [llms-full.txt]({{LLMS_FULL_URL}}). If you want a structured machine-readable page catalog with titles, descriptions, and source URLs, use [llms-index.json]({{LLMS_INDEX_URL}}). If you want local example source mirrors without leaving the docs site, use [examples/index.md]({{EXAMPLES_INDEX_URL}}). The markdown documentation index below links to raw `.md` mirrors of the docs pages.
+Use this file as the small discovery layer. If you want the full docs corpus in one fetch, use [llms-full.txt]({{LLMS_FULL_URL}}). If you want a structured machine-readable page catalog with titles, descriptions, and source URLs, use [llms-index.json]({{LLMS_INDEX_URL}}). If you want local example source mirrors without leaving the docs site, use [examples/source]({{EXAMPLES_INDEX_URL}}). The markdown documentation index below links to raw `.md` mirrors of the docs pages.
 
 Hard rules:
 

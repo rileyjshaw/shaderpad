@@ -21,9 +21,25 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 | Option | Meaning |
 | --- | --- |
-| `ignorePixelRatio?: boolean` | ignore `devicePixelRatio` and match the CSS pixel size |
+| `scale?: number` | backing-resolution multiplier relative to CSS pixels; defaults to the current `devicePixelRatio`, so use `1` to match CSS pixel size |
 | `target?: Element \| Window` | match the size of a specific element or the window |
 | `throttle?: number` | throttle resize handling in milliseconds (default is 1/30th of a second) |
+
+If you want fullscreen sizing but CSS-pixel resolution, use `scale: 1`. If you want a smaller render target, pass a smaller value like `0.5`:
+
+```javascript
+const shader = new ShaderPad(fragmentShaderSrc, {
+  canvas: createFullscreenCanvas(),
+  plugins: [autosize({ scale: 1 })],
+})
+```
+
+```javascript
+const shader = new ShaderPad(fragmentShaderSrc, {
+  canvas: createFullscreenCanvas(),
+  plugins: [autosize({ scale: 0.5 })],
+})
+```
 
 ## Event Behavior
 
@@ -31,4 +47,3 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 - Core ShaderPad emits an `updateResolution` event after the drawing buffer and internal textures are updated
 
 Use `updateResolution` when you care about the renderer being ready. Use `autosize:resize` when you care about the plugin’s resize trigger itself.
-
