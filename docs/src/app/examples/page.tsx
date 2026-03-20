@@ -202,31 +202,31 @@ export default function ExamplesIndexPage() {
                         href={`/examples/${example.slug}`}
                         className="group block rounded-3xl border border-slate-200 bg-white px-6 py-5 transition hover:border-sky-300 hover:shadow-lg hover:shadow-sky-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-700 dark:hover:shadow-none"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="space-y-2">
-                            <h3 className="font-display text-2xl tracking-tight text-slate-900 group-hover:text-sky-600 dark:text-white dark:group-hover:text-sky-400">
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-start gap-3">
+                            <h3 className="min-w-0 flex-[999_1_18rem] font-display text-2xl tracking-tight text-slate-900 group-hover:text-sky-600 dark:text-white dark:group-hover:text-sky-400">
                               {example.title}
                             </h3>
-                            {example.description && (
-                              <p className="text-sm leading-6 text-slate-600 dark:text-slate-400">
-                                {example.description}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                            {tags.map((tag) => {
-                              const tagStyle = tagStyles[tag] ?? defaultTag
+                            <div className="flex min-w-0 flex-[1_1_100%] flex-wrap gap-2 sm:flex-[0_1_auto] sm:justify-end">
+                              {tags.map((tag) => {
+                                const tagStyle = tagStyles[tag] ?? defaultTag
 
-                              return (
-                                <span
-                                  key={tag}
-                                  className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${tagStyle.className}`}
-                                >
-                                  {tag}
-                                </span>
-                              )
-                            })}
+                                return (
+                                  <span
+                                    key={tag}
+                                    className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${tagStyle.className}`}
+                                  >
+                                    {tag}
+                                  </span>
+                                )
+                              })}
+                            </div>
                           </div>
+                          {example.description && (
+                            <p className="text-sm leading-6 text-slate-600 dark:text-slate-400">
+                              {example.description}
+                            </p>
+                          )}
                         </div>
                       </Link>
                     )
