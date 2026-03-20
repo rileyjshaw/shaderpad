@@ -1,13 +1,14 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
-import { createInterface } from 'node:readline/promises';
+import { cancel, confirm, intro, isCancel, outro } from '@clack/prompts';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
 const shaderpadDir = join(repoRoot, 'packages', 'shaderpad');
 const createShaderpadDir = join(repoRoot, 'packages', 'create-shaderpad');
+const createShaderpadChangelogPath = join(createShaderpadDir, 'CHANGELOG.md');
 const starterTemplateDirs = [
 	join(createShaderpadDir, 'template-basic-js'),
 	join(createShaderpadDir, 'template-basic-ts'),
@@ -35,23 +36,15 @@ function printHelp() {
 
 Options:
   --tag <name>     npm publish tag to use (default: beta)
-  --skip-add       Skip the interactive "npx changeset" step
+  --skip-add       Skip \`npx changeset\` and use an existing pending changeset
   --yes            Skip the final deploy confirmation prompt
-  --skip-push      Skip "git push" and "git push --tags" during publish
-  --skip-login     Skip npm auth check/login during publish
+  --skip-push      Skip "git push" and "git push --tags" during deploy
+  --skip-login     Skip npm auth check/login during deploy
   --help, -h       Show this help message
 `);
 }
 
 function parseArgs(argv) {
-	const args = [...argv];
-	if (args[0] && !args[0].startsWith('-')) {
-		const command = args.shift();
-		if (command !== 'release') {
-			throw new Error(`Unknown command: ${command}`);
-		}
-	}
-
 	const options = {
 		tag: 'beta',
 		skipAdd: false,
@@ -60,41 +53,48 @@ function parseArgs(argv) {
 		skipLogin: false,
 	};
 
-	for (let i = 0; i < args.length; i += 1) {
-		const arg = args[i];
+	for (let i = 0; i < argv.length; i += 1) {
+		const arg = argv[i];
+
 		if (arg === '--tag') {
-			options.tag = args[i + 1];
+			const value = argv[i + 1];
+			if (!value || value.startsWith('-')) {
+				throw new Error('Missing value for --tag');
+			}
+			options.tag = value;
 			i += 1;
 			continue;
 		}
+
 		if (arg === '--skip-add') {
 			options.skipAdd = true;
 			continue;
 		}
+
 		if (arg === '--yes') {
 			options.yes = true;
 			continue;
 		}
+
 		if (arg === '--skip-push') {
 			options.skipPush = true;
 			continue;
 		}
+
 		if (arg === '--skip-login') {
 			options.skipLogin = true;
 			continue;
 		}
+
 		if (arg === '--help' || arg === '-h') {
 			printHelp();
 			process.exit(0);
 		}
+
 		throw new Error(`Unknown argument: ${arg}`);
 	}
 
-	if (!options.tag) {
-		throw new Error('Missing value for --tag');
-	}
-
-	return { options };
+	return options;
 }
 
 function run(command, args, { cwd = repoRoot, capture = false, allowFailure = false } = {}) {
@@ -120,28 +120,28 @@ function writePackageJson(packageDir, packageJson) {
 }
 
 function getPackageStates() {
-	return managedPackages.map(pkg => {
-		const packageJson = readPackageJson(pkg.dir);
-		return {
-			...pkg,
-			version: packageJson.version,
-		};
-	});
+	return managedPackages.map(pkg => ({
+		...pkg,
+		version: readPackageJson(pkg.dir).version,
+	}));
 }
 
 function ensureCleanWorktree() {
 	const result = run('git', ['status', '--porcelain'], { capture: true });
 	const output = result.stdout.trim();
-	if (output) {
-		throw new Error(
-			[
-				'Release flow requires a clean git worktree before it starts.',
-				'Commit or stash other changes first so the release commit only contains versioning changes.',
-				'Current git status:',
-				output,
-			].join('\n'),
-		);
+
+	if (!output) {
+		return;
 	}
+
+	throw new Error(
+		[
+			'Release flow requires a clean git worktree before it starts.',
+			'Commit or stash other changes first so the release commit only contains versioning changes.',
+			'Current git status:',
+			output,
+		].join('\n'),
+	);
 }
 
 function getChangedPackages(before, after) {
@@ -157,12 +157,7 @@ function getReleaseLabel(changedPackages) {
 		return `v${shaderpad.version}`;
 	}
 
-	const starter = changedPackages.find(pkg => pkg.name === 'create-shaderpad');
-	if (starter) {
-		return `create-shaderpad@${starter.version}`;
-	}
-
-	throw new Error('No changed packages found.');
+	throw new Error('No shaderpad version change detected.');
 }
 
 function ensureTagDoesNotExist(tagName) {
@@ -170,6 +165,7 @@ function ensureTagDoesNotExist(tagName) {
 		capture: true,
 		allowFailure: true,
 	});
+
 	if (result.status === 0) {
 		throw new Error(`Git tag already exists: ${tagName}`);
 	}
@@ -185,6 +181,7 @@ function printReleaseSummary(changedPackages, label) {
 
 function syncStarterTemplateVersion(shaderpadVersion) {
 	let didChange = false;
+
 	for (const templateDir of starterTemplateDirs) {
 		const templatePackageJson = readPackageJson(templateDir);
 		if (templatePackageJson.dependencies.shaderpad === shaderpadVersion) {
@@ -210,19 +207,40 @@ function syncCreateShaderpadVersion(shaderpadVersion) {
 	return true;
 }
 
+function refreshRootLockfile() {
+	run('npm', ['install', '--package-lock-only', '--ignore-scripts']);
+}
+
+function refreshStarterTemplateLockfiles() {
+	for (const templateDir of starterTemplateDirs) {
+		run('npm', ['install', '--package-lock-only', '--ignore-scripts'], {
+			cwd: templateDir,
+		});
+	}
+}
+
+function deleteCreateShaderpadChangelog() {
+	if (existsSync(createShaderpadChangelogPath)) {
+		unlinkSync(createShaderpadChangelogPath);
+	}
+}
+
 function prepareRelease(options) {
 	ensureCleanWorktree();
 	const before = getPackageStates();
 
 	run('npm', ['run', 'build']);
+
 	if (!options.skipAdd) {
 		run('npx', ['changeset']);
 	}
+
 	run('npx', ['changeset', 'version']);
 
 	const versionedPackages = getPackageStates();
 	const shaderpadBefore = before.find(pkg => pkg.name === 'shaderpad');
 	const shaderpadAfter = versionedPackages.find(pkg => pkg.name === 'shaderpad');
+
 	if (!shaderpadBefore || !shaderpadAfter) {
 		throw new Error('Unable to resolve shaderpad package state.');
 	}
@@ -232,12 +250,8 @@ function prepareRelease(options) {
 		syncStarterTemplateVersion(shaderpadAfter.version);
 	}
 
-	run('npm', ['install', '--package-lock-only', '--ignore-scripts']);
-	for (const templateDir of starterTemplateDirs) {
-		run('npm', ['install', '--package-lock-only', '--ignore-scripts'], {
-			cwd: templateDir,
-		});
-	}
+	refreshRootLockfile();
+	deleteCreateShaderpadChangelog();
 
 	const after = getPackageStates();
 	const changedPackages = getChangedPackages(before, after);
@@ -247,12 +261,8 @@ function prepareRelease(options) {
 
 	const label = getReleaseLabel(changedPackages);
 	ensureTagDoesNotExist(label);
-
-	run('git', ['add', '.']);
-	run('git', ['commit', '-m', label]);
-	run('git', ['tag', label]);
-
 	printReleaseSummary(changedPackages, label);
+
 	return { changedPackages, label };
 }
 
@@ -282,40 +292,17 @@ function addLatestDistTag(pkg) {
 	if (!pkg.latestTag) {
 		return;
 	}
+
 	run('npm', ['dist-tag', 'add', `${pkg.name}@${pkg.version}`, 'latest']);
 }
 
-function publishRelease(options) {
-	ensureCleanWorktree();
-	const packages = getPackageStates();
-	const unpublishedPackages = packages.filter(pkg => !isPublished(pkg.name, pkg.version));
-
-	if (unpublishedPackages.length === 0) {
-		console.log('\nNo unpublished package versions found. Nothing to publish.\n');
-		return { unpublishedPackages };
-	}
-
-	if (!options.skipLogin) {
-		ensureNpmAuth();
-	}
-
-	console.log('\nPublishing packages:');
-	for (const pkg of unpublishedPackages) {
-		console.log(`- ${pkg.name}@${pkg.version} (${options.tag})`);
-		publishPackage(pkg, options.tag);
-		addLatestDistTag(pkg);
-	}
-	console.log('');
-
-	if (!options.skipPush) {
-		run('git', ['push']);
-		run('git', ['push', '--tags']);
-	}
-
-	return { unpublishedPackages };
+function commitAndTagRelease(label) {
+	run('git', ['add', '.']);
+	run('git', ['commit', '-m', label]);
+	run('git', ['tag', label]);
 }
 
-async function confirmDeploy(options) {
+async function confirmDeploy(options, releaseInfo) {
 	if (options.yes) {
 		return;
 	}
@@ -324,28 +311,65 @@ async function confirmDeploy(options) {
 		throw new Error('Release is ready. Re-run with --yes to deploy from a non-interactive shell.');
 	}
 
-	const rl = createInterface({
-		input: process.stdin,
-		output: process.stdout,
+	intro('ShaderPad release');
+
+	const confirmed = await confirm({
+		message: 'Deploy this release to npm and push the git tag?',
+		initialValue: true,
 	});
 
-	try {
-		await rl.question('Release is prepared. Press ENTER to deploy, or Ctrl+C to cancel. ');
-	} finally {
-		rl.close();
+	if (isCancel(confirmed) || !confirmed) {
+		cancel('Release cancelled.');
+		process.exit(1);
 	}
 }
 
-async function main() {
-	const argv = process.argv.slice(2);
-	if (argv.includes('--help') || argv.includes('-h')) {
-		printHelp();
-		return;
+function deployRelease(options, releaseInfo) {
+	commitAndTagRelease(releaseInfo.label);
+
+	if (!options.skipLogin) {
+		ensureNpmAuth();
 	}
-	const { options } = parseArgs(argv);
-	prepareRelease(options);
-	await confirmDeploy(options);
-	publishRelease(options);
+
+	const packages = getPackageStates();
+	const unpublishedPackages = packages.filter(pkg => !isPublished(pkg.name, pkg.version));
+
+	if (unpublishedPackages.length === 0) {
+		console.log('\nNo unpublished package versions found. Skipping npm publish.\n');
+	} else {
+		console.log('\nPublishing packages:');
+
+		const shaderpadPackage = unpublishedPackages.find(pkg => pkg.name === 'shaderpad');
+		if (shaderpadPackage) {
+			console.log(`- ${shaderpadPackage.name}@${shaderpadPackage.version} (${options.tag})`);
+			publishPackage(shaderpadPackage, options.tag);
+			addLatestDistTag(shaderpadPackage);
+		}
+
+		const starterPackage = unpublishedPackages.find(pkg => pkg.name === 'create-shaderpad');
+		if (starterPackage) {
+			refreshStarterTemplateLockfiles();
+			console.log(`- ${starterPackage.name}@${starterPackage.version} (${options.tag})`);
+			publishPackage(starterPackage, options.tag);
+			addLatestDistTag(starterPackage);
+		}
+
+		console.log('');
+	}
+
+	if (!options.skipPush) {
+		run('git', ['push']);
+		run('git', ['push', '--tags']);
+	}
+
+	outro(`Release ${releaseInfo.label} complete.`);
+}
+
+async function main() {
+	const options = parseArgs(process.argv.slice(2));
+	const releaseInfo = prepareRelease(options);
+	await confirmDeploy(options, releaseInfo);
+	deployRelease(options, releaseInfo);
 }
 
 try {
