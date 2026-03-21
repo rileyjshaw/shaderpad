@@ -115,7 +115,7 @@ export function ExamplePlayer({
       <div className="pointer-events-none fixed inset-0 z-30 flex flex-col justify-between items-start p-4 sm:p-6">
         <div className="inline-flex items-start gap-4 border border-white/15 rounded-r-full bg-black/60 pr-6 pl-6 -ml-6 py-4 shadow-2xl backdrop-blur">
           <Link
-            href="/examples"
+            href="/docs/getting-started/examples"
             aria-label="Examples"
             className="pointer-events-auto transition hover:text-white/85"
           >

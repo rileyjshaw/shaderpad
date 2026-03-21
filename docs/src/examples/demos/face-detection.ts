@@ -1,44 +1,21 @@
 /**
  * Face detection visualization using face plugin. Shows landmarks, mesh, and
- * region masks. Double-tap to switch cameras.
+ * region masks over a fullscreen mirrored webcam feed.
  */
 import ShaderPad from 'shaderpad';
+import autosize from 'shaderpad/plugins/autosize';
 import face from 'shaderpad/plugins/face';
+import helpers from 'shaderpad/plugins/helpers';
+import { createFullscreenCanvas } from 'shaderpad/util';
 
-import { stopVideoStream } from '@/examples/demo-utils';
+import { getWebcamVideo, stopVideoStream } from '@/examples/demo-utils';
 import type { ExampleContext } from '@/examples/runtime';
-
-async function getWebcamStream(facingMode: string): Promise<HTMLVideoElement> {
-	const video = document.createElement('video');
-	video.autoplay = true;
-	video.muted = true;
-	video.playsInline = true;
-
-	try {
-		const stream = await navigator.mediaDevices.getUserMedia({
-			video: { facingMode },
-		});
-		video.srcObject = stream;
-		await new Promise(resolve => (video.onloadedmetadata = resolve));
-	} catch (error) {
-		console.error('Error accessing webcam:', error);
-		throw error;
-	}
-
-	return video;
-}
 
 let shader: ShaderPad | null = null;
 let video: HTMLVideoElement | null = null;
 let outputCanvas: HTMLCanvasElement | null = null;
-let container: HTMLDivElement | null = null;
-let currentFacingMode = 'user';
-let touchStartHandler: ((e: TouchEvent) => void) | null = null;
-let touchEndHandler: ((e: TouchEvent) => void) | null = null;
-let touchTarget: HTMLElement | null = null;
 
 export async function init({ mount }: ExampleContext) {
-	touchTarget = mount;
 	const fragmentShaderSrc = `#version 300 es
 precision mediump float;
 
@@ -47,29 +24,30 @@ out vec4 outColor;
 uniform sampler2D u_webcam;
 
 void main() {
-	vec4 webcamColor = texture(u_webcam, v_uv);
+	vec2 webcamUV = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
+	vec4 webcamColor = texture(u_webcam, webcamUV);
 	vec3 color = webcamColor.rgb;
 
 	// Draw face and oval regions.
-	vec2 faceHit = faceAt(v_uv);
-	vec2 faceOval = faceOvalAt(v_uv);
+	vec2 faceHit = faceAt(webcamUV);
+	vec2 faceOval = faceOvalAt(webcamUV);
 	color = mix(color, vec3(0.0, 1.0, 0.0), faceHit.x * 0.5 + faceOval.x * 0.2);
 
 	// Draw eyebrows.
-	vec2 leftEyebrow = leftEyebrowAt(v_uv);
-	vec2 rightEyebrow = rightEyebrowAt(v_uv);
+	vec2 leftEyebrow = leftEyebrowAt(webcamUV);
+	vec2 rightEyebrow = rightEyebrowAt(webcamUV);
 	color = mix(color, vec3(0.5, 0.0, 0.5), leftEyebrow.x * 0.7);
 	color = mix(color, vec3(1.0, 0.5, 0.0), rightEyebrow.x * 0.7);
 
 	// Draw eyes.
-	vec2 leftEye = leftEyeAt(v_uv);
-	vec2 rightEye = rightEyeAt(v_uv);
+	vec2 leftEye = leftEyeAt(webcamUV);
+	vec2 rightEye = rightEyeAt(webcamUV);
 	color = mix(color, vec3(1.0, 0.0, 0.0), leftEye.x * 0.7);
 	color = mix(color, vec3(0.0, 0.0, 1.0), rightEye.x * 0.7);
 
 	// Draw mouth.
-	vec2 mouth = mouthAt(v_uv);
-	vec2 innerMouth = innerMouthAt(v_uv);
+	vec2 mouth = mouthAt(webcamUV);
+	vec2 innerMouth = innerMouthAt(webcamUV);
 	color = mix(color, vec3(1.0, 0.0, 0.0), mouth.x * 0.6);
 	color = mix(color, vec3(0.5, 0.0, 0.0), innerMouth.x * 0.8);
 
@@ -77,28 +55,28 @@ void main() {
 		// Draw tiny red dots on all face landmarks.
 		for (int j = 0; j < 478; ++j) {
 			vec2 landmarkPos = vec2(faceLandmark(i, j));
-			float landmarkDist = distance(v_uv, landmarkPos);
-			float landmarkDot = (1.0 - smoothstep(0.0, 0.005, landmarkDist));
+			float landmarkDist = distance(webcamUV, landmarkPos);
+			float landmarkDot = 1.0 - smoothstep(0.0, 0.005, landmarkDist);
 			color = mix(color, vec3(1.0, 0.0, 0.0), landmarkDot);
 		}
 
 		// Draw nose tip dot.
 		vec2 noseTipPos = vec2(faceLandmark(i, FACE_LANDMARK_NOSE_TIP));
-		float noseTipDist = distance(v_uv, noseTipPos);
+		float noseTipDist = distance(webcamUV, noseTipPos);
 		float noseTipDot = 1.0 - smoothstep(0.0, 0.01, noseTipDist);
 		color = mix(color, vec3(0.0, 1.0, 0.0), noseTipDot);
 
 		// Draw face center dot.
 		vec2 faceCenterPos = vec2(faceLandmark(i, FACE_LANDMARK_FACE_CENTER));
-		float faceCenterDist = distance(v_uv, faceCenterPos);
+		float faceCenterDist = distance(webcamUV, faceCenterPos);
 		float faceCenterDot = 1.0 - smoothstep(0.0, 0.01, faceCenterDist);
 		color = mix(color, vec3(1.0, 1.0, 1.0), faceCenterDot);
 
 		// Draw eye center dots.
 		vec2 leftEyePos = vec2(faceLandmark(i, FACE_LANDMARK_L_EYE_CENTER));
 		vec2 rightEyePos = vec2(faceLandmark(i, FACE_LANDMARK_R_EYE_CENTER));
-		float leftEyeCenterDist = distance(v_uv, leftEyePos);
-		float rightEyeCenterDist = distance(v_uv, rightEyePos);
+		float leftEyeCenterDist = distance(webcamUV, leftEyePos);
+		float rightEyeCenterDist = distance(webcamUV, rightEyePos);
 		float leftEyeCenterDot = 1.0 - smoothstep(0.0, 0.01, leftEyeCenterDist);
 		float rightEyeCenterDot = 1.0 - smoothstep(0.0, 0.01, rightEyeCenterDist);
 		color = mix(color, vec3(0.0, 0.0, 1.0), leftEyeCenterDot);
@@ -106,40 +84,34 @@ void main() {
 
 		// Draw mouth center dot.
 		vec2 mouthPos = vec2(faceLandmark(i, FACE_LANDMARK_MOUTH_CENTER));
-		float mouthCenterDist = distance(v_uv, mouthPos);
+		float mouthCenterDist = distance(webcamUV, mouthPos);
 		float mouthCenterDot = 1.0 - smoothstep(0.0, 0.01, mouthCenterDist);
 		color = mix(color, vec3(1.0, 1.0, 0.0), mouthCenterDot);
 	}
 
 	// Display mask in bottom-right corner as debug overlay.
-	vec2 maskPreviewUV = (v_uv - vec2(0.65, 0.0)) * vec2(2.86, 2.86);
-	if (maskPreviewUV.x >= 0.0 && maskPreviewUV.x <= 1.0 && maskPreviewUV.y >= 0.0 && maskPreviewUV.y <= 1.0) {
-		vec4 debugMask = texture(u_faceMask, maskPreviewUV);
-		// Show mask as RGB visualization.
-		vec3 maskVis = debugMask.rgb;
-		color = mix(color, maskVis, 0.9);
-		// Add white border.
-		float border = 1.0 - smoothstep(0.0, 0.01, min(min(maskPreviewUV.x, 1.0 - maskPreviewUV.x), min(maskPreviewUV.y, 1.0 - maskPreviewUV.y)));
+	vec2 previewMin = vec2(0.67, 0.03);
+	vec2 previewMax = vec2(0.97, 0.33);
+	vec2 previewUV = (v_uv - previewMin) / (previewMax - previewMin);
+	if (previewUV.x >= 0.0 && previewUV.x <= 1.0 && previewUV.y >= 0.0 && previewUV.y <= 1.0) {
+		vec2 previewWebcamUV = fitCover(vec2(1.0 - previewUV.x, previewUV.y), vec2(textureSize(u_webcam, 0)));
+		vec4 debugMask = texture(u_faceMask, previewWebcamUV);
+		color = mix(color, debugMask.rgb, 0.9);
+		float border = 1.0 - smoothstep(0.0, 0.01, min(min(previewUV.x, 1.0 - previewUV.x), min(previewUV.y, 1.0 - previewUV.y)));
 		color = mix(color, vec3(1.0, 1.0, 1.0), border * 0.8);
 	}
 
 	outColor = vec4(color, 1.0);
 }`;
 
-	container = document.createElement('div');
-	container.className = 'canvas-container';
-	mount.appendChild(container);
-
-	video = await getWebcamStream(currentFacingMode);
-
-	outputCanvas = document.createElement('canvas');
-	outputCanvas.width = video.videoWidth;
-	outputCanvas.height = video.videoHeight;
-	container.appendChild(outputCanvas);
+	video = await getWebcamVideo({ facingMode: 'user' });
+	outputCanvas = createFullscreenCanvas(mount);
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
 		plugins: [
+			autosize(),
+			helpers(),
 			face({
 				textureName: 'u_webcam',
 				options: { maxFaces: 3 },
@@ -151,75 +123,6 @@ void main() {
 	shader.play(() => {
 		shader!.updateTextures({ u_webcam: video! });
 	});
-
-	// Double-tap to switch camera
-	let lastTapTime = 0;
-	let tapCount = 0;
-	let touchStartTime = 0;
-
-	touchStartHandler = (e: TouchEvent) => {
-		if (e.touches.length === 1) {
-			const now = Date.now();
-			touchStartTime = now;
-		}
-	};
-
-	touchEndHandler = (e: TouchEvent) => {
-		// Only handle if it's a single touch that ended quickly (tap, not drag)
-		if (e.changedTouches.length === 1 && e.touches.length === 0) {
-			const now = Date.now();
-			const touchDuration = now - touchStartTime;
-
-			// Only count as tap if it was quick (< 300ms)
-			if (touchDuration < 300) {
-				// Reset if too much time passed since last tap
-				if (now - lastTapTime > 300) {
-					tapCount = 1;
-				} else {
-					tapCount++;
-				}
-
-				lastTapTime = now;
-
-				if (tapCount === 2) {
-					tapCount = 0;
-					switchCamera();
-				}
-			}
-		}
-	};
-
-	mount.addEventListener('touchstart', touchStartHandler, { passive: true });
-	mount.addEventListener('touchend', touchEndHandler, { passive: true });
-}
-
-async function switchCamera() {
-	if (!video || !shader) return;
-
-	// Stop old stream
-	if (video.srcObject) {
-		(video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-	}
-
-	const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-	try {
-		const stream = await navigator.mediaDevices.getUserMedia({
-			video: { facingMode: newFacingMode },
-		});
-		video.srcObject = stream;
-		await new Promise(resolve => {
-			if (video) {
-				video.onloadedmetadata = resolve;
-			}
-		});
-		if (video.parentElement !== container) {
-			container!.appendChild(video);
-		}
-		shader.updateTextures({ u_webcam: video });
-		currentFacingMode = newFacingMode;
-	} catch (error) {
-		console.error('Failed to switch camera:', error);
-	}
 }
 
 export function destroy() {
@@ -233,18 +136,8 @@ export function destroy() {
 		video = null;
 	}
 
-	if (container) {
-		container.remove();
-		container = null;
+	if (outputCanvas) {
+		outputCanvas.remove();
 		outputCanvas = null;
 	}
-	if (touchStartHandler) {
-		touchTarget?.removeEventListener('touchstart', touchStartHandler);
-		touchStartHandler = null;
-	}
-	if (touchEndHandler) {
-		touchTarget?.removeEventListener('touchend', touchEndHandler);
-		touchEndHandler = null;
-	}
-	touchTarget = null;
 }

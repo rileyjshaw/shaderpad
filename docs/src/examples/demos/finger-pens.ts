@@ -3,6 +3,7 @@
  * from whichever fingertip is furthest from the thumb.
  */
 import ShaderPad from 'shaderpad';
+import autosize from 'shaderpad/plugins/autosize';
 import hands from 'shaderpad/plugins/hands';
 import helpers from 'shaderpad/plugins/helpers';
 import { createFullscreenCanvas } from 'shaderpad/util';
@@ -175,13 +176,11 @@ void main() {
 	video = await getWebcamVideo();
 
 	outputCanvas = createFullscreenCanvas(mount);
-	outputCanvas.width = video.videoWidth;
-	outputCanvas.height = video.videoHeight;
-	outputCanvas.style.objectFit = 'cover';
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
 		plugins: [
+			autosize(),
 			helpers(),
 			hands({
 				textureName: 'u_webcam',

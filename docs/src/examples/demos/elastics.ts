@@ -3,6 +3,7 @@
  * index finger to thumb and middle finger to thumb for each detected hand.
  */
 import ShaderPad from 'shaderpad';
+import autosize from 'shaderpad/plugins/autosize';
 import hands from 'shaderpad/plugins/hands';
 import { createFullscreenCanvas } from 'shaderpad/util';
 
@@ -121,13 +122,11 @@ precision mediump float;
 	video = await getWebcamVideo();
 
 	outputCanvas = createFullscreenCanvas(mount);
-	outputCanvas.width = video.videoWidth;
-	outputCanvas.height = video.videoHeight;
-	outputCanvas.style.objectFit = 'cover';
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
 		plugins: [
+			autosize(),
 			hands({
 				textureName: 'u_webcam',
 				options: { maxHands: 3 },

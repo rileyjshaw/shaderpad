@@ -3,6 +3,7 @@
  * plugins up front and switches the tracked region in one shader.
  */
 import ShaderPad from 'shaderpad';
+import autosize from 'shaderpad/plugins/autosize';
 import face from 'shaderpad/plugins/face';
 import helpers from 'shaderpad/plugins/helpers';
 import pose from 'shaderpad/plugins/pose';
@@ -67,6 +68,17 @@ uniform highp sampler2DArray u_history;
 uniform int u_historyFrameOffset;
 uniform int u_mode;
 
+vec2 fitCoverInverse(vec2 uv, vec2 textureSize) {
+	vec2 scale = u_resolution.xy * textureSize.yx / (u_resolution.yx * textureSize.xy);
+	return (uv - 0.5) / min(scale, vec2(1.0)) + 0.5;
+}
+
+vec3 sampleHistoryAtWebcamUV(vec2 uv) {
+	vec2 historyUV = clamp(fitCoverInverse(uv, vec2(textureSize(u_webcam, 0))), 0.0, 1.0);
+	float z = historyZ(u_history, u_historyFrameOffset, 1);
+	return texture(u_history, vec3(historyUV, z)).rgb;
+}
+
 vec3 applyFaceCamo(vec2 uv, vec3 color, vec2 pixel) {
 	float closestCenter = 2.0;
 
@@ -86,9 +98,8 @@ vec3 applyFaceCamo(vec2 uv, vec3 color, vec2 pixel) {
 		vec2 uvNearerFaceCenter = uv - dir * 80.0 * pixel;
 		float faceConfidence = inFace(uv) + inFace(uvNearerFaceCenter);
 		if (faceConfidence > 0.0) {
-			vec2 target = uv + dir * (20.0 * pixel);
-			float z = historyZ(u_history, u_historyFrameOffset, 1);
-			color = texture(u_history, vec3(target, z)).rgb;
+			vec2 target = clamp(uv + dir * (20.0 * pixel), 0.0, 1.0);
+			color = sampleHistoryAtWebcamUV(target);
 		}
 	}
 
@@ -114,9 +125,8 @@ vec3 applyBodyCamo(vec2 uv, vec3 color, vec2 pixel) {
 		vec2 pose = poseAt(uv);
 		vec2 nearerPose = poseAt(uvNearerPoseCenter);
 		if ((pose.x > 0.0 && int(pose.y) == i) || (nearerPose.x > 0.0 && int(nearerPose.y) == i)) {
-			vec2 target = uv + dir * (20.0 * pixel);
-			float z = historyZ(u_history, u_historyFrameOffset, 1);
-			color = texture(u_history, vec3(target, z)).rgb;
+			vec2 target = clamp(uv + dir * (20.0 * pixel), 0.0, 1.0);
+			color = sampleHistoryAtWebcamUV(target);
 		}
 	}
 
@@ -124,8 +134,9 @@ vec3 applyBodyCamo(vec2 uv, vec3 color, vec2 pixel) {
 }
 
 void main() {
-	vec2 uv = v_uv;
-	vec2 pixel = vec2(1.0) / vec2(textureSize(u_webcam, 0));
+	vec2 texSize = vec2(textureSize(u_webcam, 0));
+	vec2 uv = fitCover(v_uv, texSize);
+	vec2 pixel = vec2(1.0) / texSize;
 	vec3 color = texture(u_webcam, uv).rgb;
 
 	if (u_mode == ${MODE_FACE}) {
@@ -140,16 +151,15 @@ void main() {
 	video = await getWebcamVideo();
 
 	outputCanvas = createFullscreenCanvas(mount);
-	outputCanvas.width = video.videoWidth;
-	outputCanvas.height = video.videoHeight;
-	outputCanvas.style.objectFit = 'cover';
+	outputCanvas.style.transform = 'scaleX(-1)';
+	outputCanvas.style.transformOrigin = 'center';
 
 	controls = document.createElement('div');
 	controls.style.position = 'fixed';
-	controls.style.top = '20px';
-	controls.style.left = '50%';
-	controls.style.transform = 'translateX(-50%)';
+	controls.style.top = 'calc(env(safe-area-inset-top, 0px) + 120px)';
+	controls.style.left = '16px';
 	controls.style.display = 'flex';
+	controls.style.flexWrap = 'wrap';
 	controls.style.gap = '8px';
 	controls.style.padding = '8px';
 	controls.style.borderRadius = '999px';
@@ -157,6 +167,7 @@ void main() {
 	controls.style.backdropFilter = 'blur(10px)';
 	controls.style.pointerEvents = 'auto';
 	controls.style.zIndex = '1000';
+	controls.style.maxWidth = 'calc(100vw - 32px)';
 
 	faceButton = createModeButton('Face');
 	bodyButton = createModeButton('Body');
@@ -170,6 +181,7 @@ void main() {
 		canvas: outputCanvas,
 		history: 1,
 		plugins: [
+			autosize(),
 			helpers(),
 			face({
 				textureName: 'u_webcam',

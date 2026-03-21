@@ -3,8 +3,10 @@
  * volumetric light rays from user’s mouth, eyes, and fingertips in real-time.
  */
 import ShaderPad from 'shaderpad';
+import autosize from 'shaderpad/plugins/autosize';
 import hands from 'shaderpad/plugins/hands';
 import face from 'shaderpad/plugins/face';
+import { createFullscreenCanvas } from 'shaderpad/util';
 
 import { getWebcamVideo, stopVideoStream } from '@/examples/demo-utils';
 import type { ExampleContext } from '@/examples/runtime';
@@ -127,20 +129,13 @@ void main() {
 	outColor = vec4(color, 1.0);
 }`;
 
-	const container = document.createElement('div');
-	container.className = 'canvas-container';
-	mount.appendChild(container);
-
 	const video = await getWebcamVideo();
-
-	const outputCanvas = document.createElement('canvas');
-	outputCanvas.width = video.videoWidth;
-	outputCanvas.height = video.videoHeight;
-	container.appendChild(outputCanvas);
+	const outputCanvas = createFullscreenCanvas(mount);
 
 	const shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
 		plugins: [
+			autosize(),
 			face({
 				textureName: 'u_webcam',
 				options: { maxFaces: 3 },
@@ -160,6 +155,6 @@ void main() {
 	return () => {
 		shader.destroy();
 		stopVideoStream(video);
-		container.remove();
+		outputCanvas.remove();
 	};
 }

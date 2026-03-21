@@ -3,6 +3,8 @@
  * static image using alpha channel.
  */
 import ShaderPad from 'shaderpad';
+import autosize from 'shaderpad/plugins/autosize';
+import { createFullscreenCanvas } from 'shaderpad/util';
 
 import { getWebcamVideo, stopVideoStream } from '@/examples/demo-utils';
 import type { ExampleContext } from '@/examples/runtime';
@@ -29,18 +31,13 @@ void main() {
 		pictureFrame.onerror = reject;
 	});
 
-	const container = document.createElement('div');
-	container.className = 'canvas-container';
-	mount.appendChild(container);
-
 	const video = await getWebcamVideo();
+	const outputCanvas = createFullscreenCanvas(mount);
 
-	const outputCanvas = document.createElement('canvas');
-	outputCanvas.width = video.videoWidth;
-	outputCanvas.height = video.videoHeight;
-	container.appendChild(outputCanvas);
-
-	const shader = new ShaderPad(fragmentShaderSrc, { canvas: outputCanvas });
+	const shader = new ShaderPad(fragmentShaderSrc, {
+		canvas: outputCanvas,
+		plugins: [autosize()],
+	});
 	shader.initializeTexture('u_pictureFrame', pictureFrame);
 	shader.initializeTexture('u_webcam', video);
 
@@ -51,6 +48,6 @@ void main() {
 	return () => {
 		shader.destroy();
 		stopVideoStream(video);
-		container.remove();
+		outputCanvas.remove();
 	};
 }

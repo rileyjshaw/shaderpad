@@ -340,14 +340,16 @@ const exampleDetails: Record<string, ExampleDetails> = {
     fullDescription: (
       <>
         <p>
-          This one takes the <DocLink href={docs.pose}>pose plugin</DocLink> a
-          step further by using the tracked body region as a matte. The shader
-          computes a strong box blur for the whole webcam image, then keeps the
-          original pixels only where the pose confidence says a person is present.
+          This example uses the <DocLink href={docs.segmenter}>segmenter plugin</DocLink>{' '}
+          with the selfie segmentation model as a matte for a compact Dual
+          Kawase blur pipeline. A few small offscreen passes build the blur
+          efficiently, then the final pass keeps the segmented foreground sharp
+          over the mirrored webcam feed.
         </p>
         <p>
-          It is a nice example of segmentation-aware compositing without a
-          separate blur pass.
+          It is a good reference for multi-pass webcam compositing when you want
+          a cleaner person outline than pose masks usually give, without paying
+          for a huge one-pass kernel.
         </p>
       </>
     ),

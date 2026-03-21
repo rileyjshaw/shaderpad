@@ -82,7 +82,7 @@ export const exampleRegistry = [
   {
     slug: 'background-blur',
     title: 'Background blur',
-    description: 'Background blur driven by pose segmentation.',
+    description: 'Selfie-segmented background blur built with a Dual Kawase chain.',
   },
   {
     slug: 'hand-detection',
