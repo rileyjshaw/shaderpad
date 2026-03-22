@@ -24,24 +24,7 @@ Channel count matters as much as numeric precision. For example, `RGBA8` and `R3
 
 ## Keep Chained Passes On The Same WebGL Context
 
-This is one of the biggest ShaderPad-specific wins. 
-
-If multiple passes share the same canvas or context, ShaderPad can keep chained textures on the GPU. If the source and destination are on different contexts, it has to read pixels back to the CPU and upload them again.
-
-Prefer this:
-
-```javascript
-const sharedCanvas = new OffscreenCanvas(width, height)
-
-const passA = new ShaderPad(fragmentA, { canvas: sharedCanvas })
-const passB = new ShaderPad(fragmentB, { canvas: sharedCanvas })
-```
-
-This is especially important for:
-
-- Multi-pass pipelines
-- Webcam or video texture preprocessing
-- High-resolution intermediate textures
+This is one of the biggest ShaderPad-specific wins. When chained passes share a canvas or WebGL context, ShaderPad can keep textures on the GPU. If they live on different contexts, ShaderPad has to read pixels back to the CPU and upload them again. For the full details, see [Share one canvas or WebGL context](/docs/guides/chaining-shaders#share-web-gl-contexts-when-possible).
 
 ## Use Lower Resolution For Intermediate Passes
 

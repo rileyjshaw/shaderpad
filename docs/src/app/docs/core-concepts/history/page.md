@@ -19,7 +19,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 })
 ```
 
-In GLSL, that gives you access to:
+In GLSL, that gives you access to prior rendered frames, which you can sample like this:
 
 ```glsl
 uniform highp sampler2DArray u_history;
@@ -28,13 +28,27 @@ uniform int u_historyFrameOffset;
 
 ## Texture History
 
-You can also keep history for an individual texture:
+You can also maintain history for an individual texture:
 
 ```javascript
 shader.initializeTexture('u_webcam', videoElement, { history: 30 })
 ```
 
 That creates a history texture plus a matching frame-offset uniform such as `u_webcamFrameOffset`.
+
+## Plugin History
+
+Some plugins can also keep history for the textures they generate. For example, MediaPipe-backed plugins such as `face`, `hands`, `pose`, and `segmenter` accept a `history` option on their internal texture config.
+
+```javascript
+import face from 'shaderpad/plugins/face'
+
+const shader = new ShaderPad(fragmentShaderSrc, {
+  plugins: [face({ textureName: 'u_webcam', options: { history: 20 } })],
+})
+```
+
+Plugin history behaves like texture history, including respecting `skipHistoryWrite` on the watched texture.
 
 ## Sampling Previous Frames
 
@@ -93,20 +107,6 @@ shader.play((time, frame) => {
 shader.step({ skipHistoryWrite: true })
 ```
 
-## Plugin History
-
-Some plugins can maintain history for the textures they generate. For example, MediaPipe-backed plugins such as `face`, `hands`, `pose`, and `segmenter` expose a `history` option so their output textures can be sampled across earlier frames too.
-
-```javascript
-import face from 'shaderpad/plugins/face'
-
-const shader = new ShaderPad(fragmentShaderSrc, {
-  plugins: [face({ textureName: 'u_webcam', options: { history: 20 } })],
-})
-```
-
-When plugin history is enabled, `historyZ(..., 1)` refers to the previous stored plugin output, and larger values move further back. As with normal texture history, `historyZ(..., 0)` is also valid and refers to the current value. If you skip a history write on the watched texture, the plugin history skips that frame as well.
-
 ## History Precision
 
 History buffers match the [precision and format options](/docs/core-concepts/format-and-precision) of their corresponding texture. This applies to framebuffer history (configured in the `ShaderPad` constructor) and texture history (configured in `initializeTexture()`).
@@ -116,4 +116,3 @@ History buffers match the [precision and format options](/docs/core-concepts/for
 {% callout title="draw does not advance history" %}
 `draw()` renders the current state only. Use `step()` when a pass should count as a new frame in history.
 {% /callout %}
-

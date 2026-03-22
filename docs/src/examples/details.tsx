@@ -234,8 +234,8 @@ const exampleDetails: Record<string, ExampleDetails> = {
     fullDescription: (
       <>
         <p>
-          This visualizes a rolling framebuffer{' '}
-          <DocLink href={docs.history}>history buffer</DocLink>. The grey circle
+          This visualizes a rolling {' '}
+          <DocLink href={docs.history}>history framebuffer</DocLink>. The grey circle
           illustrates history buffer access with{' '}
           <DocLink href={docs.helpers}>historyZ()</DocLink>. The yellow, red,
           and blue circles show direct access through static indices.
