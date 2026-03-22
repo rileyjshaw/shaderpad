@@ -31,14 +31,14 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 
 | Option                                         | Meaning                                       |
 | ---------------------------------------------- | --------------------------------------------- |
-| `modelPath?: string`                           | custom MediaPipe model path                   |
-| `maxFaces?: number`                            | maximum faces to detect                       |
-| `minFaceDetectionConfidence?: number`          | detection threshold                           |
-| `minFacePresenceConfidence?: number`           | face presence threshold                       |
-| `minTrackingConfidence?: number`               | tracking threshold                            |
-| `outputFaceBlendshapes?: boolean`              | forwarded to MediaPipe                        |
-| `outputFacialTransformationMatrixes?: boolean` | forwarded to MediaPipe                        |
-| `history?: number`                             | history depth for landmarks and mask textures |
+| `modelPath?: string`                           | Custom MediaPipe model path.                  |
+| `maxFaces?: number`                            | Maximum faces to detect.                      |
+| `minFaceDetectionConfidence?: number`          | Detection threshold.                          |
+| `minFacePresenceConfidence?: number`           | Face presence threshold.                      |
+| `minTrackingConfidence?: number`               | Tracking threshold.                           |
+| `outputFaceBlendshapes?: boolean`              | Forwarded to MediaPipe.                       |
+| `outputFacialTransformationMatrixes?: boolean` | Forwarded to MediaPipe.                       |
+| `history?: number`                             | History depth for landmarks and mask textures. |
 
 ## Events
 
@@ -46,8 +46,8 @@ Subscribe with `shader.on(name, callback)`.
 
 | Event         | Callback                                      | Meaning                                                |
 | ------------- | --------------------------------------------- | ------------------------------------------------------ |
-| `face:ready`  | `() => void`                                  | model assets are loaded and the plugin is ready        |
-| `face:result` | `(result: FaceLandmarkerResult) => void`      | latest MediaPipe result for the current analyzed frame |
+| `face:ready`  | `() => void`                                  | Model assets are loaded and the plugin is ready.       |
+| `face:result` | `(result: FaceLandmarkerResult) => void`      | Latest MediaPipe result for the current analyzed frame. |
 
 ```javascript
 shader.on('face:result', result => {
@@ -59,10 +59,10 @@ shader.on('face:result', result => {
 
 | Uniform              | Meaning                                                                                 |
 | -------------------- | --------------------------------------------------------------------------------------- |
-| `u_maxFaces`         | maximum number of faces from initial config                                             |
-| `u_nFaces`           | detected face count for the latest frame                                        |
-| `u_faceLandmarksTex` | raw landmark texture used internally by `nFacesAt()` and `faceLandmark()`               |
-| `u_faceMask`         | region mask texture used internally by the `*At()` and `in*()` face-region helper calls |
+| `u_maxFaces`         | Maximum number of faces from initial config.                                            |
+| `u_nFaces`           | Detected face count for the latest frame.                                               |
+| `u_faceLandmarksTex` | Raw landmark texture used internally by `nFacesAt()` and `faceLandmark()`.              |
+| `u_faceMask`         | Region mask texture used internally by the `*At()` and `in*()` face-region helper calls. |
 
 Most shaders should use the helper functions below instead of sampling `u_faceLandmarksTex` or `u_faceMask` directly.
 

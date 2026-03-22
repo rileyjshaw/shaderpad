@@ -21,9 +21,9 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 | Option | Meaning |
 | --- | --- |
-| `scale?: number` | resolution multiplier relative to CSS pixels; defaults to the current `devicePixelRatio`, so use `1` to ignore `devicePixelRatio` |
-| `target?: Element \| Window` | match the size of a specific element or the window |
-| `throttle?: number` | throttle resize handling in milliseconds (default is 1/30th of a second) |
+| `scale?: number` | Resolution multiplier relative to CSS pixels; defaults to the current `devicePixelRatio`, so use `1` to ignore `devicePixelRatio`. |
+| `target?: Element \| Window` | Match the size of a specific element or the window. |
+| `throttle?: number` | Throttle resize handling in milliseconds (default is 1/30th of a second). |
 
 If you want fullscreen sizing but CSS-pixel resolution, use `scale: 1`. If you want a smaller render target, pass a smaller value like `0.5`:
 

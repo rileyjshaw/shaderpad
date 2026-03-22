@@ -22,11 +22,11 @@ in vec2 v_uv;
 
 | Name | Type | Meaning |
 | --- | --- | --- |
-| `u_time` | `float` | elapsed time in seconds |
-| `u_frame` | `int` | frame counter |
-| `u_resolution` | `vec2` | drawing buffer size in pixels |
-| `u_cursor` | `vec2` | normalized cursor position from bottom-left (0.0) to top-right (1.0) |
-| `u_click` | `vec3` | normalized position of last click plus boolean pressed state |
+| `u_time` | `float` | Elapsed time in seconds. |
+| `u_frame` | `int` | Frame counter. |
+| `u_resolution` | `vec2` | Drawing buffer size in pixels. |
+| `u_cursor` | `vec2` | Normalized cursor position from bottom-left (0.0) to top-right (1.0). |
+| `u_click` | `vec3` | Normalized position of last click plus boolean pressed state. |
 
 More complete documentation is available in the [Uniforms API reference](/docs/api/uniforms).
 
@@ -96,4 +96,3 @@ shader.play((time) => {
 ```
 
 {% built-in-inputs-preview /%}
-

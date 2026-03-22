@@ -31,12 +31,12 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 
 | Option                                | Meaning                     |
 | ------------------------------------- | --------------------------- |
-| `modelPath?: string`                  | custom MediaPipe model path |
-| `maxHands?: number`                   | maximum hands to detect     |
-| `minHandDetectionConfidence?: number` | detection threshold         |
-| `minHandPresenceConfidence?: number`  | presence threshold          |
-| `minTrackingConfidence?: number`      | tracking threshold          |
-| `history?: number`                    | history depth for landmarks |
+| `modelPath?: string`                  | Custom MediaPipe model path. |
+| `maxHands?: number`                   | Maximum hands to detect. |
+| `minHandDetectionConfidence?: number` | Detection threshold. |
+| `minHandPresenceConfidence?: number`  | Presence threshold. |
+| `minTrackingConfidence?: number`      | Tracking threshold. |
+| `history?: number`                    | History depth for landmarks. |
 
 ## Events
 
@@ -44,8 +44,8 @@ Subscribe with `shader.on(name, callback)`.
 
 | Event          | Callback                                      | Meaning                                                |
 | -------------- | --------------------------------------------- | ------------------------------------------------------ |
-| `hands:ready`  | `() => void`                                  | model assets are loaded and the plugin is ready        |
-| `hands:result` | `(result: HandLandmarkerResult) => void`      | latest MediaPipe result for the current analyzed frame |
+| `hands:ready`  | `() => void`                                  | Model assets are loaded and the plugin is ready.       |
+| `hands:result` | `(result: HandLandmarkerResult) => void`      | Latest MediaPipe result for the current analyzed frame. |
 
 ```javascript
 shader.on('hands:result', result => {
@@ -57,9 +57,9 @@ shader.on('hands:result', result => {
 
 | Uniform              | Meaning                                                                                        |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
-| `u_maxHands`         | maximum number of hands from initial config                                                    |
-| `u_nHands`           | detected hand count for the latest frame                                                       |
-| `u_handLandmarksTex` | raw landmark texture used internally by `nHandsAt()`, `handLandmark()`, and handedness helpers |
+| `u_maxHands`         | Maximum number of hands from initial config.                                                   |
+| `u_nHands`           | Detected hand count for the latest frame.                                                      |
+| `u_handLandmarksTex` | Raw landmark texture used internally by `nHandsAt()`, `handLandmark()`, and handedness helpers. |
 
 Most shaders should use the helper functions below instead of sampling `u_handLandmarksTex` directly.
 

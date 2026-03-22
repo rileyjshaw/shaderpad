@@ -471,12 +471,12 @@ This is often better than building a second detector or encoding a lot of 2D lin
 
 | Symptom | Usually this means |
 | --- | --- |
-| Shader compiles badly | missing `#version 300 es`, missing `out vec4 outColor;`, or duplicate `u_resolution` because `helpers()` already injected it |
-| Effect renders black | `play()` was never called, a live texture was never updated, or the shader is sampling the wrong texture name |
-| History-dependent effect stays frozen | the pass is using `draw()` instead of `play()` or `step()`, or history writes are being skipped |
-| Vision plugin appears inactive | `@mediapipe/tasks-vision` is missing, `textureName` does not match the real texture, or the live texture is not being updated |
-| Multi-pass pipeline is unexpectedly slow | passes are on different WebGL contexts, intermediates are full resolution, or data textures use bigger formats than necessary |
-| Landmark or mask history is too expensive | history depth is too large, or frames are being written more often than the effect needs |
+| Shader compiles badly | Missing `#version 300 es`, missing `out vec4 outColor;`, or duplicate `u_resolution` because `helpers()` already injected it. |
+| Effect renders black | `play()` was never called, a live texture was never updated, or the shader is sampling the wrong texture name. |
+| History-dependent effect stays frozen | The pass is using `draw()` instead of `play()` or `step()`, or history writes are being skipped. |
+| Vision plugin appears inactive | The `@mediapipe/tasks-vision` package is missing, `textureName` does not match the real texture, or the live texture is not being updated. |
+| Multi-pass pipeline is unexpectedly slow | Passes are on different WebGL contexts, intermediates are full resolution, or data textures use bigger formats than necessary. |
+| Landmark or mask history is too expensive | History depth is too large, or frames are being written more often than the effect needs. |
 
 ## Recommended Reading Order
 

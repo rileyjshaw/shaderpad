@@ -12,26 +12,26 @@ Subscribe to an event with `shader.on(eventName, callback)` and remove an event 
 
 | Event               | Arguments                       | Meaning                                     |
 | ------------------- | ------------------------------- | ------------------------------------------- |
-| `updateResolution`  | `(width, height)`               | drawing buffer resolution changed           |
-| `play`              | none                            | render loop started                         |
-| `pause`             | none                            | render loop paused                          |
-| `reset`             | none                            | frame/time and history were reset           |
-| `destroy`           | none                            | resources were released                     |
-| `beforeStep`        | `(time, frame, options?)`       | before a render step                        |
-| `afterStep`         | `(time, frame, options?)`       | after a render step                         |
-| `beforeDraw`        | `(options?)`                    | before a draw                               |
-| `afterDraw`         | `(options?)`                    | after a draw                                |
-| `initializeTexture` | `(name, source, options?)`      | texture initialized                         |
-| `initializeUniform` | `(name, type, value, options?)` | uniform initialized                         |
-| `updateTextures`    | `(updates, options?)`           | public texture update finished              |
-| `updateUniforms`    | `(updates, options?)`           | uniform update finished                     |
+| `updateResolution`  | `(width, height)`               | Drawing buffer resolution changed.          |
+| `play`              | none                            | Render loop started.                        |
+| `pause`             | none                            | Render loop paused.                         |
+| `reset`             | none                            | Frame/time and history were reset.          |
+| `destroy`           | none                            | Resources were released.                    |
+| `beforeStep`        | `(time, frame, options?)`       | Before a render step.                       |
+| `afterStep`         | `(time, frame, options?)`       | After a render step.                        |
+| `beforeDraw`        | `(options?)`                    | Before a draw.                              |
+| `afterDraw`         | `(options?)`                    | After a draw.                               |
+| `initializeTexture` | `(name, source, options?)`      | Texture initialized.                        |
+| `initializeUniform` | `(name, type, value, options?)` | Uniform initialized.                        |
+| `updateTextures`    | `(updates, options?)`           | Public texture update finished.             |
+| `updateUniforms`    | `(updates, options?)`           | Uniform update finished.                    |
 
 ## Plugin Events
 
 | Event                                 | Meaning                                   |
 | ------------------------------------- | ----------------------------------------- |
-| `autosize:resize`                     | autosize plugin changed canvas dimensions |
-| `face:ready`, `face:result`           | face plugin lifecycle                     |
-| `pose:ready`, `pose:result`           | pose plugin lifecycle                     |
-| `hands:ready`, `hands:result`         | hands plugin lifecycle                    |
-| `segmenter:ready`, `segmenter:result` | segmenter plugin lifecycle                |
+| `autosize:resize`                     | Autosize plugin changed canvas dimensions. |
+| `face:ready`, `face:result`           | Face plugin lifecycle.                     |
+| `pose:ready`, `pose:result`           | Pose plugin lifecycle.                     |
+| `hands:ready`, `hands:result`         | Hands plugin lifecycle.                    |
+| `segmenter:ready`, `segmenter:result` | Segmenter plugin lifecycle.                |

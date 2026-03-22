@@ -31,12 +31,12 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 
 | Option                                | Meaning                                   |
 | ------------------------------------- | ----------------------------------------- |
-| `modelPath?: string`                  | custom MediaPipe model path               |
-| `maxPoses?: number`                   | maximum poses to detect                   |
-| `minPoseDetectionConfidence?: number` | detection threshold                       |
-| `minPosePresenceConfidence?: number`  | presence threshold                        |
-| `minTrackingConfidence?: number`      | tracking threshold                        |
-| `history?: number`                    | history depth for landmarks and pose mask |
+| `modelPath?: string`                  | Custom MediaPipe model path.              |
+| `maxPoses?: number`                   | Maximum poses to detect.                  |
+| `minPoseDetectionConfidence?: number` | Detection threshold.                      |
+| `minPosePresenceConfidence?: number`  | Presence threshold.                       |
+| `minTrackingConfidence?: number`      | Tracking threshold.                       |
+| `history?: number`                    | History depth for landmarks and pose mask. |
 
 ## Events
 
@@ -44,8 +44,8 @@ Subscribe with `shader.on(name, callback)`.
 
 | Event         | Callback                                      | Meaning                                                |
 | ------------- | --------------------------------------------- | ------------------------------------------------------ |
-| `pose:ready`  | `() => void`                                  | model assets are loaded and the plugin is ready        |
-| `pose:result` | `(result: PoseLandmarkerResult) => void`      | latest MediaPipe result for the current analyzed frame |
+| `pose:ready`  | `() => void`                                  | Model assets are loaded and the plugin is ready.       |
+| `pose:result` | `(result: PoseLandmarkerResult) => void`      | Latest MediaPipe result for the current analyzed frame. |
 
 ```javascript
 shader.on('pose:result', result => {
@@ -57,10 +57,10 @@ shader.on('pose:result', result => {
 
 | Uniform              | Meaning                                                                   |
 | -------------------- | ------------------------------------------------------------------------- |
-| `u_maxPoses`         | maximum number of poses from initial config                               |
-| `u_nPoses`           | detected pose count for the latest frame                                  |
-| `u_poseLandmarksTex` | raw landmark texture used internally by `nPosesAt()` and `poseLandmark()` |
-| `u_poseMask`         | body mask texture used internally by `poseAt()` and `inPose()`            |
+| `u_maxPoses`         | Maximum number of poses from initial config.                              |
+| `u_nPoses`           | Detected pose count for the latest frame.                                 |
+| `u_poseLandmarksTex` | Raw landmark texture used internally by `nPosesAt()` and `poseLandmark()`. |
+| `u_poseMask`         | Body mask texture used internally by `poseAt()` and `inPose()`.           |
 
 Most shaders should use the helper functions below instead of sampling `u_poseLandmarksTex` or `u_poseMask` directly.
 

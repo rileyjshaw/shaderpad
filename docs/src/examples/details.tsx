@@ -36,6 +36,20 @@ function DocLink({
   return <Link href={href}>{children}</Link>
 }
 
+function CodeDocLink({
+  href,
+  children,
+}: {
+  href: string
+  children: ReactNode
+}) {
+  return (
+    <CodeDocLink href={href}>
+      {children}
+    </CodeDocLink>
+  )
+}
+
 function ExtLink({
   href,
   children,
@@ -57,9 +71,9 @@ const exampleDetails: Record<string, ExampleDetails> = {
         <p>
           This is the smallest "real" browser setup in the examples: a fullscreen
           canvas created with{' '}
-          <DocLink href={docs.utilities}>createFullscreenCanvas()</DocLink> and
+          <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink> and
           kept in sync with the viewport by{' '}
-          <DocLink href={docs.autosize}>autosize()</DocLink>. Resize the window,
+          <CodeDocLink href={docs.autosize}>autosize</CodeDocLink>. Resize the window,
           move the pointer around, and click to see how the same shader responds
           to canvas size changes and live input without any surrounding app code.
         </p>
@@ -84,9 +98,8 @@ const exampleDetails: Record<string, ExampleDetails> = {
         <p>
           This is a simple live-texture composite: it loads the webcam, uploads
           it with{' '}
-          <DocLink href={docs.textures}>
-            initializeTexture() and updateTextures()
-          </DocLink>
+          <CodeDocLink href={docs.textures}>initializeTexture</CodeDocLink> and{' '}
+          <CodeDocLink href={docs.textures}>updateTextures</CodeDocLink>
           , then blends it with a transparent picture-frame image. It follows the
           same pattern shown in the{' '}
           <DocLink href={docs.webcamInput}>webcam input guide</DocLink>.
@@ -107,7 +120,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           <DocLink href={docs.history}>history</DocLink>, and rendered. The
           first pass renders the webcam into an <code>R8</code> offscreen
           texture. The second pass samples that ShaderPad instance via{' '}
-          <DocLink href={docs.textures}><code>initializeTexture</code></DocLink>.
+          <CodeDocLink href={docs.textures}>initializeTexture</CodeDocLink>.
           Single-channel data can be passed between ShaderPads and read back
           like any other texture.
         </p>
@@ -123,11 +136,11 @@ const exampleDetails: Record<string, ExampleDetails> = {
       <>
         <p>
           Sway is a fullscreen animated uniform demo built with{' '}
-          <DocLink href={docs.utilities}>createFullscreenCanvas()</DocLink> and{' '}
-          <DocLink href={docs.autosize}>autosize()</DocLink>. It drives one
+          <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink> and{' '}
+          <CodeDocLink href={docs.autosize}>autosize</CodeDocLink>. It drives one
           shader through{' '}
-          <DocLink href={docs.uniforms}>initializeUniform()</DocLink> and swaps
-          presets with <DocLink href={docs.uniforms}>updateUniforms()</DocLink>.
+          <CodeDocLink href={docs.uniforms}>initializeUniform</CodeDocLink> and swaps
+          presets with <CodeDocLink href={docs.uniforms}>updateUniforms</CodeDocLink>.
         </p>
         <p>
           Use <code>Left Arrow</code> and <code>Right Arrow</code> to cycle
@@ -145,14 +158,14 @@ const exampleDetails: Record<string, ExampleDetails> = {
           Selfie is a practical template using the{' '}
           <DocLink href={docs.save}>save plugin</DocLink>. It sets up a
           fullscreen webcam view with{' '}
-          <DocLink href={docs.utilities}><code>createFullscreenCanvas</code></DocLink>,{' '}
-          <DocLink href={docs.autosize}><code>autosize</code></DocLink>, and{' '}
-          <DocLink href={docs.helpers}><code>fitCover</code></DocLink> to fill the screen
+          <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink>,{' '}
+          <CodeDocLink href={docs.autosize}>autosize</CodeDocLink>, and{' '}
+          <CodeDocLink href={docs.helpers}>fitCover</CodeDocLink> to fill the screen
           without stretching.
         </p>
         <p>
           Click the on-screen <code>Save</code> button to call{' '}
-          <DocLink href={docs.save}><code>save</code></DocLink> with a filename and caption.
+          <CodeDocLink href={docs.save}>save</CodeDocLink> with a filename and caption.
           For the API details, read this alongside the{' '}
           <DocLink href={docs.savingImages}>saving images guide</DocLink>.
         </p>
@@ -183,7 +196,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           <DocLink href={docs.history}>output history</DocLink>. The
           shader flashes a new solid color for the first 4 frames. On the 5th frame, it samples
           the stored frames using{' '}
-          <DocLink href={docs.helpers}>historyZ()</DocLink> and arranges them in
+          <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink> and arranges them in
           a grid. After the 5th frame renders, the demo pauses so you can inspect it as a static image.
         </p>
       </>
@@ -196,11 +209,11 @@ const exampleDetails: Record<string, ExampleDetails> = {
           This demo applies per-texture{' '}
           <DocLink href={docs.history}>history</DocLink> to the webcam itself,
           then accumulates several delayed samples into a soft echo trail. It
-          uses <DocLink href={docs.utilities}>createFullscreenCanvas()</DocLink>,{' '}
-          <DocLink href={docs.autosize}>autosize()</DocLink>, and{' '}
-          <DocLink href={docs.helpers}>helpers()</DocLink> so the shader can use{' '}
-          <DocLink href={docs.helpers}>fitCover()</DocLink> and{' '}
-          <DocLink href={docs.helpers}>historyZ()</DocLink> without extra setup.
+          uses <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink>,{' '}
+          <CodeDocLink href={docs.autosize}>autosize</CodeDocLink>, and{' '}
+          <CodeDocLink href={docs.helpers}>helpers</CodeDocLink> so the shader can use{' '}
+          <CodeDocLink href={docs.helpers}>fitCover</CodeDocLink> and{' '}
+          <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink> without extra setup.
         </p>
         <p>
           The eased frame offsets keep the newer echoes tighter and the older
@@ -216,13 +229,13 @@ const exampleDetails: Record<string, ExampleDetails> = {
           This demo builds RGB webcam trails from per-texture{' '}
           <DocLink href={docs.history}>history</DocLink>. The shader blends
           several delayed red, green, and blue samples selected with{' '}
-          <DocLink href={docs.helpers}>historyZ()</DocLink> into one image.
+          <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink> into one image.
         </p>
         <p>
           It also uses{' '}
-          <DocLink href={docs.utilities}>createFullscreenCanvas()</DocLink>,{' '}
-          <DocLink href={docs.autosize}>autosize()</DocLink>, and{' '}
-          <DocLink href={docs.helpers}>fitCover()</DocLink>, so it also shows
+          <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink>,{' '}
+          <CodeDocLink href={docs.autosize}>autosize</CodeDocLink>, and{' '}
+          <CodeDocLink href={docs.helpers}>fitCover</CodeDocLink>, so it also shows
           aspect-correct fullscreen webcam rendering. Quick movement produces
           multiple temporal bands, while still images settle back into a
           coherent picture.
@@ -237,7 +250,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           This visualizes a rolling {' '}
           <DocLink href={docs.history}>history framebuffer</DocLink>. The grey circle
           illustrates history buffer access with{' '}
-          <DocLink href={docs.helpers}>historyZ()</DocLink>. The yellow, red,
+          <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink>. The yellow, red,
           and blue circles show direct access through static indices.
         </p>
       </>
@@ -255,7 +268,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
         </p>
         <p>
           The shader uses{' '}
-          <DocLink href={docs.helpers}>historyZ()</DocLink> to assign each cell
+          <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink> to assign each cell
           in the grid to an older frame, while JavaScript keeps the live webcam
           texture and the render cadence aligned with the feed.
         </p>
@@ -267,13 +280,13 @@ const exampleDetails: Record<string, ExampleDetails> = {
       <>
         <p>
           This is the main "what does the face plugin expose?" demo. It uses the{' '}
-          <DocLink href={docs.face}>face()</DocLink> plugin to draw region masks,
+          <CodeDocLink href={docs.face}>face</CodeDocLink> plugin to draw region masks,
           facial landmarks, and debug overlays in one pass, including brows,
           eyes, mouth regions, and the face mask texture in the corner.
         </p>
         <p>
           It shows both levels of the API at once: region helpers such as{' '}
-          <DocLink href={docs.face}>faceAt()</DocLink> and raw landmark access.
+          <CodeDocLink href={docs.face}>faceAt</CodeDocLink> and raw landmark access.
           On touch devices, double-tap to switch cameras.
         </p>
       </>
@@ -290,7 +303,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           by different tracked regions.
         </p>
         <p>
-          It still stays in one pass. With <DocLink href={docs.helpers}>helpers()</DocLink>
+          It still stays in one pass. With <CodeDocLink href={docs.helpers}>helpers</CodeDocLink>
           , one history frame, and a small overlay UI, it becomes a compact recipe
           for invisibility-style effects without a full segmentation pipeline.
         </p>
@@ -305,14 +318,14 @@ const exampleDetails: Record<string, ExampleDetails> = {
           <DocLink href={docs.chainingShaders}>multi-pass ShaderPad chaining</DocLink>
           . The first pass renders webcam stripes inside the face region, and the
           second pass samples that first ShaderPad instance as a texture via{' '}
-          <DocLink href={docs.textures}>initializeTexture()</DocLink> before
+          <CodeDocLink href={docs.textures}>initializeTexture</CodeDocLink> before
           adding a complementary effect outside the face.
         </p>
         <p>
           It also demonstrates deliberate pass ordering: pass A advances with{' '}
-          <DocLink href={docs.shaderLifecycle}>step()</DocLink>, then pass B reads
+          <CodeDocLink href={docs.shaderLifecycle}>step</CodeDocLink>, then pass B reads
           its fresh output in the same loop. Both passes use the same{' '}
-          <DocLink href={docs.face}>face()</DocLink> setup, so it is a clear
+          <CodeDocLink href={docs.face}>face</CodeDocLink> setup, so it is a clear
           example of face-aware compositing.
         </p>
       </>
@@ -401,8 +414,8 @@ const exampleDetails: Record<string, ExampleDetails> = {
         </p>
         <p>
           It is also a good performance example. The render loop returns{' '}
-          <DocLink href={docs.history}>skipHistoryWrite</DocLink> from{' '}
-          <DocLink href={docs.shaderLifecycle}>play()</DocLink> so history is
+          <CodeDocLink href={docs.history}>skipHistoryWrite</CodeDocLink> from{' '}
+          <CodeDocLink href={docs.shaderLifecycle}>play</CodeDocLink> so history is
           only written every few frames. The active fingertip changes color, so
           you can see the gesture-selection logic while drawing.
         </p>
@@ -435,7 +448,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           Segmenter demonstrates the{' '}
           <DocLink href={docs.segmenter}>segmenter plugin</DocLink> as both a
           high-level query and a raw mask source. The shader reads category and
-          confidence through <DocLink href={docs.segmenter}>segmentAt()</DocLink>
+          confidence through <CodeDocLink href={docs.segmenter}>segmentAt</CodeDocLink>
           , then also previews the full segmentation mask in the corner.
         </p>
         <p>
@@ -487,7 +500,13 @@ const exampleDetails: Record<string, ExampleDetails> = {
           Fragmentum is here as a reminder that ShaderPad does not need a lot of
           scaffolding to host a dense fragment shader. This demo is essentially a
           direct port of an existing procedural piece, driven mostly by{' '}
-          <DocLink href={docs.builtInInputs}>u_time and u_resolution</DocLink>{' '}
+          <CodeDocLink href={docs.builtInInputs}>
+            u_time
+          </CodeDocLink>{' '}
+          and{' '}
+          <CodeDocLink href={docs.builtInInputs}>
+            u_resolution
+          </CodeDocLink>{' '}
           and kept intentionally close to the original GLSL.
         </p>
         <p>

@@ -149,7 +149,6 @@ On the first pass, the shared detector runs and caches the result for that sourc
 
 To keep batching effective:
 
-- Reuse the same `HTMLVideoElement`, `HTMLImageElement`, `HTMLCanvasElement`, or `OffscreenCanvas`
 - Keep `textureName` identical across passes
 - Keep plugin options aligned across passes
 - Avoid creating duplicate plugins with tiny option differences unless you really need separate detectors

@@ -36,9 +36,9 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 
 | Option                            | Meaning                                                   |
 | --------------------------------- | --------------------------------------------------------- |
-| `modelPath?: string`              | custom MediaPipe model path                               |
-| `outputConfidenceMasks?: boolean` | expose per-category confidence instead of flat confidence |
-| `history?: number`                | history depth for the segment mask                        |
+| `modelPath?: string`              | Custom MediaPipe model path.                              |
+| `outputConfidenceMasks?: boolean` | Expose per-category confidence instead of flat confidence. |
+| `history?: number`                | History depth for the segment mask.                       |
 
 ## Events
 
@@ -46,8 +46,8 @@ Subscribe with `shader.on(name, callback)`.
 
 | Event              | Callback                                      | Meaning                                                |
 | ------------------ | --------------------------------------------- | ------------------------------------------------------ |
-| `segmenter:ready`  | `() => void`                                  | model assets are loaded and the plugin is ready        |
-| `segmenter:result` | `(result: ImageSegmenterResult) => void`      | latest MediaPipe result for the current analyzed frame |
+| `segmenter:ready`  | `() => void`                                  | Model assets are loaded and the plugin is ready.       |
+| `segmenter:result` | `(result: ImageSegmenterResult) => void`      | Latest MediaPipe result for the current analyzed frame. |
 
 ```javascript
 shader.on('segmenter:result', result => {
@@ -59,8 +59,10 @@ shader.on('segmenter:result', result => {
 
 | Uniform           | Meaning                                                                                   |
 | ----------------- | ----------------------------------------------------------------------------------------- |
-| `u_segmentMask`   | segmentation texture used internally by `segmentAt()`; direct sampling is only needed for custom decoding |
-| `u_numCategories` | number of segmentation categories, including background                                   |
+| `u_segmentMask`   | Segmentation texture used internally by `segmentAt()`; direct sampling is only needed for custom decoding. |
+| `u_numCategories` | Number of segmentation categories, including background.                                  |
+
+Most shaders should use the helper functions below instead of sampling `u_segmentMask` directly.
 
 ## Helper Functions
 
