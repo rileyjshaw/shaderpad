@@ -47,7 +47,7 @@ export function Fence({
       theme={{ plain: {}, styles: [] }}
     >
       {({ className, style, tokens, getTokenProps }) => (
-        <div className="group relative overflow-hidden rounded-xl bg-slate-900 shadow-lg dark:bg-slate-800/60 dark:shadow-none dark:ring-1 dark:ring-slate-300/10">
+        <div className="group relative">
           <button
             type="button"
             onClick={handleCopy}
@@ -64,7 +64,7 @@ export function Fence({
             </span>
           </button>
           <pre
-            className={`${className} overflow-x-auto p-6 text-sm leading-7`}
+            className={`${className} m-0 overflow-x-auto rounded-xl bg-slate-900 p-6 text-sm leading-7 shadow-lg dark:bg-slate-800/60 dark:shadow-none dark:ring-1 dark:ring-slate-300/10`}
             style={style}
           >
             <code>

@@ -10,13 +10,13 @@ ShaderPad handles the repetitive work required to render fragment shaders in the
 
 {% quick-links %}
 
-{% quick-link title="Installation" icon="installation" href="/docs/getting-started/installation" description="Get started by installing ShaderPad into your project." /%}
+{% quick-link title="Installation" icon="installation" href="/docs/getting-started/installation" description="Install ShaderPad, start from a template, or set up an AI-assisted workflow." /%}
 
-{% quick-link title="Quickstart" icon="lightbulb" href="/docs/getting-started/quickstart" description="Render your first simple example shaders." /%}
+{% quick-link title="Quickstart" icon="lightbulb" href="/docs/getting-started/quickstart" description="Get started by rendering your first simple example shaders." /%}
 
-{% quick-link title="AI agent guide" icon="plugins" href="/docs/getting-started/ai-agent-guide" description="Start here if you want an LLM or coding agent to generate correct ShaderPad programs." /%}
+{% quick-link title="Examples" icon="presets" href="/docs/getting-started/examples" description="Browse runnable examples and source code for common ShaderPad patterns." /%}
 
-{% quick-link title="API reference" icon="presets" href="/docs/api/shaderpad" description="Jump straight to options, methods, events, and utilities." /%}
+{% quick-link title="API reference" icon="plugins" href="/docs/api/shaderpad" description="Jump straight to options, methods, events, and utilities." /%}
 
 {% /quick-links %}
 
@@ -32,7 +32,7 @@ ShaderPad is a minimal fragment shader library for the web. It handles WebGL2 sc
 - Add post-processing effects to existing `canvas`, `img` and `video` elements.
 - Efficiently create multi-pass graphics pipelines with minimal overhead.
 - Make your own face filters or pose detection apps like [Strange Camera](https://strange.cam).
-- Point your AI coding agent to the [AI agent guide](/docs/getting-started/ai-agent-guide), describe the effect you want to see, and let it build from there.
+- Vibe code your first shader using the [AI entry points](/docs/getting-started/installation#using-ai).
 
 ## Comparisons To Other Libraries
 

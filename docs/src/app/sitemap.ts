@@ -38,6 +38,8 @@ const staticPaths = [
   '/llms-index.json',
   '/README.md',
   '/examples/source',
+  '/docs/getting-started/ai-agent-guide',
+  '/docs/getting-started/ai-agent-guide.md',
 ]
 export const dynamic = 'force-static'
 
