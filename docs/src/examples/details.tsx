@@ -44,9 +44,9 @@ function CodeDocLink({
   children: ReactNode
 }) {
   return (
-    <CodeDocLink href={href}>
-      {children}
-    </CodeDocLink>
+    <DocLink href={href}>
+      <code>{children}</code>
+    </DocLink>
   )
 }
 
