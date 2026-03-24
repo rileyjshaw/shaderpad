@@ -15,6 +15,7 @@ const COLORS = [
 	[0, 0, 1],
 ];
 const HISTORY_LENGTH = COLORS.length;
+const GRID_SIZE = 2;
 
 export async function init({ mount }: ExampleContext) {
 	const fragmentShaderSrc = `#version 300 es
@@ -32,19 +33,22 @@ void main() {
 		(color, i) => `if (u_frame == ${i}) {
 		outColor = vec4(${color.map(c => c.toFixed(1)).join(', ')}, 1.0);
 	} else `
-	).join('')} if (u_frame == ${HISTORY_LENGTH}) {
-		// Show the prior frames as columns.
-		float scaledX = v_uv.x * ${HISTORY_LENGTH}.0;
-		int age = ${HISTORY_LENGTH} - 1 - int(scaledX); // We want the first column on the left to have the highest “age”.
-		vec2 historyUV = vec2(fract(scaledX), v_uv.y);
-		vec4 historyColor = texture(u_history, vec3(historyUV, historyZ(u_history, u_historyFrameOffset, age)));
-		outColor = historyColor;
-	}
-}`;
+		).join('')} if (u_frame == ${HISTORY_LENGTH}) {
+			// Show the prior frames in a 2x2 grid.
+			vec2 scaledUV = v_uv * ${GRID_SIZE}.0;
+			ivec2 tile = ivec2(floor(scaledUV));
+			int tileYFromTop = ${GRID_SIZE} - 1 - tile.y;
+			int tileIndex = tile.x + tileYFromTop * ${GRID_SIZE};
+			int age = ${HISTORY_LENGTH} - 1 - tileIndex; // Top left is the oldest; bottom right is the newest.
+			vec2 historyUV = fract(scaledUV);
+			vec4 historyColor = texture(u_history, vec3(historyUV, historyZ(u_history, u_historyFrameOffset, age)));
+			outColor = historyColor;
+		}
+	}`;
 
 	const outputCanvas = createFullscreenCanvas(mount);
-	outputCanvas.width = HISTORY_LENGTH;
-	outputCanvas.height = 1;
+	outputCanvas.width = GRID_SIZE;
+	outputCanvas.height = GRID_SIZE;
 	outputCanvas.style.imageRendering = 'pixelated';
 
 	const shader = new ShaderPad(fragmentShaderSrc, {

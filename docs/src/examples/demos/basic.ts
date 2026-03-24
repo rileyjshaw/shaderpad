@@ -1,6 +1,6 @@
 /**
  * Interactive dot grid with cursor tracking. Uses built-in uniforms (u_time, u_cursor, u_click)
- * and custom uniforms with dynamic updates. Spacebar to pause/play.
+ * and custom uniforms with dynamic updates.
  */
 import ShaderPad from 'shaderpad';
 import autosize from 'shaderpad/plugins/autosize';
@@ -54,7 +54,6 @@ export async function init({ mount }: ExampleContext) {
 		canvas,
 		cursorTarget: window,
 	});
-	let isPlaying = true;
 
 	// Add your own custom uniforms.
 	const getColor = (time: number) =>
@@ -66,17 +65,7 @@ export async function init({ mount }: ExampleContext) {
 		shader!.updateUniforms({ u_cursorColor: getColor(time) });
 	});
 
-	// Add keyboard controls.
-	const keydownHandler = (e: KeyboardEvent) => {
-		if (e.key === ' ') {
-			isPlaying = !isPlaying;
-			isPlaying ? shader.play() : shader.pause();
-		}
-	};
-	document.addEventListener('keydown', keydownHandler);
-
 	return () => {
-		document.removeEventListener('keydown', keydownHandler);
 		shader.destroy();
 		canvas.remove();
 	};

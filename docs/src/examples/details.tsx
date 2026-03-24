@@ -24,6 +24,7 @@ const docs = {
   uniforms: '/docs/core-concepts/uniforms',
   utilities: '/docs/api/utilities',
   webcamInput: '/docs/guides/webcam-input',
+  webcamTrails: '/docs/examples/demos/webcam-trails',
 } as const
 
 function DocLink({
@@ -74,7 +75,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink> and
           kept in sync with the viewport by{' '}
           <CodeDocLink href={docs.autosize}>autosize</CodeDocLink>. Resize the window,
-          move the pointer around, and click to see how the same shader responds
+          move the pointer around, and click to see how the shader responds
           to canvas size changes and live input without any surrounding app code.
         </p>
         <p>
@@ -86,8 +87,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           <DocLink href={docs.uniforms}>
             custom color uniform
           </DocLink>
-          . Press <code>Space</code> to{' '}
-          <DocLink href={docs.shaderLifecycle}>pause or resume</DocLink> the animation.
+          .
         </p>
       </>
     ),
@@ -135,18 +135,16 @@ const exampleDetails: Record<string, ExampleDetails> = {
     fullDescription: (
       <>
         <p>
-          Sway is a fullscreen animated uniform demo built with{' '}
-          <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink> and{' '}
-          <CodeDocLink href={docs.autosize}>autosize</CodeDocLink>. It drives one
-          shader through{' '}
-          <CodeDocLink href={docs.uniforms}>initializeUniform</CodeDocLink> and swaps
-          presets with <CodeDocLink href={docs.uniforms}>updateUniforms</CodeDocLink>.
+          This demo has seven uniforms controlling its animation behavior, from
+          maximum sway angle to whether it uses color. These values are 
+          organized into “presets” and swapped with a single {' '}
+          <CodeDocLink href={docs.uniforms}>updateUniforms</CodeDocLink> call.
         </p>
         <p>
-          Use <code>Left Arrow</code> and <code>Right Arrow</code> to cycle
-          through variants, and press <code>Space</code> to pause or resume. It
+          Swipe or use <code>Left Arrow</code> and <code>Right Arrow</code> to cycle
+          through presets, and press <code>Space</code> to pause or resume. It
           shows how to get multiple looks out of one shader with a small set of
-          animated uniforms.
+          uniforms.
         </p>
       </>
     ),
@@ -166,7 +164,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
         <p>
           Click the on-screen <code>Save</code> button to call{' '}
           <CodeDocLink href={docs.save}>save</CodeDocLink> with a filename and caption.
-          For the API details, read this alongside the{' '}
+          For the API details, read the{' '}
           <DocLink href={docs.savingImages}>saving images guide</DocLink>.
         </p>
       </>
@@ -178,8 +176,8 @@ const exampleDetails: Record<string, ExampleDetails> = {
         <p>
           This ShaderPad instance enables a 25-frame{' '}
           <DocLink href={docs.history}>output history</DocLink> and tiles it into
-          a 5x5 grid. The bottom right is the newest stored frame, the top left
-          is the oldest, and the rest are sampled in between.
+          a 5x5 grid. The bottom-right is the newest stored frame, the top-left
+          is the oldest, and the rest are sampled in-between.
         </p>
         <p>
           The large red cursor is the only live input. The rest of the dots are
@@ -197,7 +195,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           shader flashes a new solid color for the first 4 frames. On the 5th frame, it samples
           the stored frames using{' '}
           <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink> and arranges them in
-          a grid. After the 5th frame renders, the demo pauses so you can inspect it as a static image.
+          a grid. After the 5th frame, the demo pauses so you can inspect it.
         </p>
       </>
     ),
@@ -226,19 +224,9 @@ const exampleDetails: Record<string, ExampleDetails> = {
     fullDescription: (
       <>
         <p>
-          This demo builds RGB webcam trails from per-texture{' '}
-          <DocLink href={docs.history}>history</DocLink>. The shader blends
-          several delayed red, green, and blue samples selected with{' '}
-          <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink> into one image.
-        </p>
-        <p>
-          It also uses{' '}
-          <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink>,{' '}
-          <CodeDocLink href={docs.autosize}>autosize</CodeDocLink>, and{' '}
-          <CodeDocLink href={docs.helpers}>fitCover</CodeDocLink>, so it also shows
-          aspect-correct fullscreen webcam rendering. Quick movement produces
-          multiple temporal bands, while still images settle back into a
-          coherent picture.
+          This demo is a slight variation on the <DocLink href={docs.webcamTrails}>webcam trails demo</DocLink>. It
+          demonstrates that history frames don’t need to be rendered exactly as they’re sampled. Here, each frame is pulled using <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink> and
+          reduced to a single color channel before rendering.
         </p>
       </>
     ),
@@ -253,6 +241,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
           <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink>. The yellow, red,
           and blue circles show direct access through static indices.
         </p>
+        <p>As you can see from the colored circles, accessing a static index will produce the same image until the buffer rolls over and overwrites it. For smooth, “N frames ago” access, use <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink>.</p>
       </>
     ),
   },
@@ -260,17 +249,10 @@ const exampleDetails: Record<string, ExampleDetails> = {
     fullDescription: (
       <>
         <p>
-          This demo turns webcam history into a literal timeline wall. Instead of
-          advancing the buffer on arbitrary render frames, it advances ShaderPad
-          directly from the browser video callback so the{' '}
-          <DocLink href={docs.history}>history</DocLink> layers track actual
-          video frames more closely.
-        </p>
-        <p>
-          The shader uses{' '}
+          This demo visualizes webcam history as a timeline. It uses the webcam’s{' '}
+          <DocLink href={docs.textures}>texture history</DocLink> and{' '}
           <CodeDocLink href={docs.helpers}>historyZ</CodeDocLink> to assign each cell
-          in the grid to an older frame, while JavaScript keeps the live webcam
-          texture and the render cadence aligned with the feed.
+          in the grid to an older frame.
         </p>
       </>
     ),
@@ -466,7 +448,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
         <ExtLink href="https://github.com/Erkaman/glsl-godrays/blob/master/example/index.js">
           Ricky Reusser&apos;s god-rays example
         </ExtLink>{' '}
-        and <ExtLink href="https://shaderbooth.com/">Max Bittker&apos;s Shaderbooth</ExtLink>
+        from <ExtLink href="https://shaderbooth.com/">Max Bittker&apos;s Shaderbooth</ExtLink>
       </>
     ),
     fullDescription: (
@@ -498,7 +480,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
       <>
         <p>
           Fragmentum is here as a reminder that ShaderPad does not need a lot of
-          scaffolding to host a dense fragment shader. This demo is essentially a
+          scaffolding to host a dense fragment shader. This demo is a
           direct port of an existing procedural piece, driven mostly by{' '}
           <CodeDocLink href={docs.builtInInputs}>
             u_time

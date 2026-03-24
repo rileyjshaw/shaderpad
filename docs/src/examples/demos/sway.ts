@@ -6,6 +6,7 @@ import ShaderPad from 'shaderpad';
 import autosize from 'shaderpad/plugins/autosize';
 import { createFullscreenCanvas } from 'shaderpad/util';
 
+import { handleTouch } from '@/examples/demo-utils';
 import type { ExampleContext } from '@/examples/runtime';
 
 const fragmentShaderSrc = `#version 300 es
@@ -165,6 +166,7 @@ const variants = [
 
 export async function init({ mount }: ExampleContext) {
 	const canvas = createFullscreenCanvas(mount);
+	canvas.style.touchAction = 'none';
 	const shader = new ShaderPad(fragmentShaderSrc, {
 		canvas,
 		plugins: [autosize()],
@@ -176,27 +178,48 @@ export async function init({ mount }: ExampleContext) {
 		shader.initializeUniform(key, 'float', value);
 	});
 
+	const togglePlayback = () => {
+		isPlaying = !isPlaying;
+		isPlaying ? shader.play() : shader.pause();
+	};
+
+	const changeVariant = (step: number) => {
+		variantIdx = (variantIdx + step + variants.length) % variants.length;
+		shader.updateUniforms(variants[variantIdx]);
+	};
+
 	shader.play();
 
 	const keydownHandler = (e: KeyboardEvent) => {
 		switch (e.key) {
 			case ' ':
-				isPlaying = !isPlaying;
-				isPlaying ? shader.play() : shader.pause();
+				togglePlayback();
 				break;
 			case 'ArrowRight':
-				variantIdx += 2;
-			// Falls through.
+				changeVariant(1);
+				break;
 			case 'ArrowLeft':
-				variantIdx = (variantIdx - 1 + variants.length) % variants.length;
-				shader.updateUniforms(variants[variantIdx]);
+				changeVariant(-1);
 				break;
 		}
 	};
 	document.addEventListener('keydown', keydownHandler);
+	const removeTouchControls = handleTouch(
+		canvas,
+		{
+			onMove(direction, delta, _additionalTouchCount, _initialX, _initialY, e) {
+				if (direction !== 'x') return;
+
+				e.preventDefault();
+				changeVariant(delta > 0 ? 1 : -1);
+			},
+		},
+		{ moveThresholdPx: 24, once: true },
+	);
 
 	return () => {
 		document.removeEventListener('keydown', keydownHandler);
+		removeTouchControls();
 		shader.destroy();
 		canvas.remove();
 	};

@@ -7,12 +7,7 @@ export const exampleRegistry = [
   {
     slug: 'sway',
     title: 'Sway',
-    description: 'Animated grid with keyboard-switched visual variants.',
-  },
-  {
-    slug: 'cursor-feedback',
-    title: 'Cursor feedback',
-    description: 'A shader that feeds back on itself through a 5x5 tiled history buffer.',
+    description: 'Animated visualizer with user-controlled patterns.',
   },
   {
     slug: 'history-tiles',
@@ -20,9 +15,14 @@ export const exampleRegistry = [
     description: 'Saving distinct frames into history, then composing them into a grid.',
   },
   {
+    slug: 'cursor-feedback',
+    title: 'Cursor feedback',
+    description: 'A shader that feeds back on itself through a 5x5 tiled history buffer.',
+  },
+  {
     slug: 'reading-history',
     title: 'Reading history',
-    description: 'Grey uses historyZ(); color uses static history indices.',
+    description: 'An illustration of how to read past frames using the historyZ helper.',
   },
   {
     slug: 'selfie',
@@ -37,7 +37,7 @@ export const exampleRegistry = [
   {
     slug: 'webcam-channel-trails',
     title: 'Webcam channel trails',
-    description: 'RGB webcam echoes blended from staggered history frames.',
+    description: 'RGB webcam echoes blended from modified history frames.',
   },
   {
     slug: 'webcam-grid',
@@ -52,7 +52,7 @@ export const exampleRegistry = [
   {
     slug: 'fragmentum',
     title: 'Fragmentum',
-    description: 'A procedural fullscreen animation ported from Shadertoy.',
+    description: 'A procedural animation ported from Shadertoy.',
   },
   {
     slug: 'webcam',
@@ -65,9 +65,19 @@ export const exampleRegistry = [
     description: 'Face landmarks, masks, and regions visualized live.',
   },
   {
-    slug: 'camo',
-    title: 'Camo',
-    description: 'Face- or body-centered camouflage with a live mode toggle.',
+    slug: 'pose-detection',
+    title: 'Pose detection',
+    description: 'Pose landmarks and segmentation overlays on live video.',
+  },
+  {
+    slug: 'hand-detection',
+    title: 'Hand detection',
+    description: 'Hand landmarks and centers visualized over webcam input.',
+  },
+  {
+    slug: 'segmenter',
+    title: 'Segmenter',
+    description: 'Live multi-category segmentation masks composited over webcam video.',
   },
   {
     slug: 'mediapipe-chaining',
@@ -75,19 +85,14 @@ export const exampleRegistry = [
     description: 'Two-pass webcam compositing with shared face detection.',
   },
   {
-    slug: 'pose-detection',
-    title: 'Pose detection',
-    description: 'Pose landmarks and segmentation overlays on live video.',
-  },
-  {
     slug: 'background-blur',
     title: 'Background blur',
-    description: 'Selfie-segmented background blur built with a Dual Kawase chain.',
+    description: 'An advanced segmentation filter demonstrating a chained ShaderPad pipeline.',
   },
   {
-    slug: 'hand-detection',
-    title: 'Hand detection',
-    description: 'Hand landmarks and centers visualized over webcam input.',
+    slug: 'camo',
+    title: 'Camo',
+    description: 'Face- or body-centered camouflage with a live mode toggle.',
   },
   {
     slug: 'elastics',
@@ -97,17 +102,12 @@ export const exampleRegistry = [
   {
     slug: 'finger-pens',
     title: 'Finger pens',
-    description: 'Trailing ink strokes that follow the most expressive fingertip.',
+    description: 'Interactive ink strokes demo controlled by your fingertips.',
   },
   {
     slug: 'midi-fingers',
     title: 'MIDI fingers',
     description: 'Hand tracking routed to MIDI CC output with a live visual overlay.',
-  },
-  {
-    slug: 'segmenter',
-    title: 'Segmenter',
-    description: 'Live segmentation masks composited over webcam video.',
   },
   {
     slug: 'god-rays',
