@@ -1,9 +1,9 @@
 ---
 title: Performance
 nextjs:
-  metadata:
-    title: Performance
-    description: ShaderPad-specific ways to reduce bandwidth, copies, and unnecessary work.
+    metadata:
+        title: Performance
+        description: ShaderPad-specific ways to reduce bandwidth, copies, and unnecessary work.
 ---
 
 ShaderPad does a lot of work under the hood to make your graphics pipeline performant. If you want to fine-tune performance even further, the most valuable changes typically involve reducing texture bandwidth and avoiding unnecessary transfers between the CPU and GPU.
@@ -39,8 +39,8 @@ Downsample when a pass is only used for:
 
 ```javascript
 const lowResPass = new ShaderPad(fragmentShaderSrc, {
-  canvas: { width: 512, height: 512 },
-})
+	canvas: { width: 512, height: 512 },
+});
 ```
 
 If your passes already share one WebGL context, resizing that shared canvas between intermediate steps can be much cheaper than splitting the work across two separate contexts. It keeps the data on the GPU instead of forcing readbacks and reuploads. This won’t work for effects that rely on history, since those buffers need a stable size.
@@ -56,20 +56,20 @@ For instance, let's say you want to store one sample per second for the previous
 
 ```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
-  canvas,
-  history: 10,
-})
+	canvas,
+	history: 10,
+});
 
-let lastStoredSecond = -1
+let lastStoredSecond = -1;
 shader.play(time => {
-  const currentSecond = Math.floor(time)
+	const currentSecond = Math.floor(time);
 
-  if (currentSecond === lastStoredSecond) {
-    return { skipHistoryWrite: true }
-  }
+	if (currentSecond === lastStoredSecond) {
+		return { skipHistoryWrite: true };
+	}
 
-  lastStoredSecond = currentSecond
-})
+	lastStoredSecond = currentSecond;
+});
 ```
 
 ## Prefer Partial Updates For Data Textures
@@ -78,15 +78,15 @@ If a typed-array texture changes in a small region, update only that region inst
 
 ```javascript
 shader.updateTextures({
-  u_data: {
-    data: patch,
-    width: patchWidth,
-    height: patchHeight,
-    x: 0,
-    y: 0,
-    isPartial: true,
-  },
-})
+	u_data: {
+		data: patch,
+		width: patchWidth,
+		height: patchHeight,
+		x: 0,
+		y: 0,
+		isPartial: true,
+	},
+});
 ```
 
 ## Prefer Partial Updates For Uniform Arrays
@@ -95,11 +95,11 @@ If only part of a uniform array changes, update that slice instead of resending 
 
 ```javascript
 shader.updateUniforms(
-  {
-    u_points: [[mouseX, mouseY]],
-  },
-  { startIndex: activePointIndex },
-)
+	{
+		u_points: [[mouseX, mouseY]],
+	},
+	{ startIndex: activePointIndex },
+);
 ```
 
 This works well for UI control points, palettes, or other small, incrementally changing arrays. If the dataset is large and changes often, a data texture is usually a better fit.
@@ -127,22 +127,22 @@ If you attach a MediaPipe plugin to multiple `ShaderPad` instances, ShaderPad sh
 That means you can run a chained pipeline like this without paying for multiple pose detections per frame:
 
 ```javascript
-const camera = document.querySelector('video')
-const sharedCanvas = new OffscreenCanvas(1, 1)
+const camera = document.querySelector('video');
+const sharedCanvas = new OffscreenCanvas(1, 1);
 
 const preprocess = new ShaderPad(preprocessFrag, {
-  canvas: sharedCanvas,
-  plugins: [pose({ textureName: 'u_video', options: { maxPoses: 1 } })],
-})
+	canvas: sharedCanvas,
+	plugins: [pose({ textureName: 'u_video', options: { maxPoses: 1 } })],
+});
 
 const composite = new ShaderPad(compositeFrag, {
-  canvas: sharedCanvas,
-  plugins: [pose({ textureName: 'u_video', options: { maxPoses: 1 } })],
-  textures: { u_scene: preprocess },
-})
+	canvas: sharedCanvas,
+	plugins: [pose({ textureName: 'u_video', options: { maxPoses: 1 } })],
+	textures: { u_scene: preprocess },
+});
 
-preprocess.updateTextures({ u_video: camera })
-composite.updateTextures({ u_video: camera })
+preprocess.updateTextures({ u_video: camera });
+composite.updateTextures({ u_video: camera });
 ```
 
 On the first pass, the shared detector runs and caches the result for that source frame. On later passes in the same render chain, the plugin sees the same source and video timestamp, skips a new MediaPipe call, and just publishes the cached landmark or mask textures to each subscriber.

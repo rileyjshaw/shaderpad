@@ -67,18 +67,22 @@ void main() {
 
 	const shaderA = new ShaderPad(fragmentShaderSrcA, {
 		canvas,
-		plugins: [face({
-			textureName: 'u_webcam',
-			options: { maxFaces: 3 },
-		})],
+		plugins: [
+			face({
+				textureName: 'u_webcam',
+				options: { maxFaces: 3 },
+			}),
+		],
 	});
 
 	const shaderB = new ShaderPad(fragmentShaderSrcB, {
 		canvas,
-		plugins: [face({
-			textureName: 'u_webcam',
-			options: { maxFaces: 3 },
-		})],
+		plugins: [
+			face({
+				textureName: 'u_webcam',
+				options: { maxFaces: 3 },
+			}),
+		],
 	});
 
 	shaderA.initializeTexture('u_webcam', video);

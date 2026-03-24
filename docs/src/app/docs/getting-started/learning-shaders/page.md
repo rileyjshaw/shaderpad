@@ -1,9 +1,9 @@
 ---
 title: Learning shaders
 nextjs:
-  metadata:
-    title: Learning shaders
-    description: A few practical ways to build intuition for shaders and find good teachers.
+    metadata:
+        title: Learning shaders
+        description: A few practical ways to build intuition for shaders and find good teachers.
 ---
 
 ShaderPad can help you build shader-driven projects quickly, but it does not replace the broader process of learning how shaders work. If you are new to this space, the fastest path is usually a mix of play, fundamentals, and following people whose work excites you.

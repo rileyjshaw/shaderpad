@@ -1,9 +1,9 @@
 ---
 title: hands
 nextjs:
-  metadata:
-    title: hands
-    description: Hand landmarks and handedness helpers for ShaderPad.
+    metadata:
+        title: hands
+        description: Hand landmarks and handedness helpers for ShaderPad.
 ---
 
 {% callout title="Peer dependency requirement" %}
@@ -18,47 +18,47 @@ npm install @mediapipe/tasks-vision
 The `hands` plugin uses MediaPipe's [Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) and exposes ShaderPad textures and GLSL helper functions for hand-driven effects.
 
 ```javascript
-import hands from 'shaderpad/plugins/hands'
+import hands from 'shaderpad/plugins/hands';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
-  plugins: [hands({ textureName: 'u_webcam', options: { maxHands: 2 } })],
-})
+	plugins: [hands({ textureName: 'u_webcam', options: { maxHands: 2 } })],
+});
 ```
 
 The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
 ## Options
 
-| Option                                | Meaning                     |
-| ------------------------------------- | --------------------------- |
+| Option                                | Meaning                      |
+| ------------------------------------- | ---------------------------- |
 | `modelPath?: string`                  | Custom MediaPipe model path. |
-| `maxHands?: number`                   | Maximum hands to detect. |
-| `minHandDetectionConfidence?: number` | Detection threshold. |
-| `minHandPresenceConfidence?: number`  | Presence threshold. |
-| `minTrackingConfidence?: number`      | Tracking threshold. |
+| `maxHands?: number`                   | Maximum hands to detect.     |
+| `minHandDetectionConfidence?: number` | Detection threshold.         |
+| `minHandPresenceConfidence?: number`  | Presence threshold.          |
+| `minTrackingConfidence?: number`      | Tracking threshold.          |
 | `history?: number`                    | History depth for landmarks. |
 
 ## Events
 
 Subscribe with `shader.on(name, callback)`.
 
-| Event          | Callback                                      | Meaning                                                |
-| -------------- | --------------------------------------------- | ------------------------------------------------------ |
-| `hands:ready`  | `() => void`                                  | Model assets are loaded and the plugin is ready.       |
-| `hands:result` | `(result: HandLandmarkerResult) => void`      | Latest MediaPipe result for the current analyzed frame. |
+| Event          | Callback                                 | Meaning                                                 |
+| -------------- | ---------------------------------------- | ------------------------------------------------------- |
+| `hands:ready`  | `() => void`                             | Model assets are loaded and the plugin is ready.        |
+| `hands:result` | `(result: HandLandmarkerResult) => void` | Latest MediaPipe result for the current analyzed frame. |
 
 ```javascript
 shader.on('hands:result', result => {
-  console.log(`${result.handLandmarks.length} hands detected`)
-})
+	console.log(`${result.handLandmarks.length} hands detected`);
+});
 ```
 
 ## Uniforms
 
-| Uniform              | Meaning                                                                                        |
-| -------------------- | ---------------------------------------------------------------------------------------------- |
-| `u_maxHands`         | Maximum number of hands from initial config.                                                   |
-| `u_nHands`           | Detected hand count for the latest frame.                                                      |
+| Uniform              | Meaning                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `u_maxHands`         | Maximum number of hands from initial config.                                                    |
+| `u_nHands`           | Detected hand count for the latest frame.                                                       |
 | `u_handLandmarksTex` | Raw landmark texture used internally by `nHandsAt()`, `handLandmark()`, and handedness helpers. |
 
 Most shaders should use the helper functions below instead of sampling `u_handLandmarksTex` directly.
@@ -66,7 +66,6 @@ Most shaders should use the helper functions below instead of sampling `u_handLa
 ## Helper Functions
 
 If `history` is enabled, every helper below also has a a trailing `int framesAgo` argument. `0` means the current analyzed frame, `1` means the previous stored frame, and so on.
-
 
 ### `nHandsAt`
 
@@ -132,19 +131,19 @@ Returns `1.0` for left hands and `0.0` for right hands.
 
 The plugin exposes MediaPipe’s standard 21 hand landmarks plus one derived `HAND_CENTER` point.
 
-| Index | Landmark          | Index | Landmark          |
-| ----- | ----------------- | ----- | ----------------- |
-| 0     | `WRIST`           | 11    | `MIDDLE_FINGER_DIP` |
-| 1     | `THUMB_CMC`       | 12    | `MIDDLE_FINGER_TIP` |
-| 2     | `THUMB_MCP`       | 13    | `RING_FINGER_MCP` |
-| 3     | `THUMB_IP`        | 14    | `RING_FINGER_PIP` |
-| 4     | `THUMB_TIP`       | 15    | `RING_FINGER_DIP` |
-| 5     | `INDEX_FINGER_MCP`| 16    | `RING_FINGER_TIP` |
-| 6     | `INDEX_FINGER_PIP`| 17    | `PINKY_MCP`       |
-| 7     | `INDEX_FINGER_DIP`| 18    | `PINKY_PIP`       |
-| 8     | `INDEX_FINGER_TIP`| 19    | `PINKY_DIP`       |
-| 9     | `MIDDLE_FINGER_MCP` | 20  | `PINKY_TIP`       |
-| 10    | `MIDDLE_FINGER_PIP` | 21  | `HAND_CENTER`     |
+| Index | Landmark            | Index | Landmark            |
+| ----- | ------------------- | ----- | ------------------- |
+| 0     | `WRIST`             | 11    | `MIDDLE_FINGER_DIP` |
+| 1     | `THUMB_CMC`         | 12    | `MIDDLE_FINGER_TIP` |
+| 2     | `THUMB_MCP`         | 13    | `RING_FINGER_MCP`   |
+| 3     | `THUMB_IP`          | 14    | `RING_FINGER_PIP`   |
+| 4     | `THUMB_TIP`         | 15    | `RING_FINGER_DIP`   |
+| 5     | `INDEX_FINGER_MCP`  | 16    | `RING_FINGER_TIP`   |
+| 6     | `INDEX_FINGER_PIP`  | 17    | `PINKY_MCP`         |
+| 7     | `INDEX_FINGER_DIP`  | 18    | `PINKY_PIP`         |
+| 8     | `INDEX_FINGER_TIP`  | 19    | `PINKY_DIP`         |
+| 9     | `MIDDLE_FINGER_MCP` | 20    | `PINKY_TIP`         |
+| 10    | `MIDDLE_FINGER_PIP` | 21    | `HAND_CENTER`       |
 
 `HAND_CENTER` is a ShaderPad convenience landmark derived from the wrist and MCP joints. It is useful when you want a stable center point for sprites, particles, or gesture indicators without averaging landmarks yourself.
 

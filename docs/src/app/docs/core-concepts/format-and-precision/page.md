@@ -1,9 +1,9 @@
 ---
 title: Format and precision
 nextjs:
-  metadata:
-    title: Format and precision
-    description: Choose ShaderPad texture formats, data types, filters, and history precision deliberately.
+    metadata:
+        title: Format and precision
+        description: Choose ShaderPad texture formats, data types, filters, and history precision deliberately.
 ---
 
 ShaderPad exposes its underlying WebGL2 texture format controls for advanced use cases. This is useful when you want compact buffers, integer pipelines, or high-precision feedback.
@@ -32,13 +32,13 @@ When used in the constructor, these options define how ShaderPad stores:
 
 ```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
-  canvas,
-  history: 24,
-  internalFormat: 'RGBA32F',
-  type: 'FLOAT',
-  minFilter: 'NEAREST',
-  magFilter: 'NEAREST',
-})
+	canvas,
+	history: 24,
+	internalFormat: 'RGBA32F',
+	type: 'FLOAT',
+	minFilter: 'NEAREST',
+	magFilter: 'NEAREST',
+});
 ```
 
 {% callout title="Canvas Color Precision" %}
@@ -51,16 +51,16 @@ Texture format is configured separately from the ShaderPad instance settings, an
 
 ```javascript
 shader.initializeTexture(
-  'u_mask',
-  { data: new Uint8Array(width * height), width, height },
-  {
-    internalFormat: 'R8',
-    format: 'RED',
-    type: 'UNSIGNED_BYTE',
-    minFilter: 'NEAREST',
-    magFilter: 'NEAREST',
-  },
-)
+	'u_mask',
+	{ data: new Uint8Array(width * height), width, height },
+	{
+		internalFormat: 'R8',
+		format: 'RED',
+		type: 'UNSIGNED_BYTE',
+		minFilter: 'NEAREST',
+		magFilter: 'NEAREST',
+	},
+);
 ```
 
 This is useful for:
@@ -101,4 +101,3 @@ If you initialize a texture from another `ShaderPad` without overriding its text
 {% callout title="Chain Performance" %}
 Cross-context chains preserve the data format, but they do not share a GPU texture. They are correct, but slower.
 {% /callout %}
-

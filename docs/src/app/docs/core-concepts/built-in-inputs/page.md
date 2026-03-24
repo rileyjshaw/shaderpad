@@ -1,9 +1,9 @@
 ---
 title: Built-in inputs
 nextjs:
-  metadata:
-    title: Built-in inputs
-    description: Learn the built-in varying and uniforms that ShaderPad updates for you.
+    metadata:
+        title: Built-in inputs
+        description: Learn the built-in varying and uniforms that ShaderPad updates for you.
 ---
 
 ShaderPad programs come with a few built-in inputs for convenience. To use them, add the corresponding declarations at the top of your fragment shader. If your program does not use a particular uniform, ShaderPad will automatically free up the resources used to manage it.
@@ -20,13 +20,13 @@ in vec2 v_uv;
 
 ## Built-in Uniforms
 
-| Name | Type | Meaning |
-| --- | --- | --- |
-| `u_time` | `float` | Elapsed time in seconds. |
-| `u_frame` | `int` | Frame counter. |
-| `u_resolution` | `vec2` | Drawing buffer size in pixels. |
-| `u_cursor` | `vec2` | Normalized cursor position from bottom-left (0.0) to top-right (1.0). |
-| `u_click` | `vec3` | Normalized position of last click plus boolean pressed state. |
+| Name           | Type    | Meaning                                                               |
+| -------------- | ------- | --------------------------------------------------------------------- |
+| `u_time`       | `float` | Elapsed time in seconds.                                              |
+| `u_frame`      | `int`   | Frame counter.                                                        |
+| `u_resolution` | `vec2`  | Drawing buffer size in pixels.                                        |
+| `u_cursor`     | `vec2`  | Normalized cursor position from bottom-left (0.0) to top-right (1.0). |
+| `u_click`      | `vec3`  | Normalized position of last click plus boolean pressed state.         |
 
 More complete documentation is available in the [Uniforms API reference](/docs/api/uniforms).
 
@@ -39,7 +39,7 @@ If you use the [helpers plugin](/docs/plugins/helpers), it injects the `u_resolu
 This example uses `u_time`, `u_cursor`, `u_click`, and `u_resolution` together with one custom uniform:
 
 ```javascript
-import ShaderPad from 'shaderpad'
+import ShaderPad from 'shaderpad';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
@@ -76,23 +76,20 @@ void main() {
   color = mix(color, vec3(1.0), click);
 
   outColor = vec4(color, 1.0);
-}`
+}`;
 
-const canvas = document.createElement('canvas')
-document.body.append(canvas)
+const canvas = document.createElement('canvas');
+document.body.append(canvas);
 
-const shader = new ShaderPad(fragmentShaderSrc, { canvas })
+const shader = new ShaderPad(fragmentShaderSrc, { canvas });
 
-const getColor = (time) =>
-  [time, time + (Math.PI * 2) / 3, time + (Math.PI * 4) / 3].map(
-    (x) => 0.5 + 0.5 * Math.sin(x),
-  )
+const getColor = time => [time, time + (Math.PI * 2) / 3, time + (Math.PI * 4) / 3].map(x => 0.5 + 0.5 * Math.sin(x));
 
-shader.initializeUniform('u_cursorColor', 'float', getColor(0))
+shader.initializeUniform('u_cursorColor', 'float', getColor(0));
 
-shader.play((time) => {
-  shader.updateUniforms({ u_cursorColor: getColor(time) })
-})
+shader.play(time => {
+	shader.updateUniforms({ u_cursorColor: getColor(time) });
+});
 ```
 
 {% built-in-inputs-preview /%}

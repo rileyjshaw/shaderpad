@@ -151,12 +151,7 @@ function createPassSizes(width: number, height: number) {
 	return sizes;
 }
 
-function resizeBlurPasses(
-	downShaders: ShaderPad[],
-	upShaders: ShaderPad[],
-	width: number,
-	height: number,
-) {
+function resizeBlurPasses(downShaders: ShaderPad[], upShaders: ShaderPad[], width: number, height: number) {
 	const sizes = createPassSizes(width, height);
 
 	downShaders.forEach((shader, index) => {
@@ -176,13 +171,10 @@ export async function init({ mount }: ExampleContext) {
 	const canvas = createFullscreenCanvas(mount);
 
 	const downShaders = createPassSizes(canvas.width, canvas.height).map((size, index) => {
-		const shader = new ShaderPad(
-			index === 0 ? firstDownFragmentShaderSrc : kawaseDownFragmentShaderSrc,
-			{
-				canvas: { width: size.width, height: size.height },
-				plugins: [helpers()],
-			},
-		);
+		const shader = new ShaderPad(index === 0 ? firstDownFragmentShaderSrc : kawaseDownFragmentShaderSrc, {
+			canvas: { width: size.width, height: size.height },
+			plugins: [helpers()],
+		});
 		shader.initializeUniform('u_offset', 'float', BLUR_OFFSET);
 		return shader;
 	});

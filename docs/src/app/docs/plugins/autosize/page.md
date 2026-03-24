@@ -1,44 +1,44 @@
 ---
 title: autosize
 nextjs:
-  metadata:
-    title: autosize
-    description: Resize the canvas automatically and keep render resolution in sync.
+    metadata:
+        title: autosize
+        description: Resize the canvas automatically and keep render resolution in sync.
 ---
 
 The `autosize` plugin updates canvas resolution on resize to match its rendered size. If your canvas can be resized, you should probably use this plugin.
 
 ```javascript
-import autosize from 'shaderpad/plugins/autosize'
+import autosize from 'shaderpad/plugins/autosize';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
-  canvas,
-  plugins: [autosize()],
-})
+	canvas,
+	plugins: [autosize()],
+});
 ```
 
 ## Options
 
-| Option | Meaning |
-| --- | --- |
-| `scale?: number` | Resolution multiplier relative to CSS pixels; defaults to the current `devicePixelRatio`, so use `1` to ignore `devicePixelRatio`. |
-| `target?: Element \| Window` | Match the size of a specific element or the window. |
-| `throttle?: number` | Throttle resize handling in milliseconds (default is 1/30th of a second). |
+| Option                       | Meaning                                                                                                                            |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `scale?: number`             | Resolution multiplier relative to CSS pixels; defaults to the current `devicePixelRatio`, so use `1` to ignore `devicePixelRatio`. |
+| `target?: Element \| Window` | Match the size of a specific element or the window.                                                                                |
+| `throttle?: number`          | Throttle resize handling in milliseconds (default is 1/30th of a second).                                                          |
 
 If you want fullscreen sizing but CSS-pixel resolution, use `scale: 1`. If you want a smaller render target, pass a smaller value like `0.5`:
 
 ```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
-  canvas: createFullscreenCanvas(),
-  plugins: [autosize({ scale: 1 })],
-})
+	canvas: createFullscreenCanvas(),
+	plugins: [autosize({ scale: 1 })],
+});
 ```
 
 ```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
-  canvas: createFullscreenCanvas(),
-  plugins: [autosize({ scale: 0.5 })],
-})
+	canvas: createFullscreenCanvas(),
+	plugins: [autosize({ scale: 0.5 })],
+});
 ```
 
 ## Event Behavior

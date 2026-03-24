@@ -166,15 +166,12 @@ async function main() {
 
 	const template = templateDefinitions[templateKey];
 	if (!template) {
-		fail(
-			`Unknown template "${templateKey}". Expected one of: ${Object.keys(templateDefinitions).join(', ')}`,
-		);
+		fail(`Unknown template "${templateKey}". Expected one of: ${Object.keys(templateDefinitions).join(', ')}`);
 	}
 
 	const templateDir = path.resolve(__dirname, '..', template.dir);
 	const targetDir = path.resolve(process.cwd(), inputDir);
-	const projectName =
-		inputDir === '.' ? path.basename(process.cwd()) : path.basename(path.normalize(targetDir));
+	const projectName = inputDir === '.' ? path.basename(process.cwd()) : path.basename(path.normalize(targetDir));
 
 	if (!fs.existsSync(templateDir)) {
 		fail(`Template directory not found: ${templateDir}`);
@@ -196,9 +193,7 @@ async function main() {
 	packageJson.name = toValidPackageName(projectName) || 'shaderpad-app';
 	fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
-	console.log(
-		`\nScaffolded ${template.label} in ${path.relative(process.cwd(), targetDir) || '.'}`,
-	);
+	console.log(`\nScaffolded ${template.label} in ${path.relative(process.cwd(), targetDir) || '.'}`);
 
 	if (parsed.shouldInstall) {
 		console.log('\nInstalling dependencies...\n');

@@ -1,9 +1,9 @@
 ---
 title: Textures
 nextjs:
-  metadata:
-    title: Textures
-    description: Work with images, videos, canvases, typed arrays, and ShaderPad outputs.
+    metadata:
+        title: Textures
+        description: Work with images, videos, canvases, typed arrays, and ShaderPad outputs.
 ---
 
 ShaderPad can ingest a variety of texture sources, including images, videos, canvases, typed arrays, and chained ShaderPad outputs. It smoothly and performantly handles these with the same API, so you can spend less time on plumbing.
@@ -24,23 +24,23 @@ ShaderPad can ingest a variety of texture sources, including images, videos, can
 ## Initialize A Texture
 
 ```javascript
-shader.initializeTexture('u_webcam', videoElement)
-shader.initializeTexture('u_image', imageElement)
+shader.initializeTexture('u_webcam', videoElement);
+shader.initializeTexture('u_image', imageElement);
 ```
 
 Custom typed-array textures are also supported:
 
 ```javascript
 shader.initializeTexture(
-  'u_data',
-  { data: new Float32Array(width * height * 4), width, height },
-  {
-    internalFormat: 'RGBA32F',
-    type: 'FLOAT',
-    minFilter: 'NEAREST',
-    magFilter: 'NEAREST',
-  },
-)
+	'u_data',
+	{ data: new Float32Array(width * height * 4), width, height },
+	{
+		internalFormat: 'RGBA32F',
+		type: 'FLOAT',
+		minFilter: 'NEAREST',
+		magFilter: 'NEAREST',
+	},
+);
 ```
 
 ## Updating Live Textures
@@ -49,8 +49,8 @@ Live sources such as videos should usually be updated each frame:
 
 ```javascript
 shader.play(() => {
-  shader.updateTextures({ u_webcam: videoElement })
-})
+	shader.updateTextures({ u_webcam: videoElement });
+});
 ```
 
 ## Partial Texture Updates
@@ -59,8 +59,8 @@ For typed-array textures, you can update a sub-region for efficiency:
 
 ```javascript
 shader.updateTextures({
-  u_data: { data, width, height, x, y, isPartial: true },
-})
+	u_data: { data, width, height, x, y, isPartial: true },
+});
 ```
 
 ## Orientation Rules
@@ -74,7 +74,7 @@ shader.updateTextures({
 Any texture can maintain its own history:
 
 ```javascript
-shader.initializeTexture('u_webcam', videoElement, { history: 30 })
+shader.initializeTexture('u_webcam', videoElement, { history: 30 });
 ```
 
 That creates:
@@ -96,8 +96,7 @@ Here, `historyZ(..., 1)` means the previous stored texture sample. `historyZ(...
 You can feed one ShaderPad instance into another:
 
 ```javascript
-passB.initializeTexture('u_firstPass', passA)
+passB.initializeTexture('u_firstPass', passA);
 ```
 
 This is the basis for chaining and multi-pass workflows, which are covered in detail [here](/docs/guides/chaining-shaders).
-

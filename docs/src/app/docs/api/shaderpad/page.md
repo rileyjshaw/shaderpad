@@ -1,15 +1,15 @@
 ---
 title: ShaderPad
 nextjs:
-  metadata:
-    title: ShaderPad API
-    description: Constructor overview and API entry point for ShaderPad.
+    metadata:
+        title: ShaderPad API
+        description: Constructor overview and API entry point for ShaderPad.
 ---
 
 `ShaderPad` is the core class exported by the library.
 
 ```javascript
-import ShaderPad from 'shaderpad'
+import ShaderPad from 'shaderpad';
 ```
 
 ## Constructor
@@ -22,20 +22,20 @@ new ShaderPad(fragmentShaderSrc: string, options?: Options)
 
 ### Constructor Options Reference
 
-| Option           | Type                                                               | Default                                              | Notes |
-| ---------------- | ------------------------------------------------------------------ | ---------------------------------------------------- | ----- |
-| `canvas`         | `HTMLCanvasElement \| OffscreenCanvas \| { width: number; height: number } \| null` | `new OffscreenCanvas(1, 1)`                          | If you pass an actual canvas, ShaderPad renders into it. If you pass `{ width, height }`, `null`, or omit the option, ShaderPad creates a headless `OffscreenCanvas`. |
-| `plugins`        | `Plugin[]`                                                         | `[]`                                                 | Installed during construction, before the final fragment shader is compiled, so plugins can inject GLSL and hooks. |
-| `history`        | `number`                                                           | `0`                                                  | Number of previous output frames to store. `0` disables output history entirely. |
-| `debug`          | `boolean`                                                          | `false` | Enables internal debug logging. |
-| `cursorTarget`   | `Window \| Element`                                                | The HTML canvas passed as `canvas`, otherwise `undefined` | Used for built-in `u_cursor` and `u_click` input tracking. Offscreen or headless setups only get pointer listeners if you pass a target explicitly. |
-| `internalFormat` | `GLInternalFormatString`                                           | Derived from `type`, otherwise `'RGBA8'`             | Float color targets such as `'RGBA16F'` and `'RGBA32F'` require `EXT_color_buffer_float`. |
-| `format`         | `GLFormatString`                                                   | Derived from `internalFormat`                        | Defaults to `'RGBA'` for normalized and float color formats, and `'RGBA_INTEGER'` for integer color formats. |
-| `type`           | `GLTypeString`                                                     | Derived from `internalFormat`, otherwise `'UNSIGNED_BYTE'` | Texel data type. |
-| `minFilter`      | `GLFilterString`                                                   | `'LINEAR'`                                           | Minification filter. |
-| `magFilter`      | `GLFilterString`                                                   | `'LINEAR'`                                           | Magnification filter. |
-| `wrapS`          | `GLWrapString`                                                     | `'CLAMP_TO_EDGE'`                                    | Horizontal wrap mode. |
-| `wrapT`          | `GLWrapString`                                                     | `'CLAMP_TO_EDGE'`                                    | Vertical wrap mode. |
+| Option           | Type                                                                                | Default                                                    | Notes                                                                                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas`         | `HTMLCanvasElement \| OffscreenCanvas \| { width: number; height: number } \| null` | `new OffscreenCanvas(1, 1)`                                | If you pass an actual canvas, ShaderPad renders into it. If you pass `{ width, height }`, `null`, or omit the option, ShaderPad creates a headless `OffscreenCanvas`. |
+| `plugins`        | `Plugin[]`                                                                          | `[]`                                                       | Installed during construction, before the final fragment shader is compiled, so plugins can inject GLSL and hooks.                                                    |
+| `history`        | `number`                                                                            | `0`                                                        | Number of previous output frames to store. `0` disables output history entirely.                                                                                      |
+| `debug`          | `boolean`                                                                           | `false`                                                    | Enables internal debug logging.                                                                                                                                       |
+| `cursorTarget`   | `Window \| Element`                                                                 | The HTML canvas passed as `canvas`, otherwise `undefined`  | Used for built-in `u_cursor` and `u_click` input tracking. Offscreen or headless setups only get pointer listeners if you pass a target explicitly.                   |
+| `internalFormat` | `GLInternalFormatString`                                                            | Derived from `type`, otherwise `'RGBA8'`                   | Float color targets such as `'RGBA16F'` and `'RGBA32F'` require `EXT_color_buffer_float`.                                                                             |
+| `format`         | `GLFormatString`                                                                    | Derived from `internalFormat`                              | Defaults to `'RGBA'` for normalized and float color formats, and `'RGBA_INTEGER'` for integer color formats.                                                          |
+| `type`           | `GLTypeString`                                                                      | Derived from `internalFormat`, otherwise `'UNSIGNED_BYTE'` | Texel data type.                                                                                                                                                      |
+| `minFilter`      | `GLFilterString`                                                                    | `'LINEAR'`                                                 | Minification filter.                                                                                                                                                  |
+| `magFilter`      | `GLFilterString`                                                                    | `'LINEAR'`                                                 | Magnification filter.                                                                                                                                                 |
+| `wrapS`          | `GLWrapString`                                                                      | `'CLAMP_TO_EDGE'`                                          | Horizontal wrap mode.                                                                                                                                                 |
+| `wrapT`          | `GLWrapString`                                                                      | `'CLAMP_TO_EDGE'`                                          | Vertical wrap mode.                                                                                                                                                   |
 
 Constructor-level texture settings control:
 

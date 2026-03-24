@@ -1,9 +1,9 @@
 ---
 title: Installation
 nextjs:
-  metadata:
-    title: Installation
-    description: Install ShaderPad and understand when you also need MediaPipe.
+    metadata:
+        title: Installation
+        description: Install ShaderPad and understand when you also need MediaPipe.
 ---
 
 The core `ShaderPad` bundle is currently {% shaderpad-size /%} gzipped.
@@ -37,6 +37,7 @@ If you wish to use the tracking plugins ([face](/docs/plugins/face), [pose](/doc
 ```bash
 npm install @mediapipe/tasks-vision
 ```
+
 {% /callout %}
 
 ## Using AI

@@ -199,7 +199,7 @@ precision mediump float;
 		result: {
 			landmarks?: { x: number; y: number; z?: number }[][];
 			handedness?: { categoryName: string }[][];
-		} | null
+		} | null,
 	) => {
 		if (!midiOutput || !result?.landmarks?.length) return;
 		const channel = 0;

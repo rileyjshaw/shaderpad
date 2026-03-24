@@ -1,9 +1,9 @@
 ---
 title: Shader lifecycle
 nextjs:
-  metadata:
-    title: Shader lifecycle
-    description: Understand construction, rendering, stepping, pausing, and cleanup.
+    metadata:
+        title: Shader lifecycle
+        description: Understand construction, rendering, stepping, pausing, and cleanup.
 ---
 
 ShaderPad has the following render lifecycle:
@@ -18,16 +18,17 @@ You can go over the details of each method in the [Methods](/docs/api/methods) A
 ## Constructor
 
 ```javascript
-const shader = new ShaderPad(fragmentShaderSrc, { canvas })
+const shader = new ShaderPad(fragmentShaderSrc, { canvas });
 ```
 
 ## Rendering Methods
 
 {% callout title="Quick Reference" %}
+
 - Use `play()` for animation loops
 - Use `step()` for manual time/frame advancement
 - Use `draw()` when time, frame, and history should remain unchanged
-{% /callout %}
+  {% /callout %}
 
 ### `play(onBeforeStep?)`
 
@@ -35,8 +36,8 @@ const shader = new ShaderPad(fragmentShaderSrc, { canvas })
 
 ```javascript
 shader.play((time, frame) => {
-  shader.updateUniforms({ u_speed: Math.sin(time) })
-})
+	shader.updateUniforms({ u_speed: Math.sin(time) });
+});
 ```
 
 Use it when:
@@ -50,7 +51,7 @@ Use it when:
 `step()` advances exactly one frame, and renders without triggering an ongoing animation loop. `u_time` and `u_frame` uniforms are updated automatically, and history is kept up to date.
 
 ```javascript
-shader.step({ skipHistoryWrite: true })
+shader.step({ skipHistoryWrite: true });
 ```
 
 Use it when:
@@ -64,7 +65,7 @@ Use it when:
 `draw()` renders without updating `u_time`, `u_frame`, or history.
 
 ```javascript
-shader.draw({ skipClear: true })
+shader.draw({ skipClear: true });
 ```
 
 Use it when:
@@ -79,4 +80,3 @@ Use it when:
 - `resetFrame()` resets the clock and frame counter
 - `reset()` resets the clock and frame counter, and also clears history buffers
 - `destroy()` stops everything and releases WebGL resources and event listeners
-

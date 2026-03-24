@@ -1,9 +1,9 @@
 ---
 title: Methods
 nextjs:
-  metadata:
-    title: Methods
-    description: Public methods on ShaderPad instances.
+    metadata:
+        title: Methods
+        description: Public methods on ShaderPad instances.
 ---
 
 ## Core Render Methods
@@ -43,17 +43,17 @@ play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void
 
 ### `play()` Parameters
 
-| Parameter        | Type                                               | Default     | Notes |
-| ---------------- | -------------------------------------------------- | ----------- | ----- |
-| `onBeforeStep`   | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every frame before the animation step runs. `time` is measured in seconds from the current start time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
+| Parameter      | Type                                                   | Default     | Notes                                                                                                                                                                                                                                       |
+| -------------- | ------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onBeforeStep` | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every frame before the animation step runs. `time` is measured in seconds from the current start time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
 
 ```javascript
 shader.play((time, frame) => {
-  shader.updateUniforms({ u_speed: Math.sin(time) })
-  if (frame < 5) {
-    return { skipHistoryWrite: true }
-  }
-})
+	shader.updateUniforms({ u_speed: Math.sin(time) });
+	if (frame < 5) {
+		return { skipHistoryWrite: true };
+	}
+});
 ```
 
 This overlaps with the `beforeStep` event, but they are not identical:
@@ -83,9 +83,9 @@ draw(options?: StepOptions): void
 
 `step(options?)`, `draw(options?)`, and the return value from `play(onBeforeStep)` all accept the same object shape:
 
-| Option             | Type      | Default | Applies to | Notes |
-| ------------------ | --------- | ------- | ---------- | ----- |
-| `skipClear`        | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Draws to the render target without clearing it first. Useful for accumulation, trails, and some multi-pass patterns. |
+| Option             | Type      | Default | Applies to                                   | Notes                                                                                                                                                              |
+| ------------------ | --------- | ------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `skipClear`        | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Draws to the render target without clearing it first. Useful for accumulation, trails, and some multi-pass patterns.                                               |
 | `skipHistoryWrite` | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Prevents output-history writes for that frame. `draw()` accepts the field for API consistency, but it has no effect there because `draw()` never advances history. |
 
 ### `initializeUniform(name, type, value, options?)`
@@ -103,8 +103,8 @@ Registers a shader uniform and seeds it with an initial value.
 
 ### `initializeUniform()` Options
 
-| Option        | Type     | Default     | Notes |
-| ------------- | -------- | ----------- | ----- |
+| Option        | Type     | Default     | Notes                                                                                                                |
+| ------------- | -------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
 | `arrayLength` | `number` | `undefined` | Declares that the uniform is a fixed-length array. When set, initialization must include exactly that many elements. |
 
 ### `updateUniforms(updates, options?)`
@@ -120,8 +120,8 @@ Updates one or more initialized uniforms.
 
 ### `updateUniforms()` Options
 
-| Option       | Type     | Default     | Notes |
-| ------------ | -------- | ----------- | ----- |
+| Option       | Type     | Default     | Notes                                                                              |
+| ------------ | -------- | ----------- | ---------------------------------------------------------------------------------- |
 | `startIndex` | `number` | `undefined` | Only relevant for uniform arrays. Starts the write at `startIndex` instead of `0`. |
 
 ### `initializeTexture(name, source, options?)`
@@ -138,17 +138,17 @@ initializeTexture(
 
 ### Texture Options Reference
 
-| Option           | Type                   | Default                                  | Notes |
-| ---------------- | ---------------------- | ---------------------------------------- | ----- |
-| `history`        | `number`               | `0`                                      | Number of previous frames to store for this texture. Publicly, `history: N` gives you access to the current frame plus `N` previous frames. |
-| `preserveY`      | `boolean`              | Omitted, which behaves like `false` for DOM-backed sources | DOM-backed sources are vertically flipped by default to match WebGL coordinates. Set `preserveY: true` to keep their original orientation. Typed-array sources are never flipped. |
-| `internalFormat` | `GLInternalFormatString` | Derived from `type`, otherwise `'RGBA8'` | GPU storage format for this texture. |
-| `format`         | `GLFormatString`       | Derived from `internalFormat`            | Defaults to `'RGBA'` for normalized and float color formats, and `'RGBA_INTEGER'` for integer color formats. |
-| `type`           | `GLTypeString`         | Derived from `internalFormat`, otherwise `'UNSIGNED_BYTE'` | Source texel data type. |
-| `minFilter`      | `GLFilterString`       | `'LINEAR'`                               | Minification filter. |
-| `magFilter`      | `GLFilterString`       | `'LINEAR'`                               | Magnification filter. |
-| `wrapS`          | `GLWrapString`         | `'CLAMP_TO_EDGE'`                        | Horizontal wrap mode. |
-| `wrapT`          | `GLWrapString`         | `'CLAMP_TO_EDGE'`                        | Vertical wrap mode. |
+| Option           | Type                     | Default                                                    | Notes                                                                                                                                                                             |
+| ---------------- | ------------------------ | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `history`        | `number`                 | `0`                                                        | Number of previous frames to store for this texture. Publicly, `history: N` gives you access to the current frame plus `N` previous frames.                                       |
+| `preserveY`      | `boolean`                | Omitted, which behaves like `false` for DOM-backed sources | DOM-backed sources are vertically flipped by default to match WebGL coordinates. Set `preserveY: true` to keep their original orientation. Typed-array sources are never flipped. |
+| `internalFormat` | `GLInternalFormatString` | Derived from `type`, otherwise `'RGBA8'`                   | GPU storage format for this texture.                                                                                                                                              |
+| `format`         | `GLFormatString`         | Derived from `internalFormat`                              | Defaults to `'RGBA'` for normalized and float color formats, and `'RGBA_INTEGER'` for integer color formats.                                                                      |
+| `type`           | `GLTypeString`           | Derived from `internalFormat`, otherwise `'UNSIGNED_BYTE'` | Source texel data type.                                                                                                                                                           |
+| `minFilter`      | `GLFilterString`         | `'LINEAR'`                                                 | Minification filter.                                                                                                                                                              |
+| `magFilter`      | `GLFilterString`         | `'LINEAR'`                                                 | Magnification filter.                                                                                                                                                             |
+| `wrapS`          | `GLWrapString`           | `'CLAMP_TO_EDGE'`                                          | Horizontal wrap mode.                                                                                                                                                             |
+| `wrapT`          | `GLWrapString`           | `'CLAMP_TO_EDGE'`                                          | Vertical wrap mode.                                                                                                                                                               |
 
 ### `updateTextures(updates, options?)`
 
@@ -163,6 +163,6 @@ Updates one or more previously initialized textures.
 
 ### `updateTextures()` Options
 
-| Option             | Type      | Default | Notes |
-| ------------------ | --------- | ------- | ----- |
+| Option             | Type      | Default | Notes                                                                                                                                                    |
+| ------------------ | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `skipHistoryWrite` | `boolean` | `false` | Only relevant for textures that were initialized with history. When `true`, the texture data is updated without advancing that texture's history layers. |

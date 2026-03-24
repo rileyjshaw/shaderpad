@@ -1,19 +1,19 @@
 ---
 title: helpers
 nextjs:
-  metadata:
-    title: helpers
-    description: GLSL helpers for aspect fitting and history sampling.
+    metadata:
+        title: helpers
+        description: GLSL helpers for aspect fitting and history sampling.
 ---
 
 The `helpers` plugin injects a few GLSL helper functions into your fragment shader.
 
 ```javascript
-import helpers from 'shaderpad/plugins/helpers'
+import helpers from 'shaderpad/plugins/helpers';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
-  plugins: [helpers()],
-})
+	plugins: [helpers()],
+});
 ```
 
 {% callout title="Important note" type="warning" %}
@@ -70,4 +70,3 @@ vec4 color = texture(u_history, vec3(v_uv, z));
 ```
 
 `historyZ(..., 1)` means the previous stored frame. For textures and plugins, `historyZ(..., 0)` refers to the current or latest stored value. For all history buffers, if you set `history: N`, the oldest stored frame will be at index `historyZ(..., N)`.
-

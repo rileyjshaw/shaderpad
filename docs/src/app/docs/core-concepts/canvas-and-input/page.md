@@ -1,9 +1,9 @@
 ---
 title: Canvas and input
 nextjs:
-  metadata:
-    title: Canvas and input
-    description: Choose canvas ownership, cursor targeting, and responsive sizing behavior.
+    metadata:
+        title: Canvas and input
+        description: Choose canvas ownership, cursor targeting, and responsive sizing behavior.
 ---
 
 ShaderPad can render into an existing canvas, or create an offscreen canvas for headless use.
@@ -11,7 +11,7 @@ ShaderPad can render into an existing canvas, or create an offscreen canvas for 
 ## Canvas Options
 
 ```javascript
-const shader = new ShaderPad(fragmentShaderSrc, { canvas })
+const shader = new ShaderPad(fragmentShaderSrc, { canvas });
 ```
 
 Valid values for `canvas`:
@@ -26,12 +26,12 @@ Valid values for `canvas`:
 Use the utility helper if you want a simple fullscreen canvas. For responsive resolution, combine it with the autosize plugin:
 
 ```javascript
-import ShaderPad from 'shaderpad'
-import { createFullscreenCanvas } from 'shaderpad/util'
-import autosize from 'shaderpad/plugins/autosize'
+import ShaderPad from 'shaderpad';
+import { createFullscreenCanvas } from 'shaderpad/util';
+import autosize from 'shaderpad/plugins/autosize';
 
-const canvas = createFullscreenCanvas()
-const shader = new ShaderPad(fragmentShaderSrc, { canvas, plugins: [autosize()] })
+const canvas = createFullscreenCanvas();
+const shader = new ShaderPad(fragmentShaderSrc, { canvas, plugins: [autosize()] });
 ```
 
 ## Cursor Tracking
@@ -40,9 +40,9 @@ const shader = new ShaderPad(fragmentShaderSrc, { canvas, plugins: [autosize()] 
 
 ```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
-  canvas,
-  cursorTarget: window,
-})
+	canvas,
+	cursorTarget: window,
+});
 ```
 
 Use `window` when the shader responds to viewport-wide input rather than canvas-local input. You can pass any DOM element to track input within that specific container.
@@ -58,4 +58,3 @@ If your canvas has a dynamic size, you will want to use the [autosize plugin](/d
 ShaderPad automatically updates its internal textures and render targets to match the canvas's resolution, so updating the `width` and `height` attributes will also update the GL drawing buffer size, history textures, and other internal state.
 
 If you want to run a callback after resolution changes, use `shader.on('updateResolution', callback)`. If you use the `autosize` plugin, it emits an `autosize:resize` event when the rendered size changes.
-

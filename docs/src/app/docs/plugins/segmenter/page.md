@@ -1,9 +1,9 @@
 ---
 title: segmenter
 nextjs:
-  metadata:
-    title: segmenter
-    description: Segmentation masks and category/confidence sampling for ShaderPad.
+    metadata:
+        title: segmenter
+        description: Segmentation masks and category/confidence sampling for ShaderPad.
 ---
 
 {% callout title="Peer dependency requirement" %}
@@ -18,49 +18,49 @@ npm install @mediapipe/tasks-vision
 The `segmenter` plugin uses MediaPipe's [Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) and exposes ShaderPad mask textures and GLSL helper functions.
 
 ```javascript
-import segmenter from 'shaderpad/plugins/segmenter'
+import segmenter from 'shaderpad/plugins/segmenter';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
-  plugins: [
-    segmenter({
-      textureName: 'u_webcam',
-      options: { outputConfidenceMasks: true },
-    }),
-  ],
-})
+	plugins: [
+		segmenter({
+			textureName: 'u_webcam',
+			options: { outputConfidenceMasks: true },
+		}),
+	],
+});
 ```
 
 The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
 ## Options
 
-| Option                            | Meaning                                                   |
-| --------------------------------- | --------------------------------------------------------- |
-| `modelPath?: string`              | Custom MediaPipe model path.                              |
+| Option                            | Meaning                                                    |
+| --------------------------------- | ---------------------------------------------------------- |
+| `modelPath?: string`              | Custom MediaPipe model path.                               |
 | `outputConfidenceMasks?: boolean` | Expose per-category confidence instead of flat confidence. |
-| `history?: number`                | History depth for the segment mask.                       |
+| `history?: number`                | History depth for the segment mask.                        |
 
 ## Events
 
 Subscribe with `shader.on(name, callback)`.
 
-| Event              | Callback                                      | Meaning                                                |
-| ------------------ | --------------------------------------------- | ------------------------------------------------------ |
-| `segmenter:ready`  | `() => void`                                  | Model assets are loaded and the plugin is ready.       |
-| `segmenter:result` | `(result: ImageSegmenterResult) => void`      | Latest MediaPipe result for the current analyzed frame. |
+| Event              | Callback                                 | Meaning                                                 |
+| ------------------ | ---------------------------------------- | ------------------------------------------------------- |
+| `segmenter:ready`  | `() => void`                             | Model assets are loaded and the plugin is ready.        |
+| `segmenter:result` | `(result: ImageSegmenterResult) => void` | Latest MediaPipe result for the current analyzed frame. |
 
 ```javascript
 shader.on('segmenter:result', result => {
-  console.log(result.categoryMask)
-})
+	console.log(result.categoryMask);
+});
 ```
 
 ## Uniforms
 
-| Uniform           | Meaning                                                                                   |
-| ----------------- | ----------------------------------------------------------------------------------------- |
+| Uniform           | Meaning                                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- |
 | `u_segmentMask`   | Segmentation texture used internally by `segmentAt()`; direct sampling is only needed for custom decoding. |
-| `u_numCategories` | Number of segmentation categories, including background.                                  |
+| `u_numCategories` | Number of segmentation categories, including background.                                                   |
 
 Most shaders should use the helper functions below instead of sampling `u_segmentMask` directly.
 

@@ -5,9 +5,7 @@ import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 const visionEntry = require.resolve('@mediapipe/tasks-vision');
-const visionPkg = JSON.parse(
-	readFileSync(join(dirname(visionEntry), 'package.json'), 'utf-8'),
-);
+const visionPkg = JSON.parse(readFileSync(join(dirname(visionEntry), 'package.json'), 'utf-8'));
 
 export default defineConfig({
 	entry: ['src/index.ts', 'src/plugins/*.ts', 'src/util.ts'],

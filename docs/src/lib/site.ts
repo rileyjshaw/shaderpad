@@ -1,26 +1,26 @@
-export const siteOrigin = 'https://rileyjshaw.com'
-export const docsBasePath = '/shaderpad'
+export const siteOrigin = 'https://rileyjshaw.com';
+export const docsBasePath = '/shaderpad';
 
 export function withBasePath(pathname: string) {
-  if (!pathname.startsWith('/')) {
-    return pathname
-  }
+	if (!pathname.startsWith('/')) {
+		return pathname;
+	}
 
-  return `${docsBasePath}${pathname}`
+	return `${docsBasePath}${pathname}`;
 }
 
 export function sitePath(pathname: string) {
-  if (pathname === '/') {
-    return `${docsBasePath}/`
-  }
+	if (pathname === '/') {
+		return `${docsBasePath}/`;
+	}
 
-  if (/\.[a-z0-9]+$/i.test(pathname)) {
-    return withBasePath(pathname)
-  }
+	if (/\.[a-z0-9]+$/i.test(pathname)) {
+		return withBasePath(pathname);
+	}
 
-  return `${withBasePath(pathname).replace(/\/+$/, '')}/`
+	return `${withBasePath(pathname).replace(/\/+$/, '')}/`;
 }
 
 export function absoluteSiteUrl(pathname: string) {
-  return new URL(sitePath(pathname), siteOrigin).toString()
+	return new URL(sitePath(pathname), siteOrigin).toString();
 }

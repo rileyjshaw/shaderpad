@@ -1,9 +1,9 @@
 ---
 title: pose
 nextjs:
-  metadata:
-    title: pose
-    description: Pose landmarks and segmentation helpers for ShaderPad.
+    metadata:
+        title: pose
+        description: Pose landmarks and segmentation helpers for ShaderPad.
 ---
 
 {% callout title="Peer dependency requirement" %}
@@ -18,49 +18,49 @@ npm install @mediapipe/tasks-vision
 The `pose` plugin uses MediaPipe's [Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) and exposes landmark and mask data in a ShaderPad-friendly GLSL format.
 
 ```javascript
-import pose from 'shaderpad/plugins/pose'
+import pose from 'shaderpad/plugins/pose';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
-  plugins: [pose({ textureName: 'u_webcam', options: { maxPoses: 2 } })],
-})
+	plugins: [pose({ textureName: 'u_webcam', options: { maxPoses: 2 } })],
+});
 ```
 
 The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
 ## Options
 
-| Option                                | Meaning                                   |
-| ------------------------------------- | ----------------------------------------- |
-| `modelPath?: string`                  | Custom MediaPipe model path.              |
-| `maxPoses?: number`                   | Maximum poses to detect.                  |
-| `minPoseDetectionConfidence?: number` | Detection threshold.                      |
-| `minPosePresenceConfidence?: number`  | Presence threshold.                       |
-| `minTrackingConfidence?: number`      | Tracking threshold.                       |
+| Option                                | Meaning                                    |
+| ------------------------------------- | ------------------------------------------ |
+| `modelPath?: string`                  | Custom MediaPipe model path.               |
+| `maxPoses?: number`                   | Maximum poses to detect.                   |
+| `minPoseDetectionConfidence?: number` | Detection threshold.                       |
+| `minPosePresenceConfidence?: number`  | Presence threshold.                        |
+| `minTrackingConfidence?: number`      | Tracking threshold.                        |
 | `history?: number`                    | History depth for landmarks and pose mask. |
 
 ## Events
 
 Subscribe with `shader.on(name, callback)`.
 
-| Event         | Callback                                      | Meaning                                                |
-| ------------- | --------------------------------------------- | ------------------------------------------------------ |
-| `pose:ready`  | `() => void`                                  | Model assets are loaded and the plugin is ready.       |
-| `pose:result` | `(result: PoseLandmarkerResult) => void`      | Latest MediaPipe result for the current analyzed frame. |
+| Event         | Callback                                 | Meaning                                                 |
+| ------------- | ---------------------------------------- | ------------------------------------------------------- |
+| `pose:ready`  | `() => void`                             | Model assets are loaded and the plugin is ready.        |
+| `pose:result` | `(result: PoseLandmarkerResult) => void` | Latest MediaPipe result for the current analyzed frame. |
 
 ```javascript
 shader.on('pose:result', result => {
-  console.log(`${result.landmarks.length} poses detected`)
-})
+	console.log(`${result.landmarks.length} poses detected`);
+});
 ```
 
 ## Uniforms
 
-| Uniform              | Meaning                                                                   |
-| -------------------- | ------------------------------------------------------------------------- |
-| `u_maxPoses`         | Maximum number of poses from initial config.                              |
-| `u_nPoses`           | Detected pose count for the latest frame.                                 |
+| Uniform              | Meaning                                                                    |
+| -------------------- | -------------------------------------------------------------------------- |
+| `u_maxPoses`         | Maximum number of poses from initial config.                               |
+| `u_nPoses`           | Detected pose count for the latest frame.                                  |
 | `u_poseLandmarksTex` | Raw landmark texture used internally by `nPosesAt()` and `poseLandmark()`. |
-| `u_poseMask`         | Body mask texture used internally by `poseAt()` and `inPose()`.           |
+| `u_poseMask`         | Body mask texture used internally by `poseAt()` and `inPose()`.            |
 
 Most shaders should use the helper functions below instead of sampling `u_poseLandmarksTex` or `u_poseMask` directly.
 

@@ -1,9 +1,9 @@
 ---
 title: save
 nextjs:
-  metadata:
-    title: save
-    description: Add PNG export support to a ShaderPad instance.
+    metadata:
+        title: save
+        description: Add PNG export support to a ShaderPad instance.
 ---
 
 The `save` plugin adds a `save()` method that exports the current frame as a PNG file. On mobile, a share dialog is shown by default.

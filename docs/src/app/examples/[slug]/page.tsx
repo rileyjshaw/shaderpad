@@ -1,49 +1,41 @@
-import { notFound } from 'next/navigation'
+import { notFound } from 'next/navigation';
 
-import { ExamplePlayer } from '@/examples/ExamplePlayer'
-import { examples, getExampleBySlug } from '@/examples/registry'
+import { ExamplePlayer } from '@/examples/ExamplePlayer';
+import { examples, getExampleBySlug } from '@/examples/registry';
 
 export function generateStaticParams() {
-  return examples.map((example) => ({
-    slug: example.slug,
-  }))
+	return examples.map(example => ({
+		slug: example.slug,
+	}));
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
-  const { slug } = await params
-  const example = getExampleBySlug(slug)
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+	const { slug } = await params;
+	const example = getExampleBySlug(slug);
 
-  if (!example) {
-    return {}
-  }
+	if (!example) {
+		return {};
+	}
 
-  return {
-    title: `${example.title} Example`,
-    description: example.description,
-  }
+	return {
+		title: `${example.title} Example`,
+		description: example.description,
+	};
 }
 
-export default async function ExamplePage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
-  const { slug } = await params
-  const example = getExampleBySlug(slug)
-  if (!example) {
-    notFound()
-  }
+export default async function ExamplePage({ params }: { params: Promise<{ slug: string }> }) {
+	const { slug } = await params;
+	const example = getExampleBySlug(slug);
+	if (!example) {
+		notFound();
+	}
 
-  return (
-    <ExamplePlayer
-      slug={example.slug}
-      title={example.title}
-      shortDescription={example.description}
-      sourcePagePath={example.sourcePagePath}
-    />
-  )
+	return (
+		<ExamplePlayer
+			slug={example.slug}
+			title={example.title}
+			shortDescription={example.description}
+			sourcePagePath={example.sourcePagePath}
+		/>
+	);
 }

@@ -1,9 +1,9 @@
 ---
 title: face
 nextjs:
-  metadata:
-    title: face
-    description: Face landmarks, masks, and helper functions for ShaderPad.
+    metadata:
+        title: face
+        description: Face landmarks, masks, and helper functions for ShaderPad.
 ---
 
 {% callout title="Peer dependency requirement" %}
@@ -18,50 +18,50 @@ npm install @mediapipe/tasks-vision
 The `face` plugin uses MediaPipe’s [Face Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) and exposes ShaderPad-specific uniforms, helper functions, and events for face-driven effects.
 
 ```javascript
-import face from 'shaderpad/plugins/face'
+import face from 'shaderpad/plugins/face';
 
 const shader = new ShaderPad(fragmentShaderSrc, {
-  plugins: [face({ textureName: 'u_webcam', options: { maxFaces: 3 } })],
-})
+	plugins: [face({ textureName: 'u_webcam', options: { maxFaces: 3 } })],
+});
 ```
 
 The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
 ## Options
 
-| Option                                         | Meaning                                       |
-| ---------------------------------------------- | --------------------------------------------- |
-| `modelPath?: string`                           | Custom MediaPipe model path.                  |
-| `maxFaces?: number`                            | Maximum faces to detect.                      |
-| `minFaceDetectionConfidence?: number`          | Detection threshold.                          |
-| `minFacePresenceConfidence?: number`           | Face presence threshold.                      |
-| `minTrackingConfidence?: number`               | Tracking threshold.                           |
-| `outputFaceBlendshapes?: boolean`              | Forwarded to MediaPipe.                       |
-| `outputFacialTransformationMatrixes?: boolean` | Forwarded to MediaPipe.                       |
+| Option                                         | Meaning                                        |
+| ---------------------------------------------- | ---------------------------------------------- |
+| `modelPath?: string`                           | Custom MediaPipe model path.                   |
+| `maxFaces?: number`                            | Maximum faces to detect.                       |
+| `minFaceDetectionConfidence?: number`          | Detection threshold.                           |
+| `minFacePresenceConfidence?: number`           | Face presence threshold.                       |
+| `minTrackingConfidence?: number`               | Tracking threshold.                            |
+| `outputFaceBlendshapes?: boolean`              | Forwarded to MediaPipe.                        |
+| `outputFacialTransformationMatrixes?: boolean` | Forwarded to MediaPipe.                        |
 | `history?: number`                             | History depth for landmarks and mask textures. |
 
 ## Events
 
 Subscribe with `shader.on(name, callback)`.
 
-| Event         | Callback                                      | Meaning                                                |
-| ------------- | --------------------------------------------- | ------------------------------------------------------ |
-| `face:ready`  | `() => void`                                  | Model assets are loaded and the plugin is ready.       |
-| `face:result` | `(result: FaceLandmarkerResult) => void`      | Latest MediaPipe result for the current analyzed frame. |
+| Event         | Callback                                 | Meaning                                                 |
+| ------------- | ---------------------------------------- | ------------------------------------------------------- |
+| `face:ready`  | `() => void`                             | Model assets are loaded and the plugin is ready.        |
+| `face:result` | `(result: FaceLandmarkerResult) => void` | Latest MediaPipe result for the current analyzed frame. |
 
 ```javascript
 shader.on('face:result', result => {
-  console.log(`${result.faceLandmarks.length} faces detected`)
-})
+	console.log(`${result.faceLandmarks.length} faces detected`);
+});
 ```
 
 ## Uniforms
 
-| Uniform              | Meaning                                                                                 |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| `u_maxFaces`         | Maximum number of faces from initial config.                                            |
-| `u_nFaces`           | Detected face count for the latest frame.                                               |
-| `u_faceLandmarksTex` | Raw landmark texture used internally by `nFacesAt()` and `faceLandmark()`.              |
+| Uniform              | Meaning                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| `u_maxFaces`         | Maximum number of faces from initial config.                                             |
+| `u_nFaces`           | Detected face count for the latest frame.                                                |
+| `u_faceLandmarksTex` | Raw landmark texture used internally by `nFacesAt()` and `faceLandmark()`.               |
 | `u_faceMask`         | Region mask texture used internally by the `*At()` and `in*()` face-region helper calls. |
 
 Most shaders should use the helper functions below instead of sampling `u_faceLandmarksTex` or `u_faceMask` directly.

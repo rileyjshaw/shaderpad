@@ -1,9 +1,9 @@
 ---
 title: Properties
 nextjs:
-  metadata:
-    title: Properties
-    description: Public instance and class properties exposed by ShaderPad.
+    metadata:
+        title: Properties
+        description: Public instance and class properties exposed by ShaderPad.
 ---
 
 `ShaderPad` intentionally exposes a small public property surface. Most interaction happens through [methods](/docs/api/methods).
@@ -25,9 +25,9 @@ Use `canvas` when you need the underlying canvas directly, such as checking its 
 
 ```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
-  canvas: createFullscreenCanvas(),
-})
-console.log(shader.canvas.width, shader.canvas.height)
+	canvas: createFullscreenCanvas(),
+});
+console.log(shader.canvas.width, shader.canvas.height);
 ```
 
 {% callout title="Chaining ShaderPads" %}

@@ -126,7 +126,10 @@ export function SavingImagesPreview() {
 	}, []);
 
 	const handleSave = () => {
-		void shaderRef.current?.save('Surface tension', 'Saved from ShaderPad’s Saving Images guide: https://rileyjshaw.com/shaderpad/docs/guides/saving-images');
+		void shaderRef.current?.save(
+			'Surface tension',
+			'Saved from ShaderPad’s Saving Images guide: https://rileyjshaw.com/shaderpad/docs/guides/saving-images',
+		);
 	};
 
 	return (

@@ -1,6 +1,4 @@
-export async function getWebcamVideo(
-	videoConstraints: MediaTrackConstraints | true = true,
-): Promise<HTMLVideoElement> {
+export async function getWebcamVideo(videoConstraints: MediaTrackConstraints | true = true): Promise<HTMLVideoElement> {
 	const video = document.createElement('video');
 	video.autoplay = true;
 	video.muted = true;
@@ -117,9 +115,7 @@ export function handleTouch(
 	function handleTouchMove(e: TouchEvent) {
 		if (latestTouch.id === null) return;
 
-		const touch = Array.from(e.changedTouches).find(
-			currentTouch => currentTouch.identifier === latestTouch.id,
-		);
+		const touch = Array.from(e.changedTouches).find(currentTouch => currentTouch.identifier === latestTouch.id);
 		if (!touch) return;
 
 		const prevCoords = prevTouchCoordinates[latestTouch.id];
@@ -158,11 +154,7 @@ export function handleTouch(
 	function handleTouchEnd(e: TouchEvent) {
 		Array.from(e.changedTouches).forEach(touch => {
 			delete prevTouchCoordinates[touch.identifier];
-			if (
-				isCurrentTapInvalid ||
-				!onTap ||
-				touch.identifier !== latestTouch.id
-			) {
+			if (isCurrentTapInvalid || !onTap || touch.identifier !== latestTouch.id) {
 				if (touch.identifier === latestTouch.id) {
 					latestTouch = { id: null, time: latestTouch.time };
 				}

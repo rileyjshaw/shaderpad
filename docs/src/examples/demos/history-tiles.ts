@@ -32,8 +32,8 @@ void main() {
 	${COLORS.map(
 		(color, i) => `if (u_frame == ${i}) {
 		outColor = vec4(${color.map(c => c.toFixed(1)).join(', ')}, 1.0);
-	} else `
-		).join('')} if (u_frame == ${HISTORY_LENGTH}) {
+	} else `,
+	).join('')} if (u_frame == ${HISTORY_LENGTH}) {
 			// Show the prior frames in a 2x2 grid.
 			vec2 scaledUV = v_uv * ${GRID_SIZE}.0;
 			ivec2 tile = ivec2(floor(scaledUV));
