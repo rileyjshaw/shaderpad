@@ -6,7 +6,7 @@ nextjs:
         description: Render your first animated shader with ShaderPad.
 ---
 
-If you want the fastest way to start a new ShaderPad project, run `npm create shaderpad@latest` locally or open the [basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript). For more setup options, including how to work with AI tooling, see [Installation](/docs/getting-started/installation). {% .lead %}
+If you want the fastest way to start a new ShaderPad project, run `npm create shaderpad@latest` locally or open the [basic starter in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript). For more setup options, including how to work with AI tooling, see [Installation](/docs/getting-started/installation). {% .lead %}
 
 ---
 
