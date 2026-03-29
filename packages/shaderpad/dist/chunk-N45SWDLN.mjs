@@ -1,0 +1,2 @@
+var t="https://rileyjshaw.com/shaderpad/e/";function o(r){return`${t}${r}`}function d(r,e){let n=new Error(r);return n.code=e,n}function i(r,e){return d(`ShaderPad error: ${o(r)}`,r)}export{i as a};
+//# sourceMappingURL=chunk-N45SWDLN.mjs.map

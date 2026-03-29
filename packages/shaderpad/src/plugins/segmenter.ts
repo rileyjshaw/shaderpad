@@ -199,7 +199,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 		const initPromise = initializeDetector();
 
 		shaderPad.on('_init', () => {
-			shaderPad.initializeUniform('u_numCategories', 'int', 1);
+			shaderPad.initializeUniform('u_numCategories', 'int', 1, { allowMissing: true });
 			shaderPad.initializeTexture('u_segmentMask', mediapipeCanvas, {
 				minFilter: 'NEAREST',
 				magFilter: 'NEAREST',
@@ -207,9 +207,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			});
 			initPromise.then(() => {
 				if (destroyed || !detector) return;
-				shaderPad.updateUniforms({
-					u_numCategories: detector.numCategories,
-				});
+				shaderPad.updateUniforms({ u_numCategories: detector.numCategories }, { allowMissing: true });
 				emitHook('segmenter:ready');
 			});
 		});

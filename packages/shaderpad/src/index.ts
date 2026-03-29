@@ -1,4 +1,5 @@
 import { safeMod } from './util.js';
+import spError from './internal/spError.js';
 
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
 in vec2 a_position;
@@ -159,7 +160,6 @@ export interface Options extends RenderTextureOptions {
 	canvas?: HTMLCanvasElement | OffscreenCanvas | { width: number; height: number } | null;
 	plugins?: Plugin[];
 	history?: number;
-	debug?: boolean;
 	cursorTarget?: Window | Element;
 }
 
@@ -257,7 +257,6 @@ class ShaderPad {
 	private hooks: Map<LifecycleMethod, Function[]> = new Map();
 	private historyDepth = 0;
 	private textureOptions: TextureOptions;
-	private debug: boolean;
 	private cursorTarget: Window | Element | undefined;
 	// WebGL can’t read from and write to the history texture at the same time.
 	// We write to an intermediate texture then blit to the history texture.
@@ -265,7 +264,7 @@ class ShaderPad {
 
 	constructor(
 		fragmentShaderSrc: string,
-		{ canvas, plugins, history, debug, cursorTarget, ...textureOptions }: Options = {},
+		{ canvas, plugins, history, cursorTarget, ...textureOptions }: Options = {},
 	) {
 		if (canvas && 'getContext' in canvas) {
 			this.canvas = canvas;
@@ -279,7 +278,15 @@ class ShaderPad {
 			antialias: false,
 		}) as WebGL2RenderingContext;
 		if (!gl) {
-			throw new Error('WebGL2 not supported. Please use a browser that supports WebGL2.');
+			throw spError(
+				0,
+				__SHADERPAD_DEV__ && {
+					canvasType: this.canvas.constructor.name,
+					isHeadless: this.isHeadless,
+					canvasWidth: this.canvas.width,
+					canvasHeight: this.canvas.height,
+				},
+			);
 		}
 		this.gl = gl;
 		this.glHelpers = {
@@ -322,7 +329,6 @@ class ShaderPad {
 		this.textureOptions = textureOptions;
 
 		if (history) this.historyDepth = history;
-		this.debug = debug ?? (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production');
 		this.cursorTarget = cursorTarget ?? (this.canvas instanceof HTMLCanvasElement ? this.canvas : undefined);
 		this.animationFrameId = null;
 
@@ -343,7 +349,7 @@ class ShaderPad {
 
 		const program = this.gl.createProgram();
 		if (!program) {
-			throw new Error('Failed to create WebGL program');
+			throw spError(1);
 		}
 		this.program = program;
 
@@ -360,9 +366,17 @@ class ShaderPad {
 		gl.deleteShader(fragmentShader);
 
 		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-			console.error('Program link error:', gl.getProgramInfoLog(program));
+			const programInfoLog = gl.getProgramInfoLog(program);
+			const linkError = spError(
+				2,
+				__SHADERPAD_DEV__ && {
+					programInfoLog,
+					fragmentShaderLength: fragmentShaderSrc.length,
+					glslInjectionCount: glslInjections.length,
+				},
+			);
 			gl.deleteProgram(program);
-			throw new Error('Failed to link WebGL program');
+			throw linkError;
 		}
 
 		this.vao = gl.createVertexArray();
@@ -407,10 +421,12 @@ class ShaderPad {
 		}
 		this.updateResolution();
 
-		this.initializeUniform('u_cursor', 'float', this.cursorPosition);
-		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0]);
-		this.initializeUniform('u_time', 'float', 0);
-		this.initializeUniform('u_frame', 'int', 0);
+		this.initializeUniform('u_cursor', 'float', this.cursorPosition, { allowMissing: true });
+		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0], {
+			allowMissing: true,
+		});
+		this.initializeUniform('u_time', 'float', 0, { allowMissing: true });
+		this.initializeUniform('u_frame', 'int', 0, { allowMissing: true });
 
 		this._initializeTexture(INTERMEDIATE_TEXTURE_KEY, this.canvas, {
 			...this.textureOptions,
@@ -434,7 +450,7 @@ class ShaderPad {
 	private resolveGLConstant(value: GLConstantString): number {
 		const resolved = this.gl[value];
 		if (resolved === undefined) {
-			throw new Error(`Unknown GL constant: ${value}`);
+			throw spError(3, __SHADERPAD_DEV__ && { value });
 		}
 		return resolved;
 	}
@@ -465,10 +481,18 @@ class ShaderPad {
 		this.gl.shaderSource(shader, source);
 		this.gl.compileShader(shader);
 		if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-			console.error('Shader compilation failed:', source);
-			console.error(this.gl.getShaderInfoLog(shader));
+			const shaderInfoLog = this.gl.getShaderInfoLog(shader);
+			const shaderType = type === this.gl.VERTEX_SHADER ? 'vertex' : 'fragment';
+			const compilationError = spError(
+				4,
+				__SHADERPAD_DEV__ && {
+					shaderType,
+					shaderInfoLog,
+					source,
+				},
+			);
 			this.gl.deleteShader(shader);
-			throw new Error('Shader compilation failed');
+			throw compilationError;
 		}
 		return shader;
 	}
@@ -578,7 +602,7 @@ class ShaderPad {
 		if (this.uniforms.has('u_resolution')) {
 			this.updateUniforms({ u_resolution: resolution });
 		} else {
-			this.initializeUniform('u_resolution', 'float', resolution);
+			this.initializeUniform('u_resolution', 'float', resolution, { allowMissing: true });
 		}
 		this.resizeTexture(INTERMEDIATE_TEXTURE_KEY, ...resolution);
 		if (this.historyDepth > 0) {
@@ -607,7 +631,15 @@ class ShaderPad {
 		if (existing) return existing.unitIndex;
 		if (this.textureUnitPool.free.length > 0) return this.textureUnitPool.free.pop()!;
 		if (this.textureUnitPool.next >= this.textureUnitPool.max) {
-			throw new Error('Exceeded the available texture units for this device.');
+			throw spError(
+				5,
+				__SHADERPAD_DEV__ && {
+					name: stringFrom(name),
+					nextTextureUnit: this.textureUnitPool.next,
+					maxTextureUnits: this.textureUnitPool.max,
+					freeTextureUnits: this.textureUnitPool.free.length,
+				},
+			);
 		}
 		return this.textureUnitPool.next++;
 	}
@@ -635,7 +667,13 @@ class ShaderPad {
 		const isFloatColorFormat = result.internalFormat === gl.RGBA16F || result.internalFormat === gl.RGBA32F;
 		// gl.getExtension isn’t just a check, it’s a required side-effect to enable floats.
 		if (isFloatColorFormat && !gl.getExtension('EXT_color_buffer_float')) {
-			throw new Error('Missing EXT_color_buffer_float.');
+			throw spError(
+				6,
+				__SHADERPAD_DEV__ && {
+					internalFormat: internalFormatString,
+					type: typeString,
+				},
+			);
 		}
 		return result;
 	}
@@ -685,19 +723,32 @@ class ShaderPad {
 		name: string,
 		type: Uniform['type'],
 		value: number | number[] | (number | number[])[],
-		options?: { arrayLength?: number },
+		options?: { arrayLength?: number; allowMissing?: boolean },
 	) {
 		const arrayLength = options?.arrayLength;
+		const allowMissing = options?.allowMissing ?? false;
 		if (this.uniforms.has(name)) {
-			throw new Error(`${name} is already initialized.`);
+			throw spError(7, __SHADERPAD_DEV__ && { name, arrayLength: arrayLength ?? null });
 		}
 		if (!UNIFORM_TYPE_SUFFIXES[type]) {
-			throw new Error(
-				`Invalid uniform type: ${type}. Expected one of: ${Object.keys(UNIFORM_TYPE_SUFFIXES).join(', ')}.`,
+			throw spError(
+				8,
+				__SHADERPAD_DEV__ && {
+					name,
+					type,
+					supportedTypes: Object.keys(UNIFORM_TYPE_SUFFIXES),
+				},
 			);
 		}
 		if (arrayLength && !(Array.isArray(value) && value.length === arrayLength)) {
-			throw new Error(`${name} array length mismatch: must initialize with ${arrayLength} elements.`);
+			throw spError(
+				9,
+				__SHADERPAD_DEV__ && {
+					name,
+					expectedLength: arrayLength,
+					receivedLength: Array.isArray(value) ? value.length : 1,
+				},
+			);
 		}
 
 		let location = this.gl.getUniformLocation(this.program!, name);
@@ -705,8 +756,8 @@ class ShaderPad {
 			location = this.gl.getUniformLocation(this.program!, `${name}[0]`);
 		}
 		if (!location) {
-			this.log(`${name} not in shader. Skipping initialization.`);
-			return;
+			if (allowMissing) return;
+			throw spError(19, __SHADERPAD_DEV__ && { name, arrayLength: arrayLength ?? null });
 		}
 
 		const probeValue = arrayLength ? (value as number[] | number[][])[0] : value;
@@ -722,36 +773,53 @@ class ShaderPad {
 		this.emitHook('initializeUniform', ...arguments);
 	}
 
-	private log(...args: any[]) {
-		if (this.debug) console.debug(...args);
-	}
-
 	updateUniforms(
 		updates: Record<string, number | number[] | (number | number[])[]>,
-		options?: { startIndex?: number },
+		options?: { startIndex?: number; allowMissing?: boolean },
 	) {
 		this.gl.useProgram(this.program);
 		Object.entries(updates).forEach(([name, newValue]) => {
 			const uniform = this.uniforms.get(name);
 			if (!uniform) {
-				this.log(`${name} not in shader. Skipping update.`);
-				return;
+				if (options?.allowMissing) return;
+				throw spError(
+					20,
+					__SHADERPAD_DEV__ && {
+						name,
+						startIndex: options?.startIndex ?? null,
+					},
+				);
 			}
 			let glFunctionName = `uniform${uniform.length}${UNIFORM_TYPE_SUFFIXES[uniform.type]}`;
 			if (uniform.arrayLength) {
 				if (!Array.isArray(newValue)) {
-					throw new Error(`${name} is an array, but the value passed to updateUniforms is not an array.`);
+					throw spError(
+						10,
+						__SHADERPAD_DEV__ && {
+							name,
+							receivedType: typeof newValue,
+						},
+					);
 				}
 				const nValues = newValue.length;
 				if (!nValues) return;
 				if (nValues > uniform.arrayLength) {
-					throw new Error(
-						`${name} received ${nValues} values, but maximum length is ${uniform.arrayLength}.`,
+					throw spError(
+						11,
+						__SHADERPAD_DEV__ && {
+							name,
+							receivedLength: nValues,
+							maxLength: uniform.arrayLength,
+						},
 					);
 				}
 				if (newValue.some(item => (Array.isArray(item) ? item.length : 1) !== uniform.length)) {
-					throw new Error(
-						`Tried to update ${name} with some elements that are not length ${uniform.length}.`,
+					throw spError(
+						12,
+						__SHADERPAD_DEV__ && {
+							name,
+							expectedElementLength: uniform.length,
+						},
 					);
 				}
 				const flat = newValue.flat();
@@ -765,8 +833,13 @@ class ShaderPad {
 				if (options?.startIndex) {
 					const newLocation = this.gl.getUniformLocation(this.program!, `${name}[${options.startIndex}]`);
 					if (!newLocation) {
-						throw new Error(
-							`${name}[${options.startIndex}] not in shader. Did you pass an invalid startIndex?`,
+						throw spError(
+							13,
+							__SHADERPAD_DEV__ && {
+								name,
+								startIndex: options.startIndex,
+								arrayLength: uniform.arrayLength,
+							},
 						);
 					}
 					location = newLocation;
@@ -774,10 +847,18 @@ class ShaderPad {
 				(this.gl as any)[glFunctionName + 'v'](location, typedArray);
 			} else {
 				if (!Array.isArray(newValue)) newValue = [newValue];
-				if (newValue.length !== uniform.length) {
-					throw new Error(`Invalid uniform value length: ${newValue.length}. Expected ${uniform.length}.`);
+				const scalarValue = newValue as number[];
+				if (scalarValue.length !== uniform.length) {
+					throw spError(
+						14,
+						__SHADERPAD_DEV__ && {
+							name,
+							receivedLength: scalarValue.length,
+							expectedLength: uniform.length,
+						},
+					);
 				}
-				(this.gl as any)[glFunctionName](uniform.location, ...newValue);
+				(this.gl as any)[glFunctionName](uniform.location, ...scalarValue);
 			}
 		});
 		this.emitHook('updateUniforms', ...arguments);
@@ -792,7 +873,15 @@ class ShaderPad {
 
 		const texture = this.gl.createTexture();
 		if (!texture) {
-			throw new Error('Failed to create texture');
+			throw spError(
+				15,
+				__SHADERPAD_DEV__ && {
+					name: stringFrom(name),
+					width,
+					height,
+					historyDepth,
+				},
+			);
 		}
 
 		let unitIndex = textureInfo.unitIndex;
@@ -838,13 +927,21 @@ class ShaderPad {
 		options?: TextureOptions & { history?: number },
 	) {
 		if (this.textures.has(name)) {
-			throw new Error(`Texture '${stringFrom(name)}' is already initialized.`);
+			throw spError(16, __SHADERPAD_DEV__ && { name: stringFrom(name) });
 		}
 
 		const { history: historyDepth = 0, ...textureOptions } = options ?? {};
 		const { width, height } = getSourceDimensions(source);
 		if (!width || !height) {
-			throw new Error(`Texture source must have valid dimensions`);
+			throw spError(
+				17,
+				__SHADERPAD_DEV__ && {
+					name: stringFrom(name),
+					width,
+					height,
+					sourceType: source.constructor.name,
+				},
+			);
 		}
 		const textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> = {
 			width,
@@ -866,7 +963,7 @@ class ShaderPad {
 			...textureInfo,
 		};
 		if (historyDepth > 0) {
-			this.initializeUniform(`${stringFrom(name)}FrameOffset`, 'int', 0);
+			this.initializeUniform(`${stringFrom(name)}FrameOffset`, 'int', 0, { allowMissing: true });
 			this.clearHistoryTextureLayers(completeTextureInfo);
 		}
 		this.textures.set(name, completeTextureInfo);
@@ -906,7 +1003,9 @@ class ShaderPad {
 
 	private updateTexture(name: string | symbol, source: UpdateTextureSource, options?: InternalUpdateTexturesOptions) {
 		const info = this.textures.get(name);
-		if (!info) throw new Error(`Texture '${stringFrom(name)}' is not initialized.`);
+		if (!info) {
+			throw spError(18, __SHADERPAD_DEV__ && { name: stringFrom(name) });
+		}
 
 		if (source instanceof WebGLTexture) {
 			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
@@ -942,9 +1041,14 @@ class ShaderPad {
 				this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
 				this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
 				const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
-				this.updateUniforms({
-					[frameOffsetUniformName]: targetSlots[targetSlots.length - 1],
-				});
+				this.updateUniforms(
+					{
+						[frameOffsetUniformName]: targetSlots[targetSlots.length - 1],
+					},
+					{
+						allowMissing: true,
+					},
+				);
 				if (options?.historyWriteIndex === undefined) {
 					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
 				}
@@ -1151,9 +1255,14 @@ class ShaderPad {
 			);
 			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
 			const nextWriteIndex = (writeIndex + 1) % depth;
-			this.updateUniforms({
-				[`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: nextWriteIndex,
-			});
+			this.updateUniforms(
+				{
+					[`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: nextWriteIndex,
+				},
+				{
+					allowMissing: true,
+				},
+			);
 			historyInfo.history!.writeIndex = nextWriteIndex;
 		}
 		++this.frame;

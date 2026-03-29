@@ -50,7 +50,6 @@ interface Options extends RenderTextureOptions {
     } | null;
     plugins?: Plugin[];
     history?: number;
-    debug?: boolean;
     cursorTarget?: Window | Element;
 }
 interface StepOptions {
@@ -87,10 +86,9 @@ declare class ShaderPad {
     private hooks;
     private historyDepth;
     private textureOptions;
-    private debug;
     private cursorTarget;
     private intermediateFbo;
-    constructor(fragmentShaderSrc: string, { canvas, plugins, history, debug, cursorTarget, ...textureOptions }?: Options);
+    constructor(fragmentShaderSrc: string, { canvas, plugins, history, cursorTarget, ...textureOptions }?: Options);
     private resolveGLConstant;
     private emitHook;
     on(name: LifecycleMethod, fn: Function): void;
@@ -107,10 +105,11 @@ declare class ShaderPad {
     private clearHistoryTextureLayers;
     initializeUniform(name: string, type: Uniform['type'], value: number | number[] | (number | number[])[], options?: {
         arrayLength?: number;
+        allowMissing?: boolean;
     }): void;
-    private log;
     updateUniforms(updates: Record<string, number | number[] | (number | number[])[]>, options?: {
         startIndex?: number;
+        allowMissing?: boolean;
     }): void;
     private createTexture;
     private _initializeTexture;

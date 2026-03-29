@@ -134,7 +134,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 				},
 				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
 			);
-			shaderPad.updateUniforms({ u_nHands: nHands });
+			shaderPad.updateUniforms({ u_nHands: nHands }, { allowMissing: true });
 			emitHook('hands:result', detector.state.result);
 		}
 
@@ -193,8 +193,8 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		const initPromise = initializeDetector();
 
 		shaderPad.on('_init', () => {
-			shaderPad.initializeUniform('u_maxHands', 'int', options.maxHands);
-			shaderPad.initializeUniform('u_nHands', 'int', 0);
+			shaderPad.initializeUniform('u_maxHands', 'int', options.maxHands, { allowMissing: true });
+			shaderPad.initializeUniform('u_nHands', 'int', 0, { allowMissing: true });
 			shaderPad.initializeTexture(
 				'u_handLandmarksTex',
 				{

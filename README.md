@@ -434,14 +434,6 @@ float zIndex = historyZ(u_webcam, u_webcamFrameOffset, nFramesAgo);
 vec4 historyColor = texture(u_webcam, vec3(v_uv, zIndex));
 ```
 
-### debug
-
-Enable debug logging. Defaults to `true` in development, `false` in production.
-
-```typescript
-const shader = new ShaderPad(fragmentShaderSrc, { debug: true });
-```
-
 ### plugins
 
 ShaderPad adds additional functionality through plugins, which keeps bundle sizes small.

@@ -83,6 +83,7 @@
 		"dist"
 	],
 	"scripts": {
+		"prebuild": "node ../../scripts/generate-error-code-artifacts.mjs",
 		"build": "tsup"
 	},
 	"peerDependencies": {

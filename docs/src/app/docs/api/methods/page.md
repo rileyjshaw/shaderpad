@@ -95,7 +95,7 @@ initializeUniform(
   name: string,
   type: 'float' | 'int' | 'uint',
   value: number | number[] | (number | number[])[],
-  options?: { arrayLength?: number },
+  options?: { arrayLength?: number, allowMissing?: boolean },
 ): void
 ```
 
@@ -103,16 +103,17 @@ Registers a shader uniform and seeds it with an initial value.
 
 ### `initializeUniform()` Options
 
-| Option        | Type     | Default     | Notes                                                                                                                |
-| ------------- | -------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
-| `arrayLength` | `number` | `undefined` | Declares that the uniform is a fixed-length array. When set, initialization must include exactly that many elements. |
+| Option         | Type      | Default     | Notes                                                                                                                                                 |
+| -------------- | --------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `arrayLength`  | `number`  | `undefined` | Declares that the uniform is a fixed-length array. When set, initialization must include exactly that many elements.                                  |
+| `allowMissing` | `boolean` | `false`     | When `true`, ShaderPad silently skips initialization if the uniform is not present in the compiled shader. Useful for optional internals and plugins. |
 
 ### `updateUniforms(updates, options?)`
 
 ```typescript
 updateUniforms(
   updates: Record<string, number | number[] | (number | number[])[]>,
-  options?: { startIndex?: number },
+  options?: { startIndex?: number, allowMissing?: boolean },
 ): void
 ```
 
@@ -120,9 +121,10 @@ Updates one or more initialized uniforms.
 
 ### `updateUniforms()` Options
 
-| Option       | Type     | Default     | Notes                                                                              |
-| ------------ | -------- | ----------- | ---------------------------------------------------------------------------------- |
-| `startIndex` | `number` | `undefined` | Only relevant for uniform arrays. Starts the write at `startIndex` instead of `0`. |
+| Option         | Type      | Default     | Notes                                                                                                               |
+| -------------- | --------- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| `startIndex`   | `number`  | `undefined` | Only relevant for uniform arrays. Starts the write at `startIndex` instead of `0`.                                  |
+| `allowMissing` | `boolean` | `false`     | When `true`, ShaderPad silently skips updates for uniforms that are intentionally optional and not present in GLSL. |
 
 ### `initializeTexture(name, source, options?)`
 

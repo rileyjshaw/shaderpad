@@ -1,4 +1,5 @@
 import ShaderPad, { PluginContext, TextureSource } from '..';
+import spError from '../internal/spError.js';
 import {
 	calculateBoundingBoxCenter,
 	generateGLSLFn,
@@ -238,74 +239,123 @@ interface Detector {
 }
 const sharedDetectors = new Map<string, Detector>();
 
-function createProgram(gl: WebGL2RenderingContext, vertexSource: string, fragmentSource: string): WebGLProgram {
-	const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
-	gl.shaderSource(vertexShader, vertexSource);
-	gl.compileShader(vertexShader);
+function createProgram(
+	gl: WebGL2RenderingContext,
+	vertexSource: string,
+	fragmentSource: string,
+	programName: string,
+): WebGLProgram {
+	let vertexShader: WebGLShader | null = null;
+	let fragmentShader: WebGLShader | null = null;
+	let program: WebGLProgram | null = null;
 
-	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!;
-	gl.shaderSource(fragmentShader, fragmentSource);
-	gl.compileShader(fragmentShader);
+	try {
+		vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		program = gl.createProgram();
+		if (!vertexShader || !fragmentShader || !program) throw new Error();
 
-	const program = gl.createProgram()!;
-	gl.attachShader(program, vertexShader);
-	gl.attachShader(program, fragmentShader);
-	gl.linkProgram(program);
-	gl.deleteShader(vertexShader);
-	gl.deleteShader(fragmentShader);
-	return program;
+		gl.shaderSource(vertexShader, vertexSource);
+		gl.compileShader(vertexShader);
+		if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) throw new Error();
+
+		gl.shaderSource(fragmentShader, fragmentSource);
+		gl.compileShader(fragmentShader);
+		if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) throw new Error();
+
+		gl.attachShader(program, vertexShader);
+		gl.attachShader(program, fragmentShader);
+		gl.linkProgram(program);
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error();
+
+		return program;
+	} catch {
+		if (program) gl.deleteProgram(program);
+		throw spError(
+			61,
+			__SHADERPAD_DEV__ && {
+				programName,
+				vertexShaderInfoLog: vertexShader ? gl.getShaderInfoLog(vertexShader) : undefined,
+				fragmentShaderInfoLog: fragmentShader ? gl.getShaderInfoLog(fragmentShader) : undefined,
+				programInfoLog: program ? gl.getProgramInfoLog(program) : undefined,
+			},
+		);
+	} finally {
+		if (vertexShader) gl.deleteShader(vertexShader);
+		if (fragmentShader) gl.deleteShader(fragmentShader);
+	}
 }
 
 function initMaskRenderer(canvas: OffscreenCanvas): MaskRenderer {
 	const gl = canvas.getContext('webgl2', {
 		antialias: false,
 		preserveDrawingBuffer: true,
-	})!;
-	const regionProgram = createProgram(gl, MASK_VERTEX_SHADER, MASK_FRAGMENT_SHADER);
-	const blitProgram = createProgram(gl, MASK_VERTEX_SHADER, BLIT_FRAGMENT_SHADER);
+	});
+	if (!gl) {
+		throw spError(60, __SHADERPAD_DEV__ && { canvasWidth: canvas.width, canvasHeight: canvas.height });
+	}
+	const regionProgram = createProgram(gl, MASK_VERTEX_SHADER, MASK_FRAGMENT_SHADER, 'face-mask-region');
+	const blitProgram = createProgram(gl, MASK_VERTEX_SHADER, BLIT_FRAGMENT_SHADER, 'face-mask-blit');
 
-	const regionPositionBuffer = gl.createBuffer()!;
-	const regionPositionLocation = gl.getAttribLocation(regionProgram, 'a_pos');
+	let framebufferStatus: number | undefined;
+	try {
+		const regionPositionBuffer = gl.createBuffer();
+		const regionPositionLocation = gl.getAttribLocation(regionProgram, 'a_pos');
+		const quadBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, FULLSCREEN_TRIANGLES, gl.STATIC_DRAW);
+		const blitPositionLocation = gl.getAttribLocation(blitProgram, 'a_pos');
+		const colorLocation = gl.getUniformLocation(regionProgram, 'u_color');
+		const textureLocation = gl.getUniformLocation(blitProgram, 'u_texture');
+		const scratchTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, scratchTexture);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
-	const quadBuffer = gl.createBuffer()!;
-	gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, FULLSCREEN_TRIANGLES, gl.STATIC_DRAW);
-	const blitPositionLocation = gl.getAttribLocation(blitProgram, 'a_pos');
+		const scratchFramebuffer = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, scratchFramebuffer);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, scratchTexture, 0);
+		framebufferStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-	const colorLocation = gl.getUniformLocation(regionProgram, 'u_color')!;
-	const textureLocation = gl.getUniformLocation(blitProgram, 'u_texture')!;
+		if (
+			!regionPositionBuffer ||
+			regionPositionLocation < 0 ||
+			!quadBuffer ||
+			blitPositionLocation < 0 ||
+			!colorLocation ||
+			!textureLocation ||
+			!scratchTexture ||
+			!scratchFramebuffer ||
+			framebufferStatus !== gl.FRAMEBUFFER_COMPLETE
+		) {
+			throw new Error();
+		}
 
-	const scratchTexture = gl.createTexture()!;
-	gl.bindTexture(gl.TEXTURE_2D, scratchTexture);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+		gl.useProgram(blitProgram);
+		gl.uniform1i(textureLocation, 0);
+		gl.colorMask(true, true, true, false);
 
-	const scratchFramebuffer = gl.createFramebuffer()!;
-	gl.bindFramebuffer(gl.FRAMEBUFFER, scratchFramebuffer);
-	gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, scratchTexture, 0);
-	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-	gl.useProgram(blitProgram);
-	gl.uniform1i(textureLocation, 0);
-	gl.colorMask(true, true, true, false);
-
-	return {
-		canvas,
-		gl,
-		regionProgram,
-		blitProgram,
-		regionPositionBuffer,
-		quadBuffer,
-		regionPositionLocation,
-		blitPositionLocation,
-		colorLocation,
-		textureLocation,
-		scratchTexture,
-		scratchFramebuffer,
-	};
+		return {
+			canvas,
+			gl,
+			regionProgram,
+			blitProgram,
+			regionPositionBuffer,
+			quadBuffer,
+			regionPositionLocation,
+			blitPositionLocation,
+			colorLocation,
+			textureLocation,
+			scratchTexture,
+			scratchFramebuffer,
+		};
+	} catch {
+		throw spError(62, __SHADERPAD_DEV__ && { framebufferStatus });
+	}
 }
 
 function resizeMaskRenderer(mask: MaskRenderer, width: number, height: number) {
@@ -513,7 +563,7 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 				},
 				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
 			);
-			shaderPad.updateUniforms({ u_nFaces: nFaces });
+			shaderPad.updateUniforms({ u_nFaces: nFaces }, { allowMissing: true });
 			emitHook('face:result', detector.state.result);
 		}
 
@@ -647,8 +697,8 @@ function face(config: { textureName: string; options?: FacePluginOptions }) {
 		}
 
 		shaderPad.on('_init', () => {
-			shaderPad.initializeUniform('u_maxFaces', 'int', options.maxFaces);
-			shaderPad.initializeUniform('u_nFaces', 'int', 0);
+			shaderPad.initializeUniform('u_maxFaces', 'int', options.maxFaces, { allowMissing: true });
+			shaderPad.initializeUniform('u_nFaces', 'int', 0, { allowMissing: true });
 			shaderPad.initializeTexture(
 				'u_faceLandmarksTex',
 				{

@@ -302,7 +302,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				},
 				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
 			);
-			shaderPad.updateUniforms({ u_nPoses: nPoses });
+			shaderPad.updateUniforms({ u_nPoses: nPoses }, { allowMissing: true });
 			emitHook('pose:result', detector.state.result);
 		}
 
@@ -363,8 +363,8 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 		const initPromise = initializeDetector();
 
 		shaderPad.on('_init', () => {
-			shaderPad.initializeUniform('u_maxPoses', 'int', options.maxPoses);
-			shaderPad.initializeUniform('u_nPoses', 'int', 0);
+			shaderPad.initializeUniform('u_maxPoses', 'int', options.maxPoses, { allowMissing: true });
+			shaderPad.initializeUniform('u_nPoses', 'int', 0, { allowMissing: true });
 			shaderPad.initializeTexture(
 				'u_poseLandmarksTex',
 				{

@@ -25,8 +25,8 @@ export const metadata: Metadata = {
 	metadataBase: new URL(siteOrigin),
 	applicationName: 'ShaderPad Docs',
 	title: {
-		template: '%s - Docs',
-		default: 'ShaderPad - Get creative with shaders.',
+		template: 'ShaderPad | %s',
+		default: 'ShaderPad | Get creative with shaders',
 	},
 	description:
 		'ShaderPad is a lightweight, dependency-free library that reduces boilerplate when working with fragment shaders.',

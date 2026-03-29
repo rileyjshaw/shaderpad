@@ -17,6 +17,7 @@ export default defineConfig({
 	minify: true,
 	define: {
 		'process.env.NODE_ENV': '"production"',
+		__SHADERPAD_DEV__: 'false',
 		__MEDIAPIPE_TASKS_VISION_VERSION__: JSON.stringify(visionPkg.version),
 	},
 	esbuildOptions(options) {

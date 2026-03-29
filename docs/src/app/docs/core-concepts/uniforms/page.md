@@ -22,7 +22,9 @@ Parameters:
 - `name`: `string`
 - `type`: `'float' | 'int' | 'uint'`
 - `value`: `number | number[] | (number | number[])[]`
-- `options?`: `{ arrayLength?: number }`
+- `options?`: `{ arrayLength?: number, allowMissing?: boolean }`
+
+`allowMissing` is mainly for ShaderPad internals and plugins. When `false` or omitted, ShaderPad throws if the compiled shader does not expose the requested uniform. When `true`, missing uniforms are treated as intentional no-ops.
 
 ## Update Uniforms
 
@@ -74,3 +76,5 @@ shader.updateUniforms(
 	{ startIndex: 1 },
 );
 ```
+
+`updateUniforms()` also accepts `allowMissing?: boolean`, with the same semantics as `initializeUniform()`.
