@@ -374,6 +374,44 @@ function publishPackage(pkg, tag) {
 	run('npm', [...pkg.publishArgs, '--tag', tag]);
 }
 
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function waitForPublishedPackage(
+	packageName,
+	version,
+	{ attempts = 30, delayMs = 4000 } = {},
+) {
+	for (let attempt = 1; attempt <= attempts; attempt += 1) {
+		if (isPublished(packageName, version)) {
+			if (attempt > 1) {
+				console.log(`- ${packageName}@${version} is now visible on npm`);
+			}
+			return;
+		}
+
+		if (attempt === 1) {
+			console.log(`- waiting for ${packageName}@${version} to become visible on npm...`);
+		}
+
+		if (attempt === attempts) {
+			break;
+		}
+
+		await sleep(delayMs);
+	}
+
+	throw new Error(
+		[
+			`Published ${packageName}@${version}, but npm did not resolve it within ${
+				(attempts - 1) * delayMs
+			}ms.`,
+			'Stopping before dependent release steps so the release can be resumed safely.',
+		].join('\n'),
+	);
+}
+
 function addLatestDistTag(pkg) {
 	if (!pkg.latestTag) {
 		return;
@@ -410,7 +448,7 @@ async function confirmDeploy(options, releaseInfo) {
 	}
 }
 
-function deployRelease(options, releaseInfo) {
+async function deployRelease(options, releaseInfo) {
 	if (!options.skipLogin) {
 		ensureNpmAuth();
 	}
@@ -428,6 +466,7 @@ function deployRelease(options, releaseInfo) {
 		if (shaderpadPackage) {
 			console.log(`- ${shaderpadPackage.name}@${shaderpadPackage.version} (${options.tag})`);
 			publishPackage(shaderpadPackage, options.tag);
+			await waitForPublishedPackage(shaderpadPackage.name, shaderpadPackage.version);
 			addLatestDistTag(shaderpadPackage);
 		}
 	}
@@ -441,6 +480,7 @@ function deployRelease(options, releaseInfo) {
 	if (starterPackage) {
 		console.log(`- ${starterPackage.name}@${starterPackage.version} (${options.tag})`);
 		publishPackage(starterPackage, options.tag);
+		await waitForPublishedPackage(starterPackage.name, starterPackage.version);
 		addLatestDistTag(starterPackage);
 		console.log('');
 	}
@@ -457,7 +497,7 @@ async function main() {
 	const options = parseArgs(process.argv.slice(2));
 	const releaseInfo = prepareRelease(options);
 	await confirmDeploy(options, releaseInfo);
-	deployRelease(options, releaseInfo);
+	await deployRelease(options, releaseInfo);
 }
 
 try {
