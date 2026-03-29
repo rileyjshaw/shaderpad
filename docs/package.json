@@ -31,7 +31,7 @@
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"react-highlight-words": "^0.21.0",
-		"shaderpad": "1.0.0-beta.68",
+		"shaderpad": "1.0.0-beta.69",
 		"simple-functional-loader": "^1.2.1",
 		"tailwindcss": "^4.2.1",
 		"typescript": "^5.9.3"
