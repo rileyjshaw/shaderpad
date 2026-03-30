@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.71
+
+### Minor Changes
+
+- Publish development build
+
 ## 1.0.0-beta.70
 
 ### Minor Changes

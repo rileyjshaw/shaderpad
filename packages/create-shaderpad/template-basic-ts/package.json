@@ -9,7 +9,7 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"shaderpad": "1.0.0-beta.70"
+		"shaderpad": "1.0.0-beta.71"
 	},
 	"devDependencies": {
 		"typescript": "^5.9.3",
