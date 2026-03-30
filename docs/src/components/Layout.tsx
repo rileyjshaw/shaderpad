@@ -59,7 +59,7 @@ function Header({ hideExternalLinks = false }: { hideExternalLinks?: boolean }) 
 			<div className="relative flex basis-0 justify-end gap-6 sm:gap-8 md:grow">
 				<ThemeSelector className="relative z-10" />
 				{!hideExternalLinks && (
-					<Link href="https://github.com/rileyjshaw/shaderpad" className="group" aria-label="GitHub">
+					<Link href="https://github.com/miseryco/shaderpad" className="group" aria-label="GitHub">
 						<GitHubIcon className="h-6 w-6 fill-slate-400 group-hover:fill-slate-500 dark:group-hover:fill-slate-300" />
 					</Link>
 				)}

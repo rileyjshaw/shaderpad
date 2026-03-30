@@ -54,7 +54,7 @@ export function Hero() {
 							</p>
 							<div className="mt-8 flex flex-wrap gap-4 md:justify-center lg:justify-start">
 								<Button href="/docs/getting-started/quickstart">Quickstart</Button>
-								<Button href="https://github.com/rileyjshaw/shaderpad" variant="secondary">
+								<Button href="https://github.com/miseryco/shaderpad" variant="secondary">
 									View on GitHub
 								</Button>
 								<div className="my-auto">

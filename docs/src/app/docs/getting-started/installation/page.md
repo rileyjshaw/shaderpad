@@ -18,10 +18,10 @@ npm create shaderpad@latest
 
 The CLI will prompt you to choose a starter app interactively. You can also start exparimenting with the templates in your browser:
 
-- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
-- [Open the basic starter (JS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-js?title=ShaderPad%20Basic%20JavaScript)
-- [Open the face filter starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20Face%20TypeScript)
-- [Open the face filter starter (JS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-face-js?title=ShaderPad%20Face%20JavaScript)
+- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
+- [Open the basic starter (JS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-js?title=ShaderPad%20Basic%20JavaScript)
+- [Open the face filter starter (TS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20Face%20TypeScript)
+- [Open the face filter starter (JS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-js?title=ShaderPad%20Face%20JavaScript)
 
 ## Install Into An Existing Project
 

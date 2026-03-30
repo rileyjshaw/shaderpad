@@ -56,4 +56,4 @@ Markdown documentation index:
 Additional repository reference:
 
 - [Repository README]({{README_MARKDOWN_URL}}) - raw markdown mirror of the repo README
-- [GitHub README](https://github.com/rileyjshaw/shaderpad/blob/main/README.md) - canonical repository copy
+- [GitHub README](https://github.com/miseryco/shaderpad/blob/main/README.md) - canonical repository copy

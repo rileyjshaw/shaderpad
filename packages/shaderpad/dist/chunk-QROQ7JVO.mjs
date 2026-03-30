@@ -1,0 +1,2 @@
+var t="https://mry.ac/s/";function o(r){return`${t}${r}`}function d(r,e){let n=new Error(r);return n.code=e,n}function u(r,e){return d(`ShaderPad error: ${o(r)}`,r)}function f(r,e){return(r%e+e)%e}export{u as a,f as b};
+//# sourceMappingURL=chunk-QROQ7JVO.mjs.map

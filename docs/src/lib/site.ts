@@ -1,4 +1,4 @@
-export const siteOrigin = 'https://rileyjshaw.com';
+export const siteOrigin = 'https://misery.co';
 export const docsBasePath = '/shaderpad';
 
 export function withBasePath(pathname: string) {

@@ -9,7 +9,7 @@
  * @property {ReadonlyArray<string>} fixes
  */
 
-export const ERROR_DOCS_BASE_URL = 'https://rileyjshaw.com/shaderpad/e/';
+export const ERROR_DOCS_BASE_URL = 'https://mry.ac/s/';
 
 /** @type {ReadonlyArray<ErrorRegistryEntry>} */
 export const errors = [

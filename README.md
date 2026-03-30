@@ -24,25 +24,24 @@ The CLI will walk you through the available starters interactively.
 
 To try the same templates online:
 
-- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
-- [Open the basic starter (JS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-js?title=ShaderPad%20Basic%20JavaScript)
-- [Open the face filter starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20Face%20TypeScript)
-- [Open the face filter starter (JS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-face-js?title=ShaderPad%20Face%20JavaScript)
+- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
+- [Open the basic starter (JS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-js?title=ShaderPad%20Basic%20JavaScript)
+- [Open the face filter starter (TS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20Face%20TypeScript)
+- [Open the face filter starter (JS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-js?title=ShaderPad%20Face%20JavaScript)
 
 ## Links
 
 ### For humans:
 
-- [Docs](https://rileyjshaw.com/shaderpad/)
-- [Quickstart](https://rileyjshaw.com/shaderpad/docs/getting-started/quickstart/)
-- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/rileyjshaw/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
-- [Browse interactive examples](https://rileyjshaw.com/shaderpad/examples/)
+- [Docs](https://misery.co/shaderpad/)
+- [Quickstart](https://misery.co/shaderpad/docs/getting-started/quickstart/)
+- [Browse interactive examples](https://misery.co/shaderpad/examples/)
 
 ### For AIs and coding agents:
 
-- [AI agent guide](https://rileyjshaw.com/shaderpad/docs/getting-started/ai-agent-guide/)
-- [llms.txt](https://rileyjshaw.com/shaderpad/llms.txt)
-- [Examples on GitHub](https://github.com/rileyjshaw/shaderpad/tree/main/docs/src/examples/demos)
+- [AI agent guide](https://misery.co/shaderpad/docs/getting-started/ai-agent-guide/)
+- [llms.txt](https://misery.co/shaderpad/llms.txt)
+- [Examples on GitHub](https://github.com/miseryco/shaderpad/tree/main/docs/src/examples/demos)
 
 ## Example
 
@@ -85,7 +84,7 @@ shader.play(time => {
 });
 ```
 
-See the [interactive examples](https://rileyjshaw.com/shaderpad/examples/) or browse the source in [`docs/src/examples/demos/`](./docs/src/examples/demos).
+See the [interactive examples](https://misery.co/shaderpad/examples/) or browse the source in [`docs/src/examples/demos/`](./docs/src/examples/demos).
 
 ## Usage
 
@@ -821,7 +820,7 @@ The `autosize` plugin handles automatic canvas resolution updates with ResizeObs
 ### Running an example
 
 ```bash
-git clone https://github.com/rileyjshaw/shaderpad.git
+git clone https://github.com/miseryco/shaderpad.git
 cd shaderpad
 npm install
 npm run docs:dev

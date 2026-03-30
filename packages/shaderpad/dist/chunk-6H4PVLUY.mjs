@@ -1,2 +1,0 @@
-var t="https://rileyjshaw.com/shaderpad/e/";function o(r){return`${t}${r}`}function d(r,e){let n=new Error(r);return n.code=e,n}function u(r,e){return d(`ShaderPad error: ${o(r)}`,r)}function a(r,e){return(r%e+e)%e}export{u as a,a as b};
-//# sourceMappingURL=chunk-6H4PVLUY.mjs.map
