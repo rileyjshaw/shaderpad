@@ -48,6 +48,10 @@ function renderDevMessage(code: ErrorCode, context?: DevContext) {
 	return parts.join('\n\n');
 }
 
-export default function spError(code: ErrorCode, context?: DevContext) {
+export function spError(code: ErrorCode, context?: DevContext) {
 	return withCode(__SHADERPAD_DEV__ ? renderDevMessage(code, context) : `ShaderPad error: ${errorUrl(code)}`, code);
+}
+
+export function safeMod(i: number, m: number): number {
+	return ((i % m) + m) % m;
 }

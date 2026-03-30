@@ -71,7 +71,7 @@ export function BuiltInInputsPreview() {
 
 			if (shouldPlay) {
 				if (!isPlaying) {
-					shader.play(time => {
+					shader.play((time: number) => {
 						shader.updateUniforms({ u_cursorColor: getColor(time) });
 					});
 					isPlaying = true;

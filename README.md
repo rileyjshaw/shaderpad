@@ -237,7 +237,9 @@ shader.updateTextures({ u_camera: videoElement }, { skipHistoryWrite: true });
 **Parameters:**
 
 - `updates`: Object mapping texture names to updated sources
-- `options?` (optional): `{ skipHistoryWrite?: boolean }`
+- `options?` (optional): `{ skipHistoryWrite?: boolean, historyWriteIndex?: number | number[] }`
+
+`historyWriteIndex` is only relevant for textures with history. It writes into the specified slot and updates the texture's `*FrameOffset` uniform to that slot.
 
 ### Lifecycle methods
 

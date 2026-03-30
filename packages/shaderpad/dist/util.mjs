@@ -1,2 +1,2 @@
-import{a,b}from"./chunk-LXQJ4NRK.mjs";export{b as createFullscreenCanvas,a as safeMod};
+function n(t){let e=document.createElement("canvas");return e.style.position="fixed",e.style.inset="0",e.style.height="100dvh",e.style.width="100dvw",(t||document.body).appendChild(e),e}export{n as createFullscreenCanvas};
 //# sourceMappingURL=util.mjs.map

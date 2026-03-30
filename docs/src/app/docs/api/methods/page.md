@@ -157,7 +157,7 @@ initializeTexture(
 ```typescript
 updateTextures(
   updates: Record<string, UpdateTextureSource>,
-  options?: { skipHistoryWrite?: boolean },
+  options?: { skipHistoryWrite?: boolean, historyWriteIndex?: number | number[] },
 ): void
 ```
 
@@ -165,6 +165,7 @@ Updates one or more previously initialized textures.
 
 ### `updateTextures()` Options
 
-| Option             | Type      | Default | Notes                                                                                                                                                    |
-| ------------------ | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `skipHistoryWrite` | `boolean` | `false` | Only relevant for textures that were initialized with history. When `true`, the texture data is updated without advancing that texture's history layers. |
+| Option              | Type                 | Default     | Notes                                                                                                                                                    |
+| ------------------- | -------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `skipHistoryWrite`  | `boolean`            | `false`     | Only relevant for textures that were initialized with history. When `true`, the texture data is updated without advancing that texture's history layers. |
+| `historyWriteIndex` | `number \| number[]` | `undefined` | Only relevant for textures that were initialized with history. Writes into the specified slot and updates the `*FrameOffset` uniform to that slot.       |

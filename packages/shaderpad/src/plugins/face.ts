@@ -1,5 +1,5 @@
 import ShaderPad, { PluginContext, TextureSource } from '..';
-import spError from '../internal/spError.js';
+import { spError } from '../internal/util';
 import {
 	calculateBoundingBoxCenter,
 	generateGLSLFn,

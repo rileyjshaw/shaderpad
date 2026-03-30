@@ -1,5 +1,4 @@
-import { safeMod } from './util.js';
-import spError from './internal/spError.js';
+import { spError, safeMod } from './internal/util';
 
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
 in vec2 a_position;
@@ -111,6 +110,10 @@ export interface PartialCustomTexture extends CustomTexture {
 	y?: number;
 }
 
+export interface InitializeTextureOptions extends TextureOptions {
+	history?: number;
+}
+
 export type TextureSource =
 	| HTMLImageElement
 	| HTMLVideoElement
@@ -129,10 +132,7 @@ export interface PluginContext {
 	canvas: HTMLCanvasElement | OffscreenCanvas;
 	injectGLSL: (code: string) => void;
 	emitHook: (name: LifecycleMethod, ...args: any[]) => void;
-	updateTexturesInternal: (
-		updates: Record<string, UpdateTextureSource>,
-		options?: InternalUpdateTexturesOptions,
-	) => void;
+	updateTexturesInternal: (updates: Record<string, UpdateTextureSource>, options?: UpdateTexturesOptions) => void;
 }
 
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
@@ -170,11 +170,8 @@ export interface StepOptions {
 
 export interface UpdateTexturesOptions {
 	skipHistoryWrite?: boolean;
-}
-
-type InternalUpdateTexturesOptions = UpdateTexturesOptions & {
 	historyWriteIndex?: number | number[];
-};
+}
 
 type TextureUnitPool = {
 	free: number[];
@@ -620,10 +617,7 @@ class ShaderPad {
 		info.height = height;
 		const { texture } = this.createTexture(name, info);
 		info.texture = texture;
-		if (info.history) {
-			info.history.writeIndex = 0;
-			this.clearHistoryTextureLayers(info);
-		}
+		this.resetHistoryTextureState(name, info);
 	}
 
 	private reserveTextureUnit(name: string | symbol) {
@@ -717,6 +711,28 @@ class ShaderPad {
 			);
 		}
 		if (needsAlignmentFix) gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousAlignment);
+	}
+
+	private updateTextureFrameOffset(
+		name: string | symbol,
+		frameOffset: number,
+		options?: {
+			allowMissing?: boolean;
+		},
+	) {
+		this.updateUniforms(
+			{
+				[`${stringFrom(name)}FrameOffset`]: frameOffset,
+			},
+			options,
+		);
+	}
+
+	private resetHistoryTextureState(name: string | symbol, textureInfo: Texture) {
+		if (!textureInfo.history) return;
+		textureInfo.history.writeIndex = 0;
+		this.clearHistoryTextureLayers(textureInfo);
+		this.updateTextureFrameOffset(name, 0, { allowMissing: true });
 	}
 
 	initializeUniform(
@@ -921,11 +937,7 @@ class ShaderPad {
 		return { texture, unitIndex };
 	}
 
-	private _initializeTexture(
-		name: string | symbol,
-		source: TextureSource,
-		options?: TextureOptions & { history?: number },
-	) {
+	private _initializeTexture(name: string | symbol, source: TextureSource, options?: InitializeTextureOptions) {
 		if (this.textures.has(name)) {
 			throw spError(16, __SHADERPAD_DEV__ && { name: stringFrom(name) });
 		}
@@ -979,7 +991,7 @@ class ShaderPad {
 		}
 	}
 
-	initializeTexture(name: string, source: TextureSource, options?: TextureOptions & { history?: number }) {
+	initializeTexture(name: string, source: TextureSource, options?: InitializeTextureOptions) {
 		// Since history[0] is the current frame, add 1 to history depth to allow history[maxHistory].
 		const opts =
 			options?.history != null && options.history > 0 ? { ...options, history: options.history + 1 } : options;
@@ -992,16 +1004,13 @@ class ShaderPad {
 		this.emitHook('updateTextures', ...arguments);
 	}
 
-	private updateTexturesInternal(
-		updates: Record<string, UpdateTextureSource>,
-		options?: InternalUpdateTexturesOptions,
-	) {
+	private updateTexturesInternal(updates: Record<string, UpdateTextureSource>, options?: UpdateTexturesOptions) {
 		Object.entries(updates).forEach(([name, source]) => {
 			this.updateTexture(name, source, options);
 		});
 	}
 
-	private updateTexture(name: string | symbol, source: UpdateTextureSource, options?: InternalUpdateTexturesOptions) {
+	private updateTexture(name: string | symbol, source: UpdateTextureSource, options?: UpdateTexturesOptions) {
 		const info = this.textures.get(name);
 		if (!info) {
 			throw spError(18, __SHADERPAD_DEV__ && { name: stringFrom(name) });
@@ -1040,15 +1049,7 @@ class ShaderPad {
 				this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, null);
 				this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
 				this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
-				const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
-				this.updateUniforms(
-					{
-						[frameOffsetUniformName]: targetSlots[targetSlots.length - 1],
-					},
-					{
-						allowMissing: true,
-					},
-				);
+				this.updateTextureFrameOffset(name, targetSlots[targetSlots.length - 1], { allowMissing: true });
 				if (options?.historyWriteIndex === undefined) {
 					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
 				}
@@ -1123,12 +1124,7 @@ class ShaderPad {
 					);
 				}
 				this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
-
-				const frameOffsetUniformName = `${stringFrom(name)}FrameOffset`;
-				this.updateUniforms({
-					[frameOffsetUniformName]: targetSlots[targetSlots.length - 1],
-				});
-
+				this.updateTextureFrameOffset(name, targetSlots[targetSlots.length - 1]);
 				if (options?.historyWriteIndex === undefined) {
 					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
 				}
@@ -1255,14 +1251,7 @@ class ShaderPad {
 			);
 			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
 			const nextWriteIndex = (writeIndex + 1) % depth;
-			this.updateUniforms(
-				{
-					[`${stringFrom(HISTORY_TEXTURE_KEY)}FrameOffset`]: nextWriteIndex,
-				},
-				{
-					allowMissing: true,
-				},
-			);
+			this.updateTextureFrameOffset(HISTORY_TEXTURE_KEY, nextWriteIndex, { allowMissing: true });
 			historyInfo.history!.writeIndex = nextWriteIndex;
 		}
 		++this.frame;
@@ -1308,11 +1297,8 @@ class ShaderPad {
 
 	reset() {
 		this.resetFrame();
-		this.textures.forEach(texture => {
-			if (texture.history) {
-				texture.history.writeIndex = 0;
-				this.clearHistoryTextureLayers(texture);
-			}
+		this.textures.forEach((texture, name) => {
+			this.resetHistoryTextureState(name, texture);
 		});
 		this.clear();
 		this.emitHook('reset');

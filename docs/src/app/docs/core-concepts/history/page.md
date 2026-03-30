@@ -109,6 +109,16 @@ shader.play((time, frame) => {
 shader.step({ skipHistoryWrite: true });
 ```
 
+## Writing To Specific Texture History Slots
+
+`updateTextures()` also exposes `historyWriteIndex` for history textures:
+
+```javascript
+shader.updateTextures({ u_webcam: videoElement }, { historyWriteIndex: 3 }); // Write to slot 3.
+```
+
+This writes into the specified slot and updates the texture's `*FrameOffset` uniform to that slot.
+
 ## History Precision
 
 History buffers match the [precision and format options](/docs/core-concepts/format-and-precision) of their corresponding texture. This applies to framebuffer history (configured in the `ShaderPad` constructor) and texture history (configured in `initializeTexture()`).

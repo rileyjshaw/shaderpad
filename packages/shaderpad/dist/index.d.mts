@@ -31,6 +31,9 @@ interface PartialCustomTexture extends CustomTexture {
     x?: number;
     y?: number;
 }
+interface InitializeTextureOptions extends TextureOptions {
+    history?: number;
+}
 type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | WebGLTexture | CustomTexture | ShaderPad;
 type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 interface PluginContext {
@@ -38,7 +41,7 @@ interface PluginContext {
     canvas: HTMLCanvasElement | OffscreenCanvas;
     injectGLSL: (code: string) => void;
     emitHook: (name: LifecycleMethod, ...args: any[]) => void;
-    updateTexturesInternal: (updates: Record<string, UpdateTextureSource>, options?: InternalUpdateTexturesOptions) => void;
+    updateTexturesInternal: (updates: Record<string, UpdateTextureSource>, options?: UpdateTexturesOptions) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 type LifecycleMethod = '_init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'beforeStep' | 'afterStep' | 'beforeDraw' | 'afterDraw' | 'updateResolution' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
@@ -58,10 +61,8 @@ interface StepOptions {
 }
 interface UpdateTexturesOptions {
     skipHistoryWrite?: boolean;
-}
-type InternalUpdateTexturesOptions = UpdateTexturesOptions & {
     historyWriteIndex?: number | number[];
-};
+}
 declare class ShaderPad {
     private isHeadless;
     private isTouchDevice;
@@ -103,6 +104,8 @@ declare class ShaderPad {
     private getPixelArray;
     private isNotRgba;
     private clearHistoryTextureLayers;
+    private updateTextureFrameOffset;
+    private resetHistoryTextureState;
     initializeUniform(name: string, type: Uniform['type'], value: number | number[] | (number | number[])[], options?: {
         arrayLength?: number;
         allowMissing?: boolean;
@@ -113,9 +116,7 @@ declare class ShaderPad {
     }): void;
     private createTexture;
     private _initializeTexture;
-    initializeTexture(name: string, source: TextureSource, options?: TextureOptions & {
-        history?: number;
-    }): void;
+    initializeTexture(name: string, source: TextureSource, options?: InitializeTextureOptions): void;
     updateTextures(updates: Record<string, UpdateTextureSource>, options?: UpdateTexturesOptions): void;
     private updateTexturesInternal;
     private updateTexture;
@@ -132,4 +133,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type Options, type PartialCustomTexture, type PluginContext, type RenderTextureOptions, type StepOptions, type TextureOptions, type TextureSource, type UpdateTexturesOptions, ShaderPad as default };
+export { type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type InitializeTextureOptions, type Options, type PartialCustomTexture, type PluginContext, type RenderTextureOptions, type StepOptions, type TextureOptions, type TextureSource, type UpdateTexturesOptions, ShaderPad as default };
