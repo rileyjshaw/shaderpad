@@ -14,38 +14,83 @@
 	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
+			"types": "./dist/index.d.ts",
+			"development": {
+				"import": "./dist/dev/index.mjs",
+				"require": "./dist/dev/index.js"
+			},
 			"import": "./dist/index.mjs",
 			"require": "./dist/index.js"
 		},
 		"./plugins/face": {
+			"types": "./dist/plugins/face.d.ts",
+			"development": {
+				"import": "./dist/dev/plugins/face.mjs",
+				"require": "./dist/dev/plugins/face.js"
+			},
 			"import": "./dist/plugins/face.mjs",
 			"require": "./dist/plugins/face.js"
 		},
 		"./plugins/helpers": {
+			"types": "./dist/plugins/helpers.d.ts",
+			"development": {
+				"import": "./dist/dev/plugins/helpers.mjs",
+				"require": "./dist/dev/plugins/helpers.js"
+			},
 			"import": "./dist/plugins/helpers.mjs",
 			"require": "./dist/plugins/helpers.js"
 		},
 		"./plugins/save": {
+			"types": "./dist/plugins/save.d.ts",
+			"development": {
+				"import": "./dist/dev/plugins/save.mjs",
+				"require": "./dist/dev/plugins/save.js"
+			},
 			"import": "./dist/plugins/save.mjs",
 			"require": "./dist/plugins/save.js"
 		},
 		"./plugins/pose": {
+			"types": "./dist/plugins/pose.d.ts",
+			"development": {
+				"import": "./dist/dev/plugins/pose.mjs",
+				"require": "./dist/dev/plugins/pose.js"
+			},
 			"import": "./dist/plugins/pose.mjs",
 			"require": "./dist/plugins/pose.js"
 		},
 		"./plugins/hands": {
+			"types": "./dist/plugins/hands.d.ts",
+			"development": {
+				"import": "./dist/dev/plugins/hands.mjs",
+				"require": "./dist/dev/plugins/hands.js"
+			},
 			"import": "./dist/plugins/hands.mjs",
 			"require": "./dist/plugins/hands.js"
 		},
 		"./plugins/segmenter": {
+			"types": "./dist/plugins/segmenter.d.ts",
+			"development": {
+				"import": "./dist/dev/plugins/segmenter.mjs",
+				"require": "./dist/dev/plugins/segmenter.js"
+			},
 			"import": "./dist/plugins/segmenter.mjs",
 			"require": "./dist/plugins/segmenter.js"
 		},
 		"./plugins/autosize": {
+			"types": "./dist/plugins/autosize.d.ts",
+			"development": {
+				"import": "./dist/dev/plugins/autosize.mjs",
+				"require": "./dist/dev/plugins/autosize.js"
+			},
 			"import": "./dist/plugins/autosize.mjs",
 			"require": "./dist/plugins/autosize.js"
 		},
 		"./util": {
+			"types": "./dist/util.d.ts",
+			"development": {
+				"import": "./dist/dev/util.mjs",
+				"require": "./dist/dev/util.js"
+			},
 			"import": "./dist/util.mjs",
 			"require": "./dist/util.js"
 		}
