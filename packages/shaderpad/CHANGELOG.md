@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.70
+
+### Minor Changes
+
+- Update error shortlinks and enable texture historyWriteIndex
+
 ## 1.0.0-beta.69
 
 ### Minor Changes
