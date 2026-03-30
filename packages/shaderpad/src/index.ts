@@ -438,9 +438,7 @@ class ShaderPad {
 				...this.textureOptions,
 			});
 		}
-		if (this.cursorTarget) {
-			this.addEventListeners();
-		}
+		this.addEventListeners();
 		this.emitHook('_init');
 	}
 
