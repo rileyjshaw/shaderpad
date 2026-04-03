@@ -33,6 +33,7 @@ __export(mediapipe_common_exports, {
   calculateBoundingBoxCenter: () => calculateBoundingBoxCenter,
   dummyTexture: () => dummyTexture,
   generateGLSLFn: () => generateGLSLFn,
+  getOrCreateSharedResource: () => getOrCreateSharedResource,
   getSharedFileset: () => getSharedFileset,
   hashOptions: () => hashOptions,
   isMediaPipeSource: () => isMediaPipeSource
@@ -44,6 +45,25 @@ function isMediaPipeSource(source) {
 }
 function hashOptions(options) {
   return JSON.stringify(options, Object.keys(options).sort());
+}
+function getOrCreateSharedResource(key, sharedResources, sharedResourcePromises, create) {
+  const existing = sharedResources.get(key);
+  if (existing) return Promise.resolve(existing);
+  const pending = sharedResourcePromises.get(key);
+  if (pending) return pending;
+  let promise;
+  promise = create().then((resource) => {
+    if (resource) {
+      sharedResources.set(key, resource);
+    }
+    return resource;
+  }).finally(() => {
+    if (sharedResourcePromises.get(key) === promise) {
+      sharedResourcePromises.delete(key);
+    }
+  });
+  sharedResourcePromises.set(key, promise);
+  return promise;
 }
 function calculateBoundingBoxCenter(data, entityIdx, landmarkIndices, landmarkCount, offset = 0) {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, avgZ = 0, avgVisibility = 0;
@@ -96,6 +116,7 @@ ${body}
   calculateBoundingBoxCenter,
   dummyTexture,
   generateGLSLFn,
+  getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource

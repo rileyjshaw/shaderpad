@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { errors, getErrorByCode } from '@/generated/error-codes';
+import { errorUrl, errors, getErrorByCode } from '@/generated/error-codes';
 import { absoluteSiteUrl } from '@/lib/site';
 
 export function generateStaticParams() {
@@ -50,7 +50,7 @@ export default async function ErrorPage({ params }: { params: Promise<{ code: st
 				<div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900/70">
 					<p className="text-sm font-medium text-slate-900 dark:text-white">Production error string</p>
 					<code className="mt-2 block overflow-x-auto text-sm text-slate-700 dark:text-slate-300">
-						ShaderPad error: {absoluteSiteUrl(`/e/${error.code}`)}
+						ShaderPad error: {errorUrl(error.code)}
 					</code>
 				</div>
 

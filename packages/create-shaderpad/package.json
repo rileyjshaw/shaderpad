@@ -11,6 +11,9 @@
 	],
 	"author": "rileyjshaw",
 	"license": "MIT",
+	"repository": "github:miseryco/shaderpad",
+	"homepage": "https://misery.co/shaderpad/",
+	"bugs": "https://github.com/miseryco/shaderpad/issues",
 	"bin": {
 		"create-shaderpad": "./bin/index.js"
 	},

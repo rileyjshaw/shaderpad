@@ -12,7 +12,8 @@
 		"docs:dev": "npm run dev --workspace shaderpad-docs",
 		"docs:start": "npm run start --workspace shaderpad-docs",
 		"release": "node scripts/release.mjs",
-		"size:standard-import": "node scripts/size-standard-import.mjs",
+		"size:exports": "node scripts/size-standard-import.mjs",
+		"size:standard-import": "npm run size:exports",
 		"format": "prettier --write \"./**/*.{ts,js,tsx,jsx,html,css,json,md}\""
 	},
 	"devDependencies": {

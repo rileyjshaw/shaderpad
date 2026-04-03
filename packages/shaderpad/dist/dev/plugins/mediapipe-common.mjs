@@ -2,14 +2,16 @@ import {
   calculateBoundingBoxCenter,
   dummyTexture,
   generateGLSLFn,
+  getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-Q3JKBIXC.mjs";
+} from "../chunk-VRJS34J4.mjs";
 export {
   calculateBoundingBoxCenter,
   dummyTexture,
   generateGLSLFn,
+  getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource

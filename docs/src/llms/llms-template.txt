@@ -21,7 +21,7 @@ Hard rules:
 - Prefer one WebGL context whenever possible. Multi-pass pipelines should usually share one canvas/context, and the last draw in `requestAnimationFrame` is what appears on screen.
 - Downsample expensive intermediate passes before adding more passes or more detector work.
 - Use the smallest format and filtering that works: `R8` plus `NEAREST` for masks or grayscale, `RGBA16F` plus `HALF_FLOAT` for float accumulation, and integer textures plus `NEAREST` for data maps.
-- If plugin history is enabled, helper overloads accept `framesAgo`; consider `skipHistoryWrite` before increasing history depth.
+- If plugin history is enabled, helper overloads accept `framesAgo`.
 - Detector batching across passes works when plugin type, `textureName`, detector options, and the underlying source object all match.
 
 Start with these pages:

@@ -6,6 +6,25 @@ function isMediaPipeSource(source) {
 function hashOptions(options) {
   return JSON.stringify(options, Object.keys(options).sort());
 }
+function getOrCreateSharedResource(key, sharedResources, sharedResourcePromises, create) {
+  const existing = sharedResources.get(key);
+  if (existing) return Promise.resolve(existing);
+  const pending = sharedResourcePromises.get(key);
+  if (pending) return pending;
+  let promise;
+  promise = create().then((resource) => {
+    if (resource) {
+      sharedResources.set(key, resource);
+    }
+    return resource;
+  }).finally(() => {
+    if (sharedResourcePromises.get(key) === promise) {
+      sharedResourcePromises.delete(key);
+    }
+  });
+  sharedResourcePromises.set(key, promise);
+  return promise;
+}
 function calculateBoundingBoxCenter(data, entityIdx, landmarkIndices, landmarkCount, offset = 0) {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, avgZ = 0, avgVisibility = 0;
   for (const idx of landmarkIndices) {
@@ -57,8 +76,9 @@ export {
   dummyTexture,
   isMediaPipeSource,
   hashOptions,
+  getOrCreateSharedResource,
   calculateBoundingBoxCenter,
   getSharedFileset,
   generateGLSLFn
 };
-//# sourceMappingURL=chunk-Q3JKBIXC.mjs.map
+//# sourceMappingURL=chunk-VRJS34J4.mjs.map

@@ -17,6 +17,35 @@ export function hashOptions(options: object): string {
 	return JSON.stringify(options, Object.keys(options).sort());
 }
 
+export function getOrCreateSharedResource<T>(
+	key: string,
+	sharedResources: Map<string, T>,
+	sharedResourcePromises: Map<string, Promise<T | undefined>>,
+	create: () => Promise<T | undefined>,
+): Promise<T | undefined> {
+	const existing = sharedResources.get(key);
+	if (existing) return Promise.resolve(existing);
+
+	const pending = sharedResourcePromises.get(key);
+	if (pending) return pending;
+
+	let promise: Promise<T | undefined>;
+	promise = create()
+		.then(resource => {
+			if (resource) {
+				sharedResources.set(key, resource);
+			}
+			return resource;
+		})
+		.finally(() => {
+			if (sharedResourcePromises.get(key) === promise) {
+				sharedResourcePromises.delete(key);
+			}
+		});
+	sharedResourcePromises.set(key, promise);
+	return promise;
+}
+
 export function calculateBoundingBoxCenter(
 	data: Float32Array,
 	entityIdx: number,

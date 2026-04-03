@@ -27,7 +27,14 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 The plugin reads from the `textureName` texture. Initialize and update that exact ShaderPad texture name, or the detector will have no source to read from.
 
-## Options
+## Config
+
+| Field          | Meaning                                                                              |
+| -------------- | ------------------------------------------------------------------------------------ |
+| `textureName`  | The live texture name the plugin reads from.                                         |
+| `options?`     | MediaPipe and history options listed below.                                          |
+
+## MediaPipe Options
 
 | Option                                         | Meaning                                        |
 | ---------------------------------------------- | ---------------------------------------------- |

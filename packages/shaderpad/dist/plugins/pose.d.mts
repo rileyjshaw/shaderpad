@@ -8,9 +8,10 @@ interface PosePluginOptions {
     minTrackingConfidence?: number;
     history?: number;
 }
-declare function pose(config: {
+interface PosePluginConfig {
     textureName: string;
     options?: PosePluginOptions;
-}): (shaderPad: ShaderPad, context: PluginContext) => void;
+}
+declare function pose(config: PosePluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;
 
-export { type PosePluginOptions, pose as default };
+export { type PosePluginConfig, type PosePluginOptions, pose as default };

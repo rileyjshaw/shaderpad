@@ -1,10 +1,11 @@
 import {
   calculateBoundingBoxCenter,
   generateGLSLFn,
+  getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-Q3JKBIXC.mjs";
+} from "../chunk-VRJS34J4.mjs";
 
 // src/plugins/hands.ts
 var STANDARD_LANDMARK_COUNT = 21;
@@ -21,6 +22,7 @@ var DEFAULT_HANDS_OPTIONS = {
   minTrackingConfidence: 0.5
 };
 var sharedDetectors = /* @__PURE__ */ new Map();
+var sharedDetectorPromises = /* @__PURE__ */ new Map();
 function updateLandmarksData(detector, hands2, handedness) {
   const data = detector.landmarks.data;
   const nHands = hands2.length;
@@ -61,19 +63,15 @@ function hands(config) {
     const { injectGLSL, emitHook, updateTexturesInternal } = context;
     const existingDetector = sharedDetectors.get(optionsKey);
     const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
-    let detector = null;
+    let detector;
     let destroyed = false;
-    let skipHistoryWrite = false;
-    function onResult(singleHistoryWriteIndex) {
+    let historySlot = -1;
+    let pendingBackfillSlots = [];
+    function writeTextures(historySlots) {
       if (!detector) return;
       const { nHands } = detector.state;
       const nSlots = nHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
       const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-      let historyWriteIndex = singleHistoryWriteIndex;
-      if (typeof historyWriteIndex === "undefined" && pendingBackfillSlots.length > 0) {
-        historyWriteIndex = pendingBackfillSlots;
-        pendingBackfillSlots = [];
-      }
       updateTexturesInternal(
         {
           u_handLandmarksTex: {
@@ -83,59 +81,71 @@ function hands(config) {
             isPartial: true
           }
         },
-        history ? { skipHistoryWrite, historyWriteIndex } : void 0
+        history ? historySlots : void 0
       );
       shaderPad.updateUniforms({ u_nHands: nHands }, { allowMissing: true });
+    }
+    function onResult() {
+      if (history) {
+        writeTextures(pendingBackfillSlots.length > 0 ? pendingBackfillSlots : historySlot);
+        pendingBackfillSlots = [];
+      } else {
+        writeTextures(historySlot);
+      }
       emitHook("hands:result", detector.state.result);
     }
     async function initializeDetector() {
-      if (sharedDetectors.has(optionsKey)) {
-        detector = sharedDetectors.get(optionsKey);
-      } else {
-        const [mediaPipe, { HandLandmarker }] = await Promise.all([
-          getSharedFileset(),
-          import("@mediapipe/tasks-vision")
-        ]);
-        if (destroyed) return;
-        const mediapipeCanvas = new OffscreenCanvas(1, 1);
-        const handLandmarker = await HandLandmarker.createFromOptions(mediaPipe, {
-          baseOptions: {
-            modelAssetPath: options.modelPath,
-            delegate: "GPU"
-          },
-          canvas: mediapipeCanvas,
-          runningMode: "VIDEO",
-          numHands: options.maxHands,
-          minHandDetectionConfidence: options.minHandDetectionConfidence,
-          minHandPresenceConfidence: options.minHandPresenceConfidence,
-          minTrackingConfidence: options.minTrackingConfidence
-        });
-        if (destroyed) {
-          handLandmarker.close();
-          return;
-        }
-        detector = {
-          landmarker: handLandmarker,
-          mediapipeCanvas,
-          subscribers: /* @__PURE__ */ new Map(),
-          maxHands: options.maxHands,
-          state: {
-            nCalls: 0,
+      detector = await getOrCreateSharedResource(
+        optionsKey,
+        sharedDetectors,
+        sharedDetectorPromises,
+        async () => {
+          const [mediaPipe, { HandLandmarker }] = await Promise.all([
+            getSharedFileset(),
+            import("@mediapipe/tasks-vision")
+          ]);
+          if (destroyed) return;
+          const mediapipeCanvas = new OffscreenCanvas(1, 1);
+          const handLandmarker = await HandLandmarker.createFromOptions(mediaPipe, {
+            baseOptions: {
+              modelAssetPath: options.modelPath,
+              delegate: "GPU"
+            },
+            canvas: mediapipeCanvas,
             runningMode: "VIDEO",
-            source: null,
-            videoTime: -1,
-            resultTimestamp: 0,
-            result: null,
-            pending: Promise.resolve(),
-            nHands: 0
-          },
-          landmarks: {
-            data: landmarksData,
-            textureHeight
+            numHands: options.maxHands,
+            minHandDetectionConfidence: options.minHandDetectionConfidence,
+            minHandPresenceConfidence: options.minHandPresenceConfidence,
+            minTrackingConfidence: options.minTrackingConfidence
+          });
+          if (destroyed) {
+            handLandmarker.close();
+            return;
           }
-        };
-        sharedDetectors.set(optionsKey, detector);
-      }
+          const detector2 = {
+            landmarker: handLandmarker,
+            mediapipeCanvas,
+            subscribers: /* @__PURE__ */ new Map(),
+            maxHands: options.maxHands,
+            state: {
+              nCalls: 0,
+              runningMode: "VIDEO",
+              source: null,
+              videoTime: -1,
+              resultTimestamp: 0,
+              result: null,
+              pending: Promise.resolve(),
+              nHands: 0
+            },
+            landmarks: {
+              data: landmarksData,
+              textureHeight
+            }
+          };
+          return detector2;
+        }
+      );
+      if (!detector || destroyed) return;
       detector.subscribers.set(onResult, false);
     }
     const initPromise = initializeDetector();
@@ -162,31 +172,27 @@ function hands(config) {
         emitHook("hands:ready");
       });
     });
-    let historyWriteCounter = 0;
-    let pendingBackfillSlots = [];
-    const writeToHistory = () => {
-      if (!history) return;
-      onResult(historyWriteCounter);
-      pendingBackfillSlots.push(historyWriteCounter);
-      historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
-    };
+    function requestHands(source) {
+      if (!detector) return;
+      if (history) {
+        historySlot = (historySlot + 1) % (history + 1);
+        writeTextures(historySlot);
+        pendingBackfillSlots.push(historySlot);
+      }
+      detector.subscribers.set(onResult, true);
+      detectHands(source);
+    }
     shaderPad.on("initializeTexture", (name, source) => {
       if (name === textureName && isMediaPipeSource(source)) {
-        writeToHistory();
-        detectHands(source);
+        requestHands(source);
       }
     });
-    shaderPad.on(
-      "updateTextures",
-      (updates, options2) => {
-        const source = updates[textureName];
-        if (isMediaPipeSource(source)) {
-          skipHistoryWrite = options2?.skipHistoryWrite ?? false;
-          if (!skipHistoryWrite) writeToHistory();
-          detectHands(source);
-        }
+    shaderPad.on("updateTextures", (updates) => {
+      const source = updates[textureName];
+      if (isMediaPipeSource(source)) {
+        requestHands(source);
       }
-    );
+    });
     async function detectHands(source) {
       const now = performance.now();
       await initPromise;
@@ -204,7 +210,7 @@ function hands(config) {
         let shouldDetect = false;
         if (source !== detector.state.source) {
           detector.state.source = source;
-          detector.state.videoTime = -1;
+          detector.state.videoTime = source instanceof HTMLVideoElement ? source.currentTime : -1;
           shouldDetect = true;
         } else if (source instanceof HTMLVideoElement) {
           if (source.currentTime !== detector.state.videoTime) {
@@ -229,16 +235,18 @@ function hands(config) {
             detector.state.resultTimestamp = now;
             detector.state.result = result;
             updateLandmarksData(detector, result.landmarks, result.handedness);
-            for (const cb of detector.subscribers.keys()) {
-              cb();
-              detector.subscribers.set(cb, true);
+            for (const [cb, needsResult] of detector.subscribers.entries()) {
+              if (needsResult) {
+                cb();
+                detector.subscribers.set(cb, false);
+              }
             }
           }
         } else if (detector.state.result) {
-          for (const [cb, hasCalled] of detector.subscribers.entries()) {
-            if (!hasCalled) {
+          for (const [cb, needsResult] of detector.subscribers.entries()) {
+            if (needsResult) {
               cb();
-              detector.subscribers.set(cb, true);
+              detector.subscribers.set(cb, false);
             }
           }
         }
@@ -254,7 +262,7 @@ function hands(config) {
           sharedDetectors.delete(optionsKey);
         }
       }
-      detector = null;
+      detector = void 0;
     });
     const { fn, historyParams } = generateGLSLFn(history);
     injectGLSL(`

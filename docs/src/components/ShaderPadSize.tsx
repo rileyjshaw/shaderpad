@@ -1,4 +1,8 @@
-import { shaderpadStandardImportGzip, shaderpadStandardImportGzipLabel } from '@/generated/shaderpad-size';
+import shaderpadSize from '@/generated/shaderpad-size.json';
+
+const shaderpadStandardImport = shaderpadSize.exports['.'];
+const shaderpadStandardImportGzip = shaderpadStandardImport.gzipped;
+const shaderpadStandardImportGzipLabel = shaderpadStandardImport.gzippedLabel;
 
 export function ShaderPadSizeBadge() {
 	return (

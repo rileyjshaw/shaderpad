@@ -7,6 +7,12 @@ export type ErrorEntry = {
 	fixes: readonly string[];
 };
 
+export const ERROR_DOCS_BASE_URL = 'https://mry.ac/s/';
+
+export function errorUrl(code: number) {
+	return `${ERROR_DOCS_BASE_URL}${code}`;
+}
+
 export const errors: readonly ErrorEntry[] = [
 	{
 		code: 0,

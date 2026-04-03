@@ -223,22 +223,18 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 
 **Note:** For typed array sources (`CustomTexture`), you must provide data in bottom-up orientation (WebGL convention). The `preserveY` option is ignored for typed arrays.
 
-#### `updateTextures(updates, options?)`
+#### `updateTextures(updates)`
 
 ```typescript
 shader.updateTextures({ u_webcam: videoElement, u_overlay: overlayCanvas });
 shader.updateTextures({
 	u_custom: { data: partialData, width, height, isPartial: true, x: offsetX, y: offsetY },
 });
-shader.updateTextures({ u_camera: videoElement }, { skipHistoryWrite: true });
 ```
 
 **Parameters:**
 
 - `updates`: Object mapping texture names to updated sources
-- `options?` (optional): `{ skipHistoryWrite?: boolean, historyWriteIndex?: number | number[] }`
-
-`historyWriteIndex` is only relevant for textures with history. It writes into the specified slot and updates the texture's `*FrameOffset` uniform to that slot.
 
 ### Lifecycle methods
 
@@ -253,7 +249,7 @@ shader.play();
 shader.play(() => {
 	shader.updateTextures({ u_webcam: videoElement });
 	// Only save every 10th frame to history.
-	return { skipHistoryWrite: frame % 10 === 0 };
+	return { skipHistory: frame % 10 === 0 };
 });
 ```
 
@@ -263,7 +259,7 @@ shader.play(() => {
 
 #### `step(options?)`
 
-Manually advance one frame. Updates `u_time` and `u_frame`, renders, then writes to history if `skipHistoryWrite` is `false` (default).
+Manually advance one frame. Updates `u_time` and `u_frame`, renders, then writes to history if `skipHistory` is `false` (default).
 
 **Parameters:**
 
@@ -286,14 +282,14 @@ shader.draw({ skipClear: true });
 ```typescript
 interface StepOptions {
 	skipClear?: boolean; // Skip clearing canvas before rendering
-	skipHistoryWrite?: boolean; // Skip writing to history buffers
+	skipHistory?: boolean; // Skip writing to history buffers
 }
 ```
 
 **Options:**
 
 - `skipClear?: boolean` - If `true`, the canvas is not cleared before rendering. Useful for accumulating effects or multi-pass rendering.
-- `skipHistoryWrite?: boolean` - If `true`, history buffers are not updated. Useful when you want to render without affecting the history state.
+- `skipHistory?: boolean` - If `true`, history buffers are not updated. Useful when you want to render without affecting the history state.
 
 #### `pause()`, `reset()`, `destroy()`
 

@@ -2,6 +2,7 @@ import ShaderPad, { PluginContext, TextureSource } from '..';
 import {
 	calculateBoundingBoxCenter,
 	generateGLSLFn,
+	getOrCreateSharedResource,
 	getSharedFileset,
 	hashOptions,
 	isMediaPipeSource,
@@ -16,6 +17,11 @@ export interface HandsPluginOptions {
 	minHandPresenceConfidence?: number;
 	minTrackingConfidence?: number;
 	history?: number;
+}
+
+export interface HandsPluginConfig {
+	textureName: string;
+	options?: HandsPluginOptions;
 }
 
 const STANDARD_LANDMARK_COUNT = 21; // See https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models.
@@ -55,6 +61,7 @@ interface Detector {
 	};
 }
 const sharedDetectors = new Map<string, Detector>();
+const sharedDetectorPromises = new Map<string, Promise<Detector | undefined>>();
 
 function updateLandmarksData(
 	detector: Detector,
@@ -95,7 +102,7 @@ function updateLandmarksData(
 	detector.state.nHands = nHands;
 }
 
-function hands(config: { textureName: string; options?: HandsPluginOptions }) {
+function hands(config: HandsPluginConfig) {
 	const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
 	const options = { ...DEFAULT_HANDS_OPTIONS, ...mediapipeOptions };
 	const optionsKey = hashOptions({ ...options, textureName });
@@ -109,20 +116,16 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
 			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
-		let detector: Detector | null = null;
+		let detector: Detector | undefined;
 		let destroyed = false;
-		let skipHistoryWrite = false;
+		let historySlot = -1;
+		let pendingBackfillSlots: number[] = [];
 
-		function onResult(singleHistoryWriteIndex?: number) {
+		function writeTextures(historySlots: number | number[]) {
 			if (!detector) return;
 			const { nHands } = detector.state;
 			const nSlots = nHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-			let historyWriteIndex: number | number[] | undefined = singleHistoryWriteIndex;
-			if (typeof historyWriteIndex === 'undefined' && pendingBackfillSlots.length > 0) {
-				historyWriteIndex = pendingBackfillSlots;
-				pendingBackfillSlots = [];
-			}
 			updateTexturesInternal(
 				{
 					u_handLandmarksTex: {
@@ -132,62 +135,75 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 						isPartial: true,
 					},
 				},
-				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
+				history ? historySlots : undefined,
 			);
 			shaderPad.updateUniforms({ u_nHands: nHands }, { allowMissing: true });
-			emitHook('hands:result', detector.state.result);
+		}
+
+		function onResult() {
+			if (history) {
+				writeTextures(pendingBackfillSlots.length > 0 ? pendingBackfillSlots : historySlot);
+				pendingBackfillSlots = [];
+			} else {
+				writeTextures(historySlot);
+			}
+			emitHook('hands:result', detector!.state.result);
 		}
 
 		async function initializeDetector() {
-			if (sharedDetectors.has(optionsKey)) {
-				detector = sharedDetectors.get(optionsKey)!;
-			} else {
-				const [mediaPipe, { HandLandmarker }] = await Promise.all([
-					getSharedFileset(),
-					import('@mediapipe/tasks-vision'),
-				]);
-				if (destroyed) return;
-				const mediapipeCanvas = new OffscreenCanvas(1, 1);
-				const handLandmarker = await HandLandmarker.createFromOptions(mediaPipe, {
-					baseOptions: {
-						modelAssetPath: options.modelPath,
-						delegate: 'GPU',
-					},
-					canvas: mediapipeCanvas,
-					runningMode: 'VIDEO',
-					numHands: options.maxHands,
-					minHandDetectionConfidence: options.minHandDetectionConfidence,
-					minHandPresenceConfidence: options.minHandPresenceConfidence,
-					minTrackingConfidence: options.minTrackingConfidence,
-				});
-				if (destroyed) {
-					handLandmarker.close();
-					return;
-				}
-
-				detector = {
-					landmarker: handLandmarker,
-					mediapipeCanvas,
-					subscribers: new Map(),
-					maxHands: options.maxHands,
-					state: {
-						nCalls: 0,
+			detector = await getOrCreateSharedResource(
+				optionsKey,
+				sharedDetectors,
+				sharedDetectorPromises,
+				async () => {
+					const [mediaPipe, { HandLandmarker }] = await Promise.all([
+						getSharedFileset(),
+						import('@mediapipe/tasks-vision'),
+					]);
+					if (destroyed) return;
+					const mediapipeCanvas = new OffscreenCanvas(1, 1);
+					const handLandmarker = await HandLandmarker.createFromOptions(mediaPipe, {
+						baseOptions: {
+							modelAssetPath: options.modelPath,
+							delegate: 'GPU',
+						},
+						canvas: mediapipeCanvas,
 						runningMode: 'VIDEO',
-						source: null,
-						videoTime: -1,
-						resultTimestamp: 0,
-						result: null,
-						pending: Promise.resolve(),
-						nHands: 0,
-					},
-					landmarks: {
-						data: landmarksData,
-						textureHeight,
-					},
-				};
-				sharedDetectors.set(optionsKey, detector);
-			}
+						numHands: options.maxHands,
+						minHandDetectionConfidence: options.minHandDetectionConfidence,
+						minHandPresenceConfidence: options.minHandPresenceConfidence,
+						minTrackingConfidence: options.minTrackingConfidence,
+					});
+					if (destroyed) {
+						handLandmarker.close();
+						return;
+					}
 
+					const detector: Detector = {
+						landmarker: handLandmarker,
+						mediapipeCanvas,
+						subscribers: new Map(),
+						maxHands: options.maxHands,
+						state: {
+							nCalls: 0,
+							runningMode: 'VIDEO',
+							source: null,
+							videoTime: -1,
+							resultTimestamp: 0,
+							result: null,
+							pending: Promise.resolve(),
+							nHands: 0,
+						},
+						landmarks: {
+							data: landmarksData,
+							textureHeight,
+						},
+					};
+					return detector;
+				},
+			);
+
+			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
 		const initPromise = initializeDetector();
@@ -216,33 +232,29 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 			});
 		});
 
-		let historyWriteCounter = 0;
-		let pendingBackfillSlots: number[] = [];
-		const writeToHistory = () => {
-			if (!history) return;
-			onResult(historyWriteCounter); // Write stale data immediately.
-			pendingBackfillSlots.push(historyWriteCounter); // Queue up backfill with more recent data.
-			historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
-		};
+		function requestHands(source: MediaPipeSource) {
+			if (!detector) return;
+			if (history) {
+				historySlot = (historySlot + 1) % (history + 1);
+				writeTextures(historySlot);
+				pendingBackfillSlots.push(historySlot);
+			}
+			detector.subscribers.set(onResult, true);
+			detectHands(source);
+		}
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
 			if (name === textureName && isMediaPipeSource(source)) {
-				writeToHistory();
-				detectHands(source);
+				requestHands(source);
 			}
 		});
 
-		shaderPad.on(
-			'updateTextures',
-			(updates: Record<string, TextureSource>, options?: { skipHistoryWrite?: boolean }) => {
-				const source = updates[textureName];
-				if (isMediaPipeSource(source)) {
-					skipHistoryWrite = options?.skipHistoryWrite ?? false;
-					if (!skipHistoryWrite) writeToHistory();
-					detectHands(source);
-				}
-			},
-		);
+		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
+			const source = updates[textureName];
+			if (isMediaPipeSource(source)) {
+				requestHands(source);
+			}
+		});
 
 		async function detectHands(source: MediaPipeSource) {
 			const now = performance.now();
@@ -265,7 +277,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 
 				if (source !== detector.state.source) {
 					detector.state.source = source;
-					detector.state.videoTime = -1;
+					detector.state.videoTime = source instanceof HTMLVideoElement ? source.currentTime : -1;
 					shouldDetect = true;
 				} else if (source instanceof HTMLVideoElement) {
 					if (source.currentTime !== detector.state.videoTime) {
@@ -292,16 +304,18 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 						detector.state.resultTimestamp = now;
 						detector.state.result = result;
 						updateLandmarksData(detector, result.landmarks, result.handedness);
-						for (const cb of detector.subscribers.keys()) {
-							cb();
-							detector.subscribers.set(cb, true);
+						for (const [cb, needsResult] of detector.subscribers.entries()) {
+							if (needsResult) {
+								cb();
+								detector.subscribers.set(cb, false);
+							}
 						}
 					}
 				} else if (detector.state.result) {
-					for (const [cb, hasCalled] of detector.subscribers.entries()) {
-						if (!hasCalled) {
+					for (const [cb, needsResult] of detector.subscribers.entries()) {
+						if (needsResult) {
 							cb();
-							detector.subscribers.set(cb, true);
+							detector.subscribers.set(cb, false);
 						}
 					}
 				}
@@ -319,7 +333,7 @@ function hands(config: { textureName: string; options?: HandsPluginOptions }) {
 					sharedDetectors.delete(optionsKey);
 				}
 			}
-			detector = null;
+			detector = undefined;
 		});
 
 		const { fn, historyParams } = generateGLSLFn(history);

@@ -91,20 +91,20 @@ Add `helpers()` only when you actually need helper GLSL like `fitCover()` or `hi
 
 ## Use This API
 
-| Need                                                                      | Use                                                                        | Notes                                                           |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| One-time JS value in GLSL                                                 | `initializeUniform(name, type, value)`                                     | Do this before the first update.                                |
-| Per-frame JS value in GLSL                                                | `updateUniforms({...})` inside `play()`                                    | Good for animation, UI controls, or sensor input.               |
-| Static image, canvas, video, typed array, or another `ShaderPad` as input | `initializeTexture(name, source, options?)`                                | Another `ShaderPad` is the normal multi-pass path.              |
-| Refresh a live texture                                                    | `updateTextures({...})`                                                    | Call every frame for webcam or video.                           |
-| Output history / feedback                                                 | `history` on the `ShaderPad` constructor                                   | Sample with `u_history` plus `historyZ()` if using `helpers()`. |
-| History on one input texture                                              | `initializeTexture(..., { history: N })`                                   | Good for delayed webcam or video effects.                       |
-| Advance exactly one frame                                                 | `step(options?)`                                                           | Use this for manual pass ordering.                              |
-| Render current state without advancing time, frame, or history            | `draw(options?)`                                                           | Good for pure display passes.                                   |
-| Skip writing the current frame into history                               | `skipHistoryWrite: true`                                                   | Works for texture history, output history, and plugin history.  |
-| Reset frame/time counters                                                 | `resetFrame()`                                                             | Useful when replay cadence changes.                             |
-| Reset frame/time counters and clear history                               | `reset()`                                                                  | Useful after size or topology changes.                          |
-| Update only part of a typed-array texture                                 | `updateTextures({ name: { data, width, height, x, y, isPartial: true } })` | Avoid full reuploads when a small region changes.               |
+| Need                                                                      | Use                                                                        | Notes                                                                    |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| One-time JS value in GLSL                                                 | `initializeUniform(name, type, value)`                                     | Do this before the first update.                                         |
+| Per-frame JS value in GLSL                                                | `updateUniforms({...})` inside `play()`                                    | Good for animation, UI controls, or sensor input.                        |
+| Static image, canvas, video, typed array, or another `ShaderPad` as input | `initializeTexture(name, source, options?)`                                | Another `ShaderPad` is the normal multi-pass path.                       |
+| Refresh a live texture                                                    | `updateTextures({...})`                                                    | Call every frame for webcam or video.                                    |
+| Output history / feedback                                                 | `history` on the `ShaderPad` constructor                                   | Sample with `u_history` plus `historyZ()` if using `helpers()`.          |
+| History on one input texture                                              | `initializeTexture(..., { history: N })`                                   | Good for delayed webcam or video effects.                                |
+| Advance exactly one frame                                                 | `step(options?)`                                                           | Use this for manual pass ordering.                                       |
+| Render current state without advancing time, frame, or history            | `draw(options?)`                                                           | Good for pure display passes.                                            |
+| Skip writing the current frame into history                               | `skipHistory: true`                                                        | Works for output history.                                                |
+| Reset frame/time counters                                                 | `resetFrame()`                                                             | Useful when replay cadence changes.                                      |
+| Reset frame/time counters and clear history                               | `reset()`                                                                  | Useful after size or topology changes.                                   |
+| Update only part of a typed-array texture                                 | `updateTextures({ name: { data, width, height, x, y, isPartial: true } })` | Avoid full reuploads when a small region changes.                        |
 
 ## Pick The Smallest Pattern
 
@@ -117,7 +117,7 @@ Add `helpers()` only when you actually need helper GLSL like `fitCover()` or `hi
 | Face, mouth, eye, or eyebrow region effects        | Use `face()` plus `faceAt()`, `inFace()`, or the specific region helpers        | Use a region helper first, then only do expensive math inside the hit region.          | [`face.ts`](/examples/source/face.ts), [`camo.ts`](/examples/source/camo.ts)                                                     |
 | Body region effects                                | Use `pose()` plus `poseAt()` or `inPose()` and `poseLandmark()`                 | `poseAt()` tells you which pose owns a pixel without manual mask decoding.             | [`pose.ts`](/examples/source/pose.ts), [`camo.ts`](/examples/source/camo.ts)                                                     |
 | Generic segmentation recolor or cutout             | Use `segmenter()` plus `segmentAt()`                                            | Request `outputConfidenceMasks` only if the shader uses category or confidence.        | [`segmenter.ts`](/examples/source/segmenter.ts)                                                                                  |
-| Gesture trails from landmarks                      | Put `history` on the plugin options, then use helper overloads with `framesAgo` | Before increasing history depth, try decimating writes with `skipHistoryWrite`.        | [`finger-pens.ts`](/examples/source/finger-pens.ts)                                                                              |
+| Gesture trails from landmarks                      | Put `history` on the plugin options, then use helper overloads with `framesAgo` | Keep history depth only as large as the visible trail actually needs.                  | [`finger-pens.ts`](/examples/source/finger-pens.ts)                                                                              |
 | Two-pass compositing                               | Pass the first `ShaderPad` into the second as a texture                         | Keep the same source object and matching plugin config so detector work can be shared. | [`mediapipe-chaining.ts`](/examples/source/mediapipe-chaining.ts)                                                                |
 | Low-bandwidth preprocessing                        | Use an offscreen pass with a smaller canvas and a smaller format                | `R8` plus `NEAREST` is often enough for masks or grayscale.                            | [`single-channel-textures.ts`](/examples/source/single-channel-textures.ts)                                                      |
 | Heavy blur, glow, simulation, or sorting pipelines | Build a composite object that owns several internal `ShaderPad` passes          | Keep one context, shrink intermediates, cap iterations, and show only the final pass.  | See the recipes below.                                                                                                           |
@@ -131,7 +131,7 @@ All four MediaPipe plugins require `npm install @mediapipe/tasks-vision`, and al
 | `face()`      | face masks, eyes, mouth, eyebrows, facial centers     | `inFace()`, `faceAt()`, `eyeAt()`, `mouthAt()` | `faceLandmark()`                                  | Set `options.history` if you need older face masks or landmarks.                    |
 | `pose()`      | body ownership, body masks, torso/limb anchors        | `inPose()`, `poseAt()`                         | `poseLandmark()`                                  | Helper overloads accept `framesAgo` when `history` is enabled.                      |
 | `segmenter()` | foreground/background or category-based segmentation  | `segmentAt()`                                  | none                                              | `segmentAt(..., framesAgo)` works when `history` is enabled.                        |
-| `hands()`     | fingertips, handedness, hand centers, gesture anchors | none                                           | `handLandmark()`, `isLeftHand()`, `isRightHand()` | Very powerful for trails, but keep history depth and write frequency under control. |
+| `hands()`     | fingertips, handedness, hand centers, gesture anchors | none                                           | `handLandmark()`, `isLeftHand()`, `isRightHand()` | Very powerful for trails, but keep history depth under control. |
 
 ## Format And Filter Defaults
 
@@ -288,10 +288,8 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 
 shader.initializeTexture('u_webcam', video);
-shader.play((_time, frame) => {
-	const options = { skipHistoryWrite: frame % 4 !== 0 };
-	shader.updateTextures({ u_webcam: video }, options);
-	return options;
+shader.play(() => {
+	shader.updateTextures({ u_webcam: video });
 });
 ```
 

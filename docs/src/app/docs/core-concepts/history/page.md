@@ -48,7 +48,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 });
 ```
 
-Plugin history behaves like texture history, including respecting `skipHistoryWrite` on the watched texture.
+Plugin history behaves like texture history.
 
 ## Sampling Previous Frames
 
@@ -87,12 +87,11 @@ Use `historyZ(..., 1)` to sample the previous stored frame. Larger values move f
 
 ## Skipping History Writes
 
-Each frame is written to the history buffer by default. You can prevent a step from updating history with:
+Each frame is written to the history buffer by default. You can prevent a step from updating output history with:
 
+<!-- prettier-ignore -->
 ```javascript
-{
-	skipHistoryWrite: true;
-}
+{ skipHistory: true }
 ```
 
 This option is either returned from the `play()` callback or passed to `step()` as an argument:
@@ -100,24 +99,14 @@ This option is either returned from the `play()` callback or passed to `step()` 
 ```javascript
 // Only write every 10th frame to history.
 shader.play((time, frame) => {
-	return { skipHistoryWrite: !!(frame % 10) };
+	return { skipHistory: !!(frame % 10) };
 });
 ```
 
 ```javascript
 // Skip writing this frame to history.
-shader.step({ skipHistoryWrite: true });
+shader.step({ skipHistory: true });
 ```
-
-## Writing To Specific Texture History Slots
-
-`updateTextures()` also exposes `historyWriteIndex` for history textures:
-
-```javascript
-shader.updateTextures({ u_webcam: videoElement }, { historyWriteIndex: 3 }); // Write to slot 3.
-```
-
-This writes into the specified slot and updates the texture's `*FrameOffset` uniform to that slot.
 
 ## History Precision
 

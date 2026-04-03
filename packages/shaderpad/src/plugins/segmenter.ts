@@ -2,6 +2,7 @@ import ShaderPad, { PluginContext, TextureSource } from '..';
 import {
 	generateGLSLFn,
 	dummyTexture,
+	getOrCreateSharedResource,
 	getSharedFileset,
 	hashOptions,
 	isMediaPipeSource,
@@ -13,6 +14,11 @@ export interface SegmenterPluginOptions {
 	modelPath?: string;
 	outputConfidenceMasks?: boolean;
 	history?: number;
+}
+
+export interface SegmenterPluginConfig {
+	textureName: string;
+	options?: SegmenterPluginOptions;
 }
 
 const dummyTextureFloat32 = {
@@ -67,6 +73,7 @@ interface SharedDetector {
 	};
 }
 const sharedDetectors = new Map<string, SharedDetector>();
+const sharedDetectorPromises = new Map<string, Promise<SharedDetector | undefined>>();
 
 function updateMask(detector: SharedDetector, categoryMask: MPMask, confidenceMasks?: MPMask[]) {
 	const {
@@ -100,7 +107,7 @@ function updateMask(detector: SharedDetector, categoryMask: MPMask, confidenceMa
 	confidenceMasks?.forEach(m => m.close());
 }
 
-function segmenter(config: { textureName: string; options?: SegmenterPluginOptions }) {
+function segmenter(config: SegmenterPluginConfig) {
 	const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
 	const options = { ...DEFAULT_SEGMENTER_OPTIONS, ...mediapipeOptions };
 	const optionsKey = hashOptions({ ...options, textureName });
@@ -110,91 +117,97 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const mediapipeCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
-		let detector: SharedDetector | null = null;
+		let detector: SharedDetector | undefined;
 		let destroyed = false;
-		let skipHistoryWrite = false;
+		let historySlot = -1;
+		let pendingBackfillSlots: number[] = [];
 
-		function onResult(singleHistoryWriteIndex?: number) {
+		function writeTextures(historySlots: number | number[]) {
 			if (!detector) return;
-			let historyWriteIndex: number | number[] | undefined = singleHistoryWriteIndex;
-			if (typeof historyWriteIndex === 'undefined' && pendingBackfillSlots.length > 0) {
-				historyWriteIndex = pendingBackfillSlots;
+			updateTexturesInternal({ u_segmentMask: detector.mask.shader }, history ? historySlots : undefined);
+		}
+
+		function onResult() {
+			if (history) {
+				writeTextures(pendingBackfillSlots.length > 0 ? pendingBackfillSlots : historySlot);
 				pendingBackfillSlots = [];
+			} else {
+				writeTextures(historySlot);
 			}
-			updateTexturesInternal(
-				{ u_segmentMask: detector.mask.shader },
-				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
-			);
-			emitHook('segmenter:result', detector.state.result);
+			emitHook('segmenter:result', detector!.state.result);
 		}
 
 		async function initializeDetector() {
-			if (sharedDetectors.has(optionsKey)) {
-				detector = sharedDetectors.get(optionsKey)!;
-			} else {
-				const [mediaPipe, { ImageSegmenter }] = await Promise.all([
-					getSharedFileset(),
-					import('@mediapipe/tasks-vision'),
-				]);
-				if (destroyed) return;
+			detector = await getOrCreateSharedResource(
+				optionsKey,
+				sharedDetectors,
+				sharedDetectorPromises,
+				async () => {
+					const [mediaPipe, { ImageSegmenter }] = await Promise.all([
+						getSharedFileset(),
+						import('@mediapipe/tasks-vision'),
+					]);
+					if (destroyed) return;
 
-				const imageSegmenter = await ImageSegmenter.createFromOptions(mediaPipe, {
-					baseOptions: {
-						modelAssetPath: options.modelPath,
-						delegate: 'GPU',
-					},
-					canvas: mediapipeCanvas,
-					runningMode: 'VIDEO',
-					outputCategoryMask: true,
-					outputConfidenceMasks: options.outputConfidenceMasks,
-				});
-				if (destroyed) {
-					imageSegmenter.close();
-					return;
-				}
-
-				const maskShader = new ShaderPad(MASK_SHADER_SOURCE, {
-					canvas: mediapipeCanvas,
-				});
-				maskShader.initializeTexture('u_categoryMask', dummyTexture);
-				maskShader.initializeTexture('u_confidenceMask', dummyTextureFloat32, {
-					format: 'RED',
-					internalFormat: 'R32F',
-					type: 'FLOAT',
-					minFilter: 'NEAREST',
-					magFilter: 'NEAREST',
-				});
-				const numCategories = imageSegmenter.getLabels().length || 1;
-				maskShader.initializeUniform('u_maxCategoryIndex', 'float', Math.max(1, numCategories - 1));
-
-				detector = {
-					segmenter: imageSegmenter,
-					outputConfidenceMasks: options.outputConfidenceMasks,
-					subscribers: new Map(),
-					numCategories,
-					state: {
-						nCalls: 0,
-						runningMode: 'VIDEO',
-						source: null,
-						videoTime: -1,
-						resultTimestamp: 0,
-						result: null,
-						pending: Promise.resolve(),
-					},
-					mask: {
-						canvas: mediapipeCanvas,
-						shader: maskShader,
-						confidence: {
-							data: null,
-							width: 0,
-							height: 0,
+					const imageSegmenter = await ImageSegmenter.createFromOptions(mediaPipe, {
+						baseOptions: {
+							modelAssetPath: options.modelPath,
+							delegate: 'GPU',
 						},
-					},
-				};
-				sharedDetectors.set(optionsKey, detector);
-			}
+						canvas: mediapipeCanvas,
+						runningMode: 'VIDEO',
+						outputCategoryMask: true,
+						outputConfidenceMasks: options.outputConfidenceMasks,
+					});
+					if (destroyed) {
+						imageSegmenter.close();
+						return;
+					}
 
-			detector!.subscribers.set(onResult, false);
+					const maskShader = new ShaderPad(MASK_SHADER_SOURCE, {
+						canvas: mediapipeCanvas,
+					});
+					maskShader.initializeTexture('u_categoryMask', dummyTexture);
+					maskShader.initializeTexture('u_confidenceMask', dummyTextureFloat32, {
+						format: 'RED',
+						internalFormat: 'R32F',
+						type: 'FLOAT',
+						minFilter: 'NEAREST',
+						magFilter: 'NEAREST',
+					});
+					const numCategories = imageSegmenter.getLabels().length || 1;
+					maskShader.initializeUniform('u_maxCategoryIndex', 'float', Math.max(1, numCategories - 1));
+
+					const detector: SharedDetector = {
+						segmenter: imageSegmenter,
+						outputConfidenceMasks: options.outputConfidenceMasks,
+						subscribers: new Map(),
+						numCategories,
+						state: {
+							nCalls: 0,
+							runningMode: 'VIDEO',
+							source: null,
+							videoTime: -1,
+							resultTimestamp: 0,
+							result: null,
+							pending: Promise.resolve(),
+						},
+						mask: {
+							canvas: mediapipeCanvas,
+							shader: maskShader,
+							confidence: {
+								data: null,
+								width: 0,
+								height: 0,
+							},
+						},
+					};
+					return detector;
+				},
+			);
+
+			if (!detector || destroyed) return;
+			detector.subscribers.set(onResult, false);
 		}
 		const initPromise = initializeDetector();
 
@@ -212,33 +225,29 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 			});
 		});
 
-		let historyWriteCounter = 0;
-		let pendingBackfillSlots: number[] = [];
-		const writeToHistory = () => {
-			if (!history) return;
-			onResult(historyWriteCounter); // Write stale data immediately.
-			pendingBackfillSlots.push(historyWriteCounter); // Queue up backfill with more recent data.
-			historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
-		};
+		function requestSegments(source: MediaPipeSource) {
+			if (!detector) return;
+			if (history) {
+				historySlot = (historySlot + 1) % (history + 1);
+				writeTextures(historySlot);
+				pendingBackfillSlots.push(historySlot);
+			}
+			detector.subscribers.set(onResult, true);
+			detectSegments(source);
+		}
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
 			if (name === textureName && isMediaPipeSource(source)) {
-				writeToHistory();
-				detectSegments(source);
+				requestSegments(source);
 			}
 		});
 
-		shaderPad.on(
-			'updateTextures',
-			(updates: Record<string, TextureSource>, options?: { skipHistoryWrite?: boolean }) => {
-				const source = updates[textureName];
-				if (isMediaPipeSource(source)) {
-					skipHistoryWrite = options?.skipHistoryWrite ?? false;
-					if (!skipHistoryWrite) writeToHistory();
-					detectSegments(source);
-				}
-			},
-		);
+		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
+			const source = updates[textureName];
+			if (isMediaPipeSource(source)) {
+				requestSegments(source);
+			}
+		});
 
 		async function detectSegments(source: MediaPipeSource) {
 			const now = performance.now();
@@ -261,7 +270,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 
 				if (source !== detector.state.source) {
 					detector.state.source = source;
-					detector.state.videoTime = -1;
+					detector.state.videoTime = source instanceof HTMLVideoElement ? source.currentTime : -1;
 					shouldDetect = true;
 				} else if (source instanceof HTMLVideoElement) {
 					if (source.currentTime !== detector.state.videoTime) {
@@ -290,19 +299,20 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 						if (result.categoryMask) {
 							updateMask(detector, result.categoryMask, result.confidenceMasks);
 						}
-						for (const cb of detector.subscribers.keys()) {
-							cb();
-							detector.subscribers.set(cb, true);
+						for (const [cb, needsResult] of detector.subscribers.entries()) {
+							if (needsResult) {
+								cb();
+								detector.subscribers.set(cb, false);
+							}
 						}
 					}
 				} else if (detector.state.result) {
-					for (const [cb, hasCalled] of detector.subscribers.entries()) {
-						if (!hasCalled) {
+					for (const [cb, needsResult] of detector.subscribers.entries()) {
+						if (needsResult) {
 							cb();
-							detector.subscribers.set(cb, true);
+							detector.subscribers.set(cb, false);
 						}
 					}
-					detector.subscribers.set(onResult, true);
 				}
 			});
 
@@ -319,7 +329,7 @@ function segmenter(config: { textureName: string; options?: SegmenterPluginOptio
 					sharedDetectors.delete(optionsKey);
 				}
 			}
-			detector = null;
+			detector = undefined;
 		});
 
 		const { fn } = generateGLSLFn(history);

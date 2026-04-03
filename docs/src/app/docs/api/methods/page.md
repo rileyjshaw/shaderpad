@@ -24,7 +24,7 @@ nextjs:
 ## Texture Methods
 
 - `initializeTexture(name, source, options?)`
-- `updateTextures(updates, options?)`
+- `updateTextures(updates)`
 
 ## Event Methods
 
@@ -51,7 +51,7 @@ play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void
 shader.play((time, frame) => {
 	shader.updateUniforms({ u_speed: Math.sin(time) });
 	if (frame < 5) {
-		return { skipHistoryWrite: true };
+		return { skipHistory: true };
 	}
 });
 ```
@@ -83,10 +83,10 @@ draw(options?: StepOptions): void
 
 `step(options?)`, `draw(options?)`, and the return value from `play(onBeforeStep)` all accept the same object shape:
 
-| Option             | Type      | Default | Applies to                                   | Notes                                                                                                                                                              |
-| ------------------ | --------- | ------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `skipClear`        | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Draws to the render target without clearing it first. Useful for accumulation, trails, and some multi-pass patterns.                                               |
-| `skipHistoryWrite` | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Prevents output-history writes for that frame. `draw()` accepts the field for API consistency, but it has no effect there because `draw()` never advances history. |
+| Option        | Type      | Default | Applies to                                   | Notes                                                                                                                                                              |
+| ------------- | --------- | ------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `skipClear`   | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Draws to the render target without clearing it first. Useful for accumulation, trails, and some multi-pass patterns.                                               |
+| `skipHistory` | `boolean` | `false` | `step()`, `draw()`, `play()` callback return | Prevents output-history writes for that frame. `draw()` accepts the field for API consistency, but it has no effect there because `draw()` never advances history. |
 
 ### `initializeUniform(name, type, value, options?)`
 
@@ -152,20 +152,10 @@ initializeTexture(
 | `wrapS`          | `GLWrapString`           | `'CLAMP_TO_EDGE'`                                          | Horizontal wrap mode.                                                                                                                                                             |
 | `wrapT`          | `GLWrapString`           | `'CLAMP_TO_EDGE'`                                          | Vertical wrap mode.                                                                                                                                                               |
 
-### `updateTextures(updates, options?)`
+### `updateTextures(updates)`
 
 ```typescript
-updateTextures(
-  updates: Record<string, UpdateTextureSource>,
-  options?: { skipHistoryWrite?: boolean, historyWriteIndex?: number | number[] },
-): void
+updateTextures(updates: Record<string, UpdateTextureSource>): void
 ```
 
 Updates one or more previously initialized textures.
-
-### `updateTextures()` Options
-
-| Option              | Type                 | Default     | Notes                                                                                                                                                    |
-| ------------------- | -------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `skipHistoryWrite`  | `boolean`            | `false`     | Only relevant for textures that were initialized with history. When `true`, the texture data is updated without advancing that texture's history layers. |
-| `historyWriteIndex` | `number \| number[]` | `undefined` | Only relevant for textures that were initialized with history. Writes into the specified slot and updates the `*FrameOffset` uniform to that slot.       |

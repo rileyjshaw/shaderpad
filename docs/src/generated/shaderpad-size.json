@@ -1,0 +1,79 @@
+{
+	"schemaVersion": 1,
+	"packageName": "shaderpad",
+	"generatedAt": "2026-04-03T13:34:46.777Z",
+	"exports": {
+		".": {
+			"specifier": "shaderpad",
+			"minifiedBytes": 18942,
+			"minified": "18.5 kB",
+			"gzippedBytes": 6010,
+			"gzipped": "5.9 kB",
+			"gzippedLabel": "5.9 kB gzipped"
+		},
+		"./plugins/autosize": {
+			"specifier": "shaderpad/plugins/autosize",
+			"minifiedBytes": 964,
+			"minified": "0.9 kB",
+			"gzippedBytes": 557,
+			"gzipped": "0.5 kB",
+			"gzippedLabel": "0.5 kB gzipped"
+		},
+		"./plugins/face": {
+			"specifier": "shaderpad/plugins/face",
+			"minifiedBytes": 151905,
+			"minified": "148.3 kB",
+			"gzippedBytes": 47119,
+			"gzipped": "46.0 kB",
+			"gzippedLabel": "46.0 kB gzipped"
+		},
+		"./plugins/hands": {
+			"specifier": "shaderpad/plugins/hands",
+			"minifiedBytes": 142707,
+			"minified": "139.4 kB",
+			"gzippedBytes": 43840,
+			"gzipped": "42.8 kB",
+			"gzippedLabel": "42.8 kB gzipped"
+		},
+		"./plugins/helpers": {
+			"specifier": "shaderpad/plugins/helpers",
+			"minifiedBytes": 1271,
+			"minified": "1.2 kB",
+			"gzippedBytes": 448,
+			"gzipped": "0.4 kB",
+			"gzippedLabel": "0.4 kB gzipped"
+		},
+		"./plugins/pose": {
+			"specifier": "shaderpad/plugins/pose",
+			"minifiedBytes": 165141,
+			"minified": "161.3 kB",
+			"gzippedBytes": 50558,
+			"gzipped": "49.4 kB",
+			"gzippedLabel": "49.4 kB gzipped"
+		},
+		"./plugins/save": {
+			"specifier": "shaderpad/plugins/save",
+			"minifiedBytes": 814,
+			"minified": "0.8 kB",
+			"gzippedBytes": 550,
+			"gzipped": "0.5 kB",
+			"gzippedLabel": "0.5 kB gzipped"
+		},
+		"./plugins/segmenter": {
+			"specifier": "shaderpad/plugins/segmenter",
+			"minifiedBytes": 161311,
+			"minified": "157.5 kB",
+			"gzippedBytes": 49323,
+			"gzipped": "48.2 kB",
+			"gzippedLabel": "48.2 kB gzipped"
+		},
+		"./util": {
+			"specifier": "shaderpad/util",
+			"minifiedBytes": 331,
+			"minified": "0.3 kB",
+			"gzippedBytes": 250,
+			"gzipped": "0.2 kB",
+			"gzippedLabel": "0.2 kB gzipped"
+		}
+	}
+}

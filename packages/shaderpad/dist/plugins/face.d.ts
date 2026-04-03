@@ -10,9 +10,10 @@ interface FacePluginOptions {
     outputFacialTransformationMatrixes?: boolean;
     history?: number;
 }
-declare function face(config: {
+interface FacePluginConfig {
     textureName: string;
     options?: FacePluginOptions;
-}): (shaderPad: ShaderPad, context: PluginContext) => void;
+}
+declare function face(config: FacePluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;
 
-export { type FacePluginOptions, face as default };
+export { type FacePluginConfig, type FacePluginOptions, face as default };

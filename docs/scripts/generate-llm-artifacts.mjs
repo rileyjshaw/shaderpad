@@ -14,7 +14,7 @@ const publicDir = join(docsRoot, 'public');
 const llmsTemplatePath = join(docsRoot, 'src', 'llms', 'llms-template.txt');
 const examplesDir = join(docsRoot, 'src', 'examples', 'demos');
 const repoReadmePath = join(repoRoot, 'README.md');
-const generatedSizePath = join(docsRoot, 'src', 'generated', 'shaderpad-size.ts');
+const generatedSizePath = join(docsRoot, 'src', 'generated', 'shaderpad-size.json');
 const repoBlobBase = 'https://github.com/miseryco/shaderpad/blob/main/';
 
 const siteOrigin = 'https://misery.co';
@@ -343,8 +343,8 @@ const exampleFiles = await fg('*.ts', {
 const exampleMetadataBySlug = new Map(exampleRegistry.map(entry => [entry.slug, entry]));
 const exampleOrderBySlug = new Map(exampleRegistry.map((entry, index) => [entry.slug, index]));
 
-const generatedSizeSource = await readFile(generatedSizePath, 'utf8');
-const shaderpadSizeValue = /shaderpadStandardImportGzip = "([^"]+)";/.exec(generatedSizeSource)?.[1] ?? '6.1 kB';
+const generatedSizeSource = JSON.parse(await readFile(generatedSizePath, 'utf8'));
+const shaderpadSizeValue = generatedSizeSource.exports['.'].gzipped;
 
 const docEntries = [];
 for (const filePath of pageFiles) {

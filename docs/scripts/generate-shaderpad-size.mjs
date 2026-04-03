@@ -10,13 +10,15 @@ const docsRoot = resolve(docsDir, '..');
 const repoRoot = resolve(docsRoot, '..');
 const sizeScriptPath = join(repoRoot, 'scripts', 'size-standard-import.mjs');
 const generatedDir = join(docsRoot, 'src', 'generated');
-const outputPath = join(generatedDir, 'shaderpad-size.ts');
+const outputPath = join(generatedDir, 'shaderpad-size.json');
 
-const output = execFileSync(process.execPath, [sizeScriptPath, '--json'], {
-	cwd: docsRoot,
-	encoding: 'utf8',
-});
-const { gzipped, gzippedBytes } = JSON.parse(output);
+const report = JSON.parse(
+	execFileSync(process.execPath, [sizeScriptPath, '--json'], {
+		cwd: docsRoot,
+		encoding: 'utf8',
+	}),
+);
+const coreImport = report.exports['.'];
 
 async function formatGeneratedArtifact(source, filepath) {
 	const options = (await prettier.resolveConfig(filepath)) ?? {};
@@ -27,15 +29,12 @@ await mkdir(generatedDir, { recursive: true });
 await writeFile(
 	outputPath,
 	await formatGeneratedArtifact(
-		[
-			`export const shaderpadStandardImportGzipBytes = ${gzippedBytes};`,
-			`export const shaderpadStandardImportGzip = ${JSON.stringify(gzipped)};`,
-			`export const shaderpadStandardImportGzipLabel = ${JSON.stringify(`${gzipped} gzipped`)};`,
-			'',
-		].join('\n'),
+		`${JSON.stringify(report, null, 2)}\n`,
 		outputPath,
 	),
 	'utf8',
 );
 
-console.log(`Updated ${outputPath} with ${gzipped} gzipped`);
+console.log(
+	`Updated ${outputPath} with ${Object.keys(report.exports).length} exports; core import is ${coreImport.gzippedLabel}`,
+);

@@ -5,9 +5,10 @@ interface SegmenterPluginOptions {
     outputConfidenceMasks?: boolean;
     history?: number;
 }
-declare function segmenter(config: {
+interface SegmenterPluginConfig {
     textureName: string;
     options?: SegmenterPluginOptions;
-}): (shaderPad: ShaderPad, context: PluginContext) => void;
+}
+declare function segmenter(config: SegmenterPluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;
 
-export { type SegmenterPluginOptions, segmenter as default };
+export { type SegmenterPluginConfig, type SegmenterPluginOptions, segmenter as default };

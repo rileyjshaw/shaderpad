@@ -51,7 +51,7 @@ Use it when:
 `step()` advances exactly one frame, and renders without triggering an ongoing animation loop. `u_time` and `u_frame` uniforms are updated automatically, and history is kept up to date.
 
 ```javascript
-shader.step({ skipHistoryWrite: true });
+shader.step({ skipHistory: true });
 ```
 
 Use it when:

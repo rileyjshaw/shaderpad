@@ -1,15 +1,16 @@
 import {
   index_default
-} from "../chunk-WSMR2AFY.mjs";
+} from "../chunk-7O5CRMDG.mjs";
 import "../chunk-OTFRVDNV.mjs";
 import {
   calculateBoundingBoxCenter,
   dummyTexture,
   generateGLSLFn,
+  getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-Q3JKBIXC.mjs";
+} from "../chunk-VRJS34J4.mjs";
 
 // src/plugins/pose.ts
 var STANDARD_LANDMARK_COUNT = 33;
@@ -96,6 +97,7 @@ void main() {
 	outColor = vec4(1.0, confidence, u_poseIndex, 1.0);
 }`;
 var sharedDetectors = /* @__PURE__ */ new Map();
+var sharedDetectorPromises = /* @__PURE__ */ new Map();
 function updateLandmarksData(detector, poses) {
   const data = detector.landmarks.data;
   const nPoses = poses.length;
@@ -217,19 +219,15 @@ function pose(config) {
       shader.initializeUniform("u_poseIndex", "float", 0);
       return shader;
     })();
-    let detector = null;
+    let detector;
     let destroyed = false;
-    let skipHistoryWrite = false;
-    function onResult(singleHistoryWriteIndex) {
+    let historySlot = -1;
+    let pendingBackfillSlots = [];
+    function writeTextures(historySlots) {
       if (!detector) return;
       const { nPoses } = detector.state;
       const nSlots = nPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
       const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-      let historyWriteIndex = singleHistoryWriteIndex;
-      if (typeof historyWriteIndex === "undefined" && pendingBackfillSlots.length > 0) {
-        historyWriteIndex = pendingBackfillSlots;
-        pendingBackfillSlots = [];
-      }
       updateTexturesInternal(
         {
           u_poseLandmarksTex: {
@@ -238,62 +236,77 @@ function pose(config) {
             height: rowsToUpdate,
             isPartial: true
           },
-          u_poseMask: maskShader
+          u_poseMask: detector.maskShader
         },
-        history ? { skipHistoryWrite, historyWriteIndex } : void 0
+        history ? historySlots : void 0
       );
       shaderPad.updateUniforms({ u_nPoses: nPoses }, { allowMissing: true });
+    }
+    function onResult() {
+      if (history) {
+        writeTextures(pendingBackfillSlots.length > 0 ? pendingBackfillSlots : historySlot);
+        pendingBackfillSlots = [];
+      } else {
+        writeTextures(historySlot);
+      }
       emitHook("pose:result", detector.state.result);
     }
     async function initializeDetector() {
-      if (sharedDetectors.has(optionsKey)) {
-        detector = sharedDetectors.get(optionsKey);
-      } else {
-        const [mediaPipe, { PoseLandmarker }] = await Promise.all([
-          getSharedFileset(),
-          import("@mediapipe/tasks-vision")
-        ]);
-        if (destroyed) return;
-        const poseLandmarker = await PoseLandmarker.createFromOptions(mediaPipe, {
-          baseOptions: {
-            modelAssetPath: options.modelPath,
-            delegate: "GPU"
-          },
-          canvas: mediapipeCanvas,
-          runningMode: "VIDEO",
-          numPoses: options.maxPoses,
-          minPoseDetectionConfidence: options.minPoseDetectionConfidence,
-          minPosePresenceConfidence: options.minPosePresenceConfidence,
-          minTrackingConfidence: options.minTrackingConfidence,
-          outputSegmentationMasks: true
-        });
-        if (destroyed) {
-          poseLandmarker.close();
-          maskShader.destroy();
-          return;
-        }
-        detector = {
-          landmarker: poseLandmarker,
-          mediapipeCanvas,
-          maskShader,
-          subscribers: /* @__PURE__ */ new Map(),
-          maxPoses: options.maxPoses,
-          state: {
-            nCalls: 0,
+      detector = await getOrCreateSharedResource(
+        optionsKey,
+        sharedDetectors,
+        sharedDetectorPromises,
+        async () => {
+          const [mediaPipe, { PoseLandmarker }] = await Promise.all([
+            getSharedFileset(),
+            import("@mediapipe/tasks-vision")
+          ]);
+          if (destroyed) return;
+          const poseLandmarker = await PoseLandmarker.createFromOptions(mediaPipe, {
+            baseOptions: {
+              modelAssetPath: options.modelPath,
+              delegate: "GPU"
+            },
+            canvas: mediapipeCanvas,
             runningMode: "VIDEO",
-            source: null,
-            videoTime: -1,
-            resultTimestamp: 0,
-            result: null,
-            pending: Promise.resolve(),
-            nPoses: 0
-          },
-          landmarks: {
-            data: landmarksData,
-            textureHeight
+            numPoses: options.maxPoses,
+            minPoseDetectionConfidence: options.minPoseDetectionConfidence,
+            minPosePresenceConfidence: options.minPosePresenceConfidence,
+            minTrackingConfidence: options.minTrackingConfidence,
+            outputSegmentationMasks: true
+          });
+          if (destroyed) {
+            poseLandmarker.close();
+            maskShader.destroy();
+            return;
           }
-        };
-        sharedDetectors.set(optionsKey, detector);
+          const detector2 = {
+            landmarker: poseLandmarker,
+            mediapipeCanvas,
+            maskShader,
+            subscribers: /* @__PURE__ */ new Map(),
+            maxPoses: options.maxPoses,
+            state: {
+              nCalls: 0,
+              runningMode: "VIDEO",
+              source: null,
+              videoTime: -1,
+              resultTimestamp: 0,
+              result: null,
+              pending: Promise.resolve(),
+              nPoses: 0
+            },
+            landmarks: {
+              data: landmarksData,
+              textureHeight
+            }
+          };
+          return detector2;
+        }
+      );
+      if (!detector || destroyed) return;
+      if (maskShader !== detector.maskShader) {
+        maskShader.destroy();
       }
       detector.subscribers.set(onResult, false);
     }
@@ -326,31 +339,27 @@ function pose(config) {
         emitHook("pose:ready");
       });
     });
-    let historyWriteCounter = 0;
-    let pendingBackfillSlots = [];
-    const writeToHistory = () => {
-      if (!history) return;
-      onResult(historyWriteCounter);
-      pendingBackfillSlots.push(historyWriteCounter);
-      historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
-    };
+    function requestPoses(source) {
+      if (!detector) return;
+      if (history) {
+        historySlot = (historySlot + 1) % (history + 1);
+        writeTextures(historySlot);
+        pendingBackfillSlots.push(historySlot);
+      }
+      detector.subscribers.set(onResult, true);
+      detectPoses(source);
+    }
     shaderPad.on("initializeTexture", (name, source) => {
       if (name === textureName && isMediaPipeSource(source)) {
-        writeToHistory();
-        detectPoses(source);
+        requestPoses(source);
       }
     });
-    shaderPad.on(
-      "updateTextures",
-      (updates, options2) => {
-        const source = updates[textureName];
-        if (isMediaPipeSource(source)) {
-          skipHistoryWrite = options2?.skipHistoryWrite ?? false;
-          if (!skipHistoryWrite) writeToHistory();
-          detectPoses(source);
-        }
+    shaderPad.on("updateTextures", (updates) => {
+      const source = updates[textureName];
+      if (isMediaPipeSource(source)) {
+        requestPoses(source);
       }
-    );
+    });
     async function detectPoses(source) {
       const now = performance.now();
       await initPromise;
@@ -368,7 +377,7 @@ function pose(config) {
         let shouldDetect = false;
         if (source !== detector.state.source) {
           detector.state.source = source;
-          detector.state.videoTime = -1;
+          detector.state.videoTime = source instanceof HTMLVideoElement ? source.currentTime : -1;
           shouldDetect = true;
         } else if (source instanceof HTMLVideoElement) {
           if (source.currentTime !== detector.state.videoTime) {
@@ -394,16 +403,18 @@ function pose(config) {
             detector.state.result = result;
             updateLandmarksData(detector, result.landmarks);
             updateMask(detector, result.segmentationMasks);
-            for (const cb of detector.subscribers.keys()) {
-              cb();
-              detector.subscribers.set(cb, true);
+            for (const [cb, needsResult] of detector.subscribers.entries()) {
+              if (needsResult) {
+                cb();
+                detector.subscribers.set(cb, false);
+              }
             }
           }
         } else if (detector.state.result) {
-          for (const [cb, hasCalled] of detector.subscribers.entries()) {
-            if (!hasCalled) {
+          for (const [cb, needsResult] of detector.subscribers.entries()) {
+            if (needsResult) {
               cb();
-              detector.subscribers.set(cb, true);
+              detector.subscribers.set(cb, false);
             }
           }
         }
@@ -420,7 +431,7 @@ function pose(config) {
           sharedDetectors.delete(optionsKey);
         }
       }
-      detector = null;
+      detector = void 0;
     });
     const { fn, historyParams } = generateGLSLFn(history);
     const sampleMask = history ? `int layer = (u_poseMaskFrameOffset - framesAgo + ${history + 1}) % ${history + 1};

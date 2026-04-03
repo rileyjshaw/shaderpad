@@ -339,18 +339,17 @@ const exampleDetails: Record<string, ExampleDetails> = {
 	'finger-pens': {
 		fullDescription: (
 			<>
+				<p>Raise your hand into view and lift any finger to draw with it.</p>
 				<p>
-					This demo combines plugin landmark history with visual history compression. The{' '}
-					<DocLink href={docs.hands}>hands plugin</DocLink> is configured with its own{' '}
-					<DocLink href={docs.history}>history</DocLink>, and the shader samples older landmark positions to
-					connect strokes from whichever fingertip is currently farthest from the thumb.
+					This demo uses two <DocLink href={docs.chainingShaders}>chained ShaderPads</DocLink>. One renders
+					the trail, and the other composites the webcam plus live fingertip markers. Because both passes stay
+					on the same canvas, the chain stays on the GPU.
 				</p>
 				<p>
-					It is also a good performance example. The render loop returns{' '}
-					<CodeDocLink href={docs.history}>skipHistoryWrite</CodeDocLink> from{' '}
-					<CodeDocLink href={docs.shaderLifecycle}>play</CodeDocLink> so history is only written every few
-					frames. The active fingertip changes color, so you can see the gesture-selection logic while
-					drawing.
+					Both passes also run the <DocLink href={docs.hands}>hands plugin</DocLink>. Since they read the same
+					source texture with the same options, detection is shared instead of duplicated. The trail pass only
+					updates every 3rd frame, stretching the history so the ink trails last longer. The final pass still
+					updates every frame so the webcam and fingertip markers stay responsive.
 				</p>
 			</>
 		),

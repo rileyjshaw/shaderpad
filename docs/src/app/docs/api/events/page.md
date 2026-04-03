@@ -23,7 +23,7 @@ Subscribe to an event with `shader.on(eventName, callback)` and remove an event 
 | `afterDraw`         | `(options?)`                    | After a draw.                      |
 | `initializeTexture` | `(name, source, options?)`      | Texture initialized.               |
 | `initializeUniform` | `(name, type, value, options?)` | Uniform initialized.               |
-| `updateTextures`    | `(updates, options?)`           | Public texture update finished.    |
+| `updateTextures`    | `(updates)`                     | Public texture update finished.    |
 | `updateUniforms`    | `(updates, options?)`           | Uniform update finished.           |
 
 ## Plugin Events

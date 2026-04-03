@@ -3,6 +3,7 @@ import {
 	calculateBoundingBoxCenter,
 	generateGLSLFn,
 	dummyTexture,
+	getOrCreateSharedResource,
 	getSharedFileset,
 	hashOptions,
 	isMediaPipeSource,
@@ -17,6 +18,11 @@ export interface PosePluginOptions {
 	minPosePresenceConfidence?: number;
 	minTrackingConfidence?: number;
 	history?: number;
+}
+
+export interface PosePluginConfig {
+	textureName: string;
+	options?: PosePluginOptions;
 }
 
 const STANDARD_LANDMARK_COUNT = 33; // See https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#pose_landmarker_model.
@@ -129,6 +135,7 @@ interface Detector {
 	};
 }
 const sharedDetectors = new Map<string, Detector>();
+const sharedDetectorPromises = new Map<string, Promise<Detector | undefined>>();
 
 function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) {
 	const data = detector.landmarks.data;
@@ -250,7 +257,7 @@ function updateMask(detector: Detector, segmentationMasks?: MPMask[]) {
 	}
 }
 
-function pose(config: { textureName: string; options?: PosePluginOptions }) {
+function pose(config: PosePluginConfig) {
 	const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
 	const options = { ...DEFAULT_POSE_OPTIONS, ...mediapipeOptions };
 	const optionsKey = hashOptions({ ...options, textureName });
@@ -276,20 +283,16 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 				return shader;
 			})();
 
-		let detector: Detector | null = null;
+		let detector: Detector | undefined;
 		let destroyed = false;
-		let skipHistoryWrite = false;
+		let historySlot = -1;
+		let pendingBackfillSlots: number[] = [];
 
-		function onResult(singleHistoryWriteIndex?: number) {
+		function writeTextures(historySlots: number | number[]) {
 			if (!detector) return;
 			const { nPoses } = detector.state;
 			const nSlots = nPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-			let historyWriteIndex: number | number[] | undefined = singleHistoryWriteIndex;
-			if (typeof historyWriteIndex === 'undefined' && pendingBackfillSlots.length > 0) {
-				historyWriteIndex = pendingBackfillSlots;
-				pendingBackfillSlots = [];
-			}
 			updateTexturesInternal(
 				{
 					u_poseLandmarksTex: {
@@ -298,66 +301,82 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 						height: rowsToUpdate,
 						isPartial: true,
 					},
-					u_poseMask: maskShader,
+					u_poseMask: detector.maskShader,
 				},
-				history ? { skipHistoryWrite, historyWriteIndex } : undefined,
+				history ? historySlots : undefined,
 			);
 			shaderPad.updateUniforms({ u_nPoses: nPoses }, { allowMissing: true });
-			emitHook('pose:result', detector.state.result);
+		}
+
+		function onResult() {
+			if (history) {
+				writeTextures(pendingBackfillSlots.length > 0 ? pendingBackfillSlots : historySlot);
+				pendingBackfillSlots = [];
+			} else {
+				writeTextures(historySlot);
+			}
+			emitHook('pose:result', detector!.state.result);
 		}
 
 		async function initializeDetector() {
-			if (sharedDetectors.has(optionsKey)) {
-				detector = sharedDetectors.get(optionsKey)!;
-			} else {
-				const [mediaPipe, { PoseLandmarker }] = await Promise.all([
-					getSharedFileset(),
-					import('@mediapipe/tasks-vision'),
-				]);
-				if (destroyed) return;
-				const poseLandmarker = await PoseLandmarker.createFromOptions(mediaPipe, {
-					baseOptions: {
-						modelAssetPath: options.modelPath,
-						delegate: 'GPU',
-					},
-					canvas: mediapipeCanvas,
-					runningMode: 'VIDEO',
-					numPoses: options.maxPoses,
-					minPoseDetectionConfidence: options.minPoseDetectionConfidence,
-					minPosePresenceConfidence: options.minPosePresenceConfidence,
-					minTrackingConfidence: options.minTrackingConfidence,
-					outputSegmentationMasks: true,
-				});
-				if (destroyed) {
-					poseLandmarker.close();
-					maskShader.destroy();
-					return;
-				}
-
-				detector = {
-					landmarker: poseLandmarker,
-					mediapipeCanvas,
-					maskShader,
-					subscribers: new Map(),
-					maxPoses: options.maxPoses,
-					state: {
-						nCalls: 0,
+			detector = await getOrCreateSharedResource(
+				optionsKey,
+				sharedDetectors,
+				sharedDetectorPromises,
+				async () => {
+					const [mediaPipe, { PoseLandmarker }] = await Promise.all([
+						getSharedFileset(),
+						import('@mediapipe/tasks-vision'),
+					]);
+					if (destroyed) return;
+					const poseLandmarker = await PoseLandmarker.createFromOptions(mediaPipe, {
+						baseOptions: {
+							modelAssetPath: options.modelPath,
+							delegate: 'GPU',
+						},
+						canvas: mediapipeCanvas,
 						runningMode: 'VIDEO',
-						source: null,
-						videoTime: -1,
-						resultTimestamp: 0,
-						result: null,
-						pending: Promise.resolve(),
-						nPoses: 0,
-					},
-					landmarks: {
-						data: landmarksData,
-						textureHeight,
-					},
-				};
-				sharedDetectors.set(optionsKey, detector);
-			}
+						numPoses: options.maxPoses,
+						minPoseDetectionConfidence: options.minPoseDetectionConfidence,
+						minPosePresenceConfidence: options.minPosePresenceConfidence,
+						minTrackingConfidence: options.minTrackingConfidence,
+						outputSegmentationMasks: true,
+					});
+					if (destroyed) {
+						poseLandmarker.close();
+						maskShader.destroy();
+						return;
+					}
 
+					const detector: Detector = {
+						landmarker: poseLandmarker,
+						mediapipeCanvas,
+						maskShader,
+						subscribers: new Map(),
+						maxPoses: options.maxPoses,
+						state: {
+							nCalls: 0,
+							runningMode: 'VIDEO',
+							source: null,
+							videoTime: -1,
+							resultTimestamp: 0,
+							result: null,
+							pending: Promise.resolve(),
+							nPoses: 0,
+						},
+						landmarks: {
+							data: landmarksData,
+							textureHeight,
+						},
+					};
+					return detector;
+				},
+			);
+
+			if (!detector || destroyed) return;
+			if (maskShader !== detector.maskShader) {
+				maskShader.destroy();
+			}
 			detector.subscribers.set(onResult, false);
 		}
 		const initPromise = initializeDetector();
@@ -391,33 +410,29 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 			});
 		});
 
-		let historyWriteCounter = 0;
-		let pendingBackfillSlots: number[] = [];
-		const writeToHistory = () => {
-			if (!history) return;
-			onResult(historyWriteCounter); // Write stale data immediately.
-			pendingBackfillSlots.push(historyWriteCounter); // Queue up backfill with more recent data.
-			historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
-		};
+		function requestPoses(source: MediaPipeSource) {
+			if (!detector) return;
+			if (history) {
+				historySlot = (historySlot + 1) % (history + 1);
+				writeTextures(historySlot);
+				pendingBackfillSlots.push(historySlot);
+			}
+			detector.subscribers.set(onResult, true);
+			detectPoses(source);
+		}
 
 		shaderPad.on('initializeTexture', (name: string, source: TextureSource) => {
 			if (name === textureName && isMediaPipeSource(source)) {
-				writeToHistory();
-				detectPoses(source);
+				requestPoses(source);
 			}
 		});
 
-		shaderPad.on(
-			'updateTextures',
-			(updates: Record<string, TextureSource>, options?: { skipHistoryWrite?: boolean }) => {
-				const source = updates[textureName];
-				if (isMediaPipeSource(source)) {
-					skipHistoryWrite = options?.skipHistoryWrite ?? false;
-					if (!skipHistoryWrite) writeToHistory();
-					detectPoses(source);
-				}
-			},
-		);
+		shaderPad.on('updateTextures', (updates: Record<string, TextureSource>) => {
+			const source = updates[textureName];
+			if (isMediaPipeSource(source)) {
+				requestPoses(source);
+			}
+		});
 
 		async function detectPoses(source: MediaPipeSource) {
 			const now = performance.now();
@@ -440,7 +455,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 
 				if (source !== detector.state.source) {
 					detector.state.source = source;
-					detector.state.videoTime = -1;
+					detector.state.videoTime = source instanceof HTMLVideoElement ? source.currentTime : -1;
 					shouldDetect = true;
 				} else if (source instanceof HTMLVideoElement) {
 					if (source.currentTime !== detector.state.videoTime) {
@@ -468,16 +483,18 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 						detector.state.result = result;
 						updateLandmarksData(detector, result.landmarks);
 						updateMask(detector, result.segmentationMasks);
-						for (const cb of detector.subscribers.keys()) {
-							cb();
-							detector.subscribers.set(cb, true);
+						for (const [cb, needsResult] of detector.subscribers.entries()) {
+							if (needsResult) {
+								cb();
+								detector.subscribers.set(cb, false);
+							}
 						}
 					}
 				} else if (detector.state.result) {
-					for (const [cb, hasCalled] of detector.subscribers.entries()) {
-						if (!hasCalled) {
+					for (const [cb, needsResult] of detector.subscribers.entries()) {
+						if (needsResult) {
 							cb();
-							detector.subscribers.set(cb, true);
+							detector.subscribers.set(cb, false);
 						}
 					}
 				}
@@ -496,7 +513,7 @@ function pose(config: { textureName: string; options?: PosePluginOptions }) {
 					sharedDetectors.delete(optionsKey);
 				}
 			}
-			detector = null;
+			detector = undefined;
 		});
 
 		const { fn, historyParams } = generateGLSLFn(history);

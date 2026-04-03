@@ -50,7 +50,7 @@ If your passes already share one WebGL context, resizing that shared canvas betw
 History increases texture bandwidth, so use it mindfully.
 
 - Disable history entirely when the effect or texture does not sample prior frames
-- Use `skipHistoryWrite: true` on updates or steps that should not become a new history frame
+- Use `skipHistory: true` on steps that should not become a new history frame
 
 For instance, let's say you want to store one sample per second for the previous 10 seconds. Instead of storing every rendered frame, you can do something like this:
 
@@ -65,7 +65,7 @@ shader.play(time => {
 	const currentSecond = Math.floor(time);
 
 	if (currentSecond === lastStoredSecond) {
-		return { skipHistoryWrite: true };
+		return { skipHistory: true };
 	}
 
 	lastStoredSecond = currentSecond;

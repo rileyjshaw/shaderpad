@@ -4,10 +4,11 @@ import {
 import {
   calculateBoundingBoxCenter,
   generateGLSLFn,
+  getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-Q3JKBIXC.mjs";
+} from "../chunk-VRJS34J4.mjs";
 
 // src/plugins/face.ts
 var MASK_VERTEX_SHADER = `#version 300 es
@@ -171,6 +172,7 @@ function initFaceRegions(LandmarkerClass) {
   }
 }
 var sharedDetectors = /* @__PURE__ */ new Map();
+var sharedDetectorPromises = /* @__PURE__ */ new Map();
 function createProgram(gl, vertexSource, fragmentSource, programName) {
   let vertexShader = null;
   let fragmentShader = null;
@@ -409,19 +411,15 @@ function face(config) {
     const existingDetector = sharedDetectors.get(optionsKey);
     const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
     const maskCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
-    let detector = null;
+    let detector;
     let destroyed = false;
-    let skipHistoryWrite = false;
-    function onResult(singleHistoryWriteIndex) {
+    let historySlot = -1;
+    let pendingBackfillSlots = [];
+    function writeTextures(historySlots) {
       if (!detector) return;
       const nFaces = detector.state.nFaces;
       const nSlots = nFaces * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
       const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-      let historyWriteIndex = singleHistoryWriteIndex;
-      if (typeof historyWriteIndex === "undefined" && pendingBackfillSlots.length > 0) {
-        historyWriteIndex = pendingBackfillSlots;
-        pendingBackfillSlots = [];
-      }
       updateTexturesInternal(
         {
           u_faceLandmarksTex: {
@@ -432,60 +430,72 @@ function face(config) {
           },
           u_faceMask: detector.mask.canvas
         },
-        history ? { skipHistoryWrite, historyWriteIndex } : void 0
+        history ? historySlots : void 0
       );
       shaderPad.updateUniforms({ u_nFaces: nFaces }, { allowMissing: true });
+    }
+    function onResult() {
+      if (history) {
+        writeTextures(pendingBackfillSlots.length > 0 ? pendingBackfillSlots : historySlot);
+        pendingBackfillSlots = [];
+      } else {
+        writeTextures(historySlot);
+      }
       emitHook("face:result", detector.state.result);
     }
     async function initializeDetector() {
-      if (sharedDetectors.has(optionsKey)) {
-        detector = sharedDetectors.get(optionsKey);
-      } else {
-        const [mediaPipe, { FaceLandmarker }] = await Promise.all([
-          getSharedFileset(),
-          import("@mediapipe/tasks-vision")
-        ]);
-        if (destroyed) return;
-        const faceLandmarker = await FaceLandmarker.createFromOptions(mediaPipe, {
-          baseOptions: {
-            modelAssetPath: options.modelPath,
-            delegate: "GPU"
-          },
-          runningMode: "VIDEO",
-          numFaces: options.maxFaces,
-          minFaceDetectionConfidence: options.minFaceDetectionConfidence,
-          minFacePresenceConfidence: options.minFacePresenceConfidence,
-          minTrackingConfidence: options.minTrackingConfidence,
-          outputFaceBlendshapes: options.outputFaceBlendshapes,
-          outputFacialTransformationMatrixes: options.outputFacialTransformationMatrixes
-        });
-        if (destroyed) {
-          faceLandmarker.close();
-          return;
-        }
-        detector = {
-          landmarker: faceLandmarker,
-          mask: initMaskRenderer(maskCanvas),
-          subscribers: /* @__PURE__ */ new Map(),
-          maxFaces: options.maxFaces,
-          state: {
-            nCalls: 0,
+      detector = await getOrCreateSharedResource(
+        optionsKey,
+        sharedDetectors,
+        sharedDetectorPromises,
+        async () => {
+          const [mediaPipe, { FaceLandmarker }] = await Promise.all([
+            getSharedFileset(),
+            import("@mediapipe/tasks-vision")
+          ]);
+          if (destroyed) return;
+          const faceLandmarker = await FaceLandmarker.createFromOptions(mediaPipe, {
+            baseOptions: {
+              modelAssetPath: options.modelPath,
+              delegate: "GPU"
+            },
             runningMode: "VIDEO",
-            source: null,
-            videoTime: -1,
-            resultTimestamp: 0,
-            result: null,
-            pending: Promise.resolve(),
-            nFaces: 0
-          },
-          landmarks: {
-            data: landmarksData,
-            textureHeight
+            numFaces: options.maxFaces,
+            minFaceDetectionConfidence: options.minFaceDetectionConfidence,
+            minFacePresenceConfidence: options.minFacePresenceConfidence,
+            minTrackingConfidence: options.minTrackingConfidence,
+            outputFaceBlendshapes: options.outputFaceBlendshapes,
+            outputFacialTransformationMatrixes: options.outputFacialTransformationMatrixes
+          });
+          if (destroyed) {
+            faceLandmarker.close();
+            return;
           }
-        };
-        initFaceRegions(FaceLandmarker);
-        sharedDetectors.set(optionsKey, detector);
-      }
+          const detector2 = {
+            landmarker: faceLandmarker,
+            mask: initMaskRenderer(maskCanvas),
+            subscribers: /* @__PURE__ */ new Map(),
+            maxFaces: options.maxFaces,
+            state: {
+              nCalls: 0,
+              runningMode: "VIDEO",
+              source: null,
+              videoTime: -1,
+              resultTimestamp: 0,
+              result: null,
+              pending: Promise.resolve(),
+              nFaces: 0
+            },
+            landmarks: {
+              data: landmarksData,
+              textureHeight
+            }
+          };
+          initFaceRegions(FaceLandmarker);
+          return detector2;
+        }
+      );
+      if (!detector || destroyed) return;
       detector.subscribers.set(onResult, false);
     }
     const initPromise = initializeDetector();
@@ -506,7 +516,7 @@ function face(config) {
         let shouldDetect = false;
         if (source !== detector.state.source) {
           detector.state.source = source;
-          detector.state.videoTime = -1;
+          detector.state.videoTime = source instanceof HTMLVideoElement ? source.currentTime : -1;
           shouldDetect = true;
         } else if (source instanceof HTMLVideoElement) {
           if (source.currentTime !== detector.state.videoTime) {
@@ -537,16 +547,18 @@ function face(config) {
             detector.state.result = result;
             updateLandmarksData(detector, result.faceLandmarks);
             updateMask(detector, width, height);
-            for (const cb of detector.subscribers.keys()) {
-              cb();
-              detector.subscribers.set(cb, true);
+            for (const [cb, needsResult] of detector.subscribers.entries()) {
+              if (needsResult) {
+                cb();
+                detector.subscribers.set(cb, false);
+              }
             }
           }
         } else if (detector.state.result) {
-          for (const [cb, hasCalled] of detector.subscribers.entries()) {
-            if (!hasCalled) {
+          for (const [cb, needsResult] of detector.subscribers.entries()) {
+            if (needsResult) {
               cb();
-              detector.subscribers.set(cb, true);
+              detector.subscribers.set(cb, false);
             }
           }
         }
@@ -581,31 +593,27 @@ function face(config) {
         emitHook("face:ready");
       });
     });
-    let historyWriteCounter = 0;
-    let pendingBackfillSlots = [];
-    const writeToHistory = () => {
-      if (!history) return;
-      onResult(historyWriteCounter);
-      pendingBackfillSlots.push(historyWriteCounter);
-      historyWriteCounter = (historyWriteCounter + 1) % (history + 1);
-    };
+    function requestFaces(source) {
+      if (!detector) return;
+      if (history) {
+        historySlot = (historySlot + 1) % (history + 1);
+        writeTextures(historySlot);
+        pendingBackfillSlots.push(historySlot);
+      }
+      detector.subscribers.set(onResult, true);
+      detectFaces(source);
+    }
     shaderPad.on("initializeTexture", (name, source) => {
       if (name === textureName && isMediaPipeSource(source)) {
-        writeToHistory();
-        detectFaces(source);
+        requestFaces(source);
       }
     });
-    shaderPad.on(
-      "updateTextures",
-      (updates, options2) => {
-        const source = updates[textureName];
-        if (isMediaPipeSource(source)) {
-          skipHistoryWrite = options2?.skipHistoryWrite ?? false;
-          if (!skipHistoryWrite) writeToHistory();
-          detectFaces(source);
-        }
+    shaderPad.on("updateTextures", (updates) => {
+      const source = updates[textureName];
+      if (isMediaPipeSource(source)) {
+        requestFaces(source);
       }
-    );
+    });
     shaderPad.on("destroy", () => {
       destroyed = true;
       if (detector) {
@@ -621,7 +629,7 @@ function face(config) {
           sharedDetectors.delete(optionsKey);
         }
       }
-      detector = null;
+      detector = void 0;
     });
     const { fn, historyParams } = generateGLSLFn(history);
     const sampleMask = history ? `_sampleFaceMask(pos, framesAgo)` : `texture(u_faceMask, pos)`;

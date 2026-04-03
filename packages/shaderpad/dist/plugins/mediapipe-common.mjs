@@ -1,2 +1,2 @@
-import{a,b,c,d,e,f}from"../chunk-VMNWRREI.mjs";export{d as calculateBoundingBoxCenter,a as dummyTexture,f as generateGLSLFn,e as getSharedFileset,c as hashOptions,b as isMediaPipeSource};
+import{a,b,c,d,e,f,g}from"../chunk-SFJM5TUM.mjs";export{e as calculateBoundingBoxCenter,a as dummyTexture,g as generateGLSLFn,d as getOrCreateSharedResource,f as getSharedFileset,c as hashOptions,b as isMediaPipeSource};
 //# sourceMappingURL=mediapipe-common.mjs.map

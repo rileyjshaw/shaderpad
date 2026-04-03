@@ -53,6 +53,12 @@ export type ErrorEntry = {
 \tfixes: readonly string[];
 };
 
+export const ERROR_DOCS_BASE_URL = ${JSON.stringify(ERROR_DOCS_BASE_URL)};
+
+export function errorUrl(code: number) {
+\treturn \`\${ERROR_DOCS_BASE_URL}\${code}\`;
+}
+
 export const errors: readonly ErrorEntry[] = ${JSON.stringify(entries, null, '\t')};
 
 export function getErrorByCode(code: string | number) {

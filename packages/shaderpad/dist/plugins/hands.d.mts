@@ -8,9 +8,10 @@ interface HandsPluginOptions {
     minTrackingConfidence?: number;
     history?: number;
 }
-declare function hands(config: {
+interface HandsPluginConfig {
     textureName: string;
     options?: HandsPluginOptions;
-}): (shaderPad: ShaderPad, context: PluginContext) => void;
+}
+declare function hands(config: HandsPluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;
 
-export { type HandsPluginOptions, hands as default };
+export { type HandsPluginConfig, type HandsPluginOptions, hands as default };
