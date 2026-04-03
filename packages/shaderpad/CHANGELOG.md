@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.72
+
+### Minor Changes
+
+- Simplify history writes and shared MediaPipe plugins
+
 ## 1.0.0-beta.71
 
 ### Minor Changes
