@@ -15,6 +15,7 @@ const loaders: Record<string, ExampleLoader> = {
 	webcam: () => import('@/examples/demos/webcam'),
 	'single-channel-textures': () => import('@/examples/demos/single-channel-textures'),
 	sway: () => import('@/examples/demos/sway'),
+	lygia: () => import('@/examples/demos/lygia'),
 	selfie: () => import('@/examples/demos/selfie'),
 	'cursor-feedback': () => import('@/examples/demos/cursor-feedback'),
 	'history-tiles': () => import('@/examples/demos/history-tiles'),

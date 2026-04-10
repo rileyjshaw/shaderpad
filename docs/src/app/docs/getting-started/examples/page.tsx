@@ -47,10 +47,6 @@ const tagStyles: Record<string, ExampleTag> = {
 		className:
 			'border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300',
 	},
-	SHADER: {
-		className:
-			'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300',
-	},
 	UNIFORMS: {
 		className:
 			'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300',
@@ -68,6 +64,7 @@ const defaultTag: ExampleTag = {
 const exampleTags: Record<string, string[]> = {
 	basic: ['UNIFORMS'],
 	sway: ['ANIMATION'],
+	lygia: ['ANIMATION'],
 	'history-tiles': ['HISTORY'],
 	'cursor-feedback': ['HISTORY'],
 	'reading-history': ['ANIMATION', 'HISTORY'],
@@ -76,7 +73,7 @@ const exampleTags: Record<string, string[]> = {
 	'webcam-channel-trails': ['HISTORY', 'WEBCAM'],
 	'webcam-grid': ['HISTORY', 'WEBCAM'],
 	'single-channel-textures': ['HISTORY', 'WEBCAM'],
-	fragmentum: ['SHADER'],
+	fragmentum: ['ANIMATION'],
 	webcam: ['WEBCAM'],
 	'face-detection': ['FACE', 'WEBCAM'],
 	'pose-detection': ['POSE', 'WEBCAM'],
@@ -99,6 +96,7 @@ const sections: ExampleSection[] = [
 		slugs: [
 			'basic',
 			'sway',
+			'lygia',
 			'cursor-feedback',
 			'history-tiles',
 			'reading-history',

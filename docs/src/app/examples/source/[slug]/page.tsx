@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { notFound } from 'next/navigation';
 
@@ -28,8 +28,29 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 async function readExampleSource(slug: string) {
-	const sourcePath = join(process.cwd(), 'src', 'examples', 'demos', `${slug}.ts`);
-	return readFile(sourcePath, 'utf8');
+	const demosDir = join(process.cwd(), 'src', 'examples', 'demos');
+	const sources = [
+		{
+			filename: `${slug}.ts`,
+			language: 'tsx',
+		},
+	];
+
+	const shaderPath = join(demosDir, `${slug}.glsl`);
+	try {
+		await access(shaderPath);
+		sources.push({
+			filename: `${slug}.glsl`,
+			language: 'glsl',
+		});
+	} catch {}
+
+	return Promise.all(
+		sources.map(async source => ({
+			...source,
+			content: await readFile(join(demosDir, source.filename), 'utf8'),
+		})),
+	);
 }
 
 export default async function ExampleSourcePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -40,7 +61,7 @@ export default async function ExampleSourcePage({ params }: { params: Promise<{ 
 		notFound();
 	}
 
-	const source = await readExampleSource(slug);
+	const sources = await readExampleSource(slug);
 
 	return (
 		<div className="relative w-full">
@@ -63,9 +84,26 @@ export default async function ExampleSourcePage({ params }: { params: Promise<{ 
 						>
 							Raw .ts
 						</a>
+						{sources.some(source => source.filename.endsWith('.glsl')) && (
+							<a
+								href={withBasePath(`/examples/source/${example.slug}.glsl`)}
+								className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50 dark:border-slate-700 dark:text-sky-300 dark:hover:border-sky-700 dark:hover:bg-slate-800"
+							>
+								Raw .glsl
+							</a>
+						)}
 					</div>
 
-					<Fence language="tsx">{source}</Fence>
+					<div className="space-y-8">
+						{sources.map(source => (
+							<section key={source.filename} className="space-y-3">
+								<h2 className="font-display text-2xl tracking-tight text-slate-900 dark:text-white">
+									{source.filename}
+								</h2>
+								<Fence language={source.language}>{source.content}</Fence>
+							</section>
+						))}
+					</div>
 				</div>
 			</div>
 		</div>

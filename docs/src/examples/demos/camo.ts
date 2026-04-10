@@ -68,11 +68,6 @@ uniform highp sampler2DArray u_history;
 uniform int u_historyFrameOffset;
 uniform int u_mode;
 
-vec2 fitCoverInverse(vec2 uv, vec2 textureSize) {
-	vec2 scale = u_resolution.xy * textureSize.yx / (u_resolution.yx * textureSize.xy);
-	return (uv - 0.5) / min(scale, vec2(1.0)) + 0.5;
-}
-
 vec3 sampleHistoryAtWebcamUV(vec2 uv) {
 	vec2 historyUV = clamp(fitCoverInverse(uv, vec2(textureSize(u_webcam, 0))), 0.0, 1.0);
 	float z = historyZ(u_history, u_historyFrameOffset, 1);

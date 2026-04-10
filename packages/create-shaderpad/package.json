@@ -21,8 +21,16 @@
 		"bin",
 		"template-basic-js",
 		"template-basic-ts",
+		"template-lygia-js",
+		"template-lygia-ts",
 		"template-face-js",
-		"template-face-ts"
+		"template-face-ts",
+		"template-pose-js",
+		"template-pose-ts",
+		"template-hands-js",
+		"template-hands-ts",
+		"template-segmenter-js",
+		"template-segmenter-ts"
 	],
 	"engines": {
 		"node": ">=18"

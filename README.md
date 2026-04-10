@@ -24,10 +24,12 @@ The CLI will walk you through the available starters interactively.
 
 To try the same templates online:
 
-- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
-- [Open the basic starter (JS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-js?title=ShaderPad%20Basic%20JavaScript)
-- [Open the face filter starter (TS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20Face%20TypeScript)
-- [Open the face filter starter (JS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-js?title=ShaderPad%20Face%20JavaScript)
+- [Open the basic starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20shader%20%28TypeScript%29)
+- [Open the LYGIA starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-lygia-ts?title=ShaderPad%20LYGIA%20%28TypeScript%29)
+- [Open the face tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20with%20face%20tracking%20%28TypeScript%29)
+- [Open the pose tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-pose-ts?title=ShaderPad%20with%20pose%20tracking%20%28TypeScript%29)
+- [Open the hand tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-hands-ts?title=ShaderPad%20with%20hand%20tracking%20%28TypeScript%29)
+- [Open the segmentation starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-segmenter-ts?title=ShaderPad%20with%20segmentation%20%28TypeScript%29)
 
 ## Links
 
@@ -437,7 +439,7 @@ ShaderPad adds additional functionality through plugins, which keeps bundle size
 
 #### helpers
 
-The `helpers` plugin provides convenience functions and constants. See [helpers.glsl](./src/plugins/helpers.glsl) for the implementation.
+The `helpers` plugin provides convenience functions and constants. The individual GLSL snippets live in [`src/helpers`](./packages/shaderpad/src/helpers), and the plugin injects the combined set.
 
 ```typescript
 import helpers from 'shaderpad/plugins/helpers';
@@ -445,6 +447,24 @@ const shader = new ShaderPad(fragmentShaderSrc, { plugins: [helpers()] });
 ```
 
 **Note:** The `helpers` plugin automatically injects the `u_resolution` uniform into your shader. Do not declare it yourself.
+
+If you already have a GLSL-aware bundler pipeline such as `vite-plugin-glsl`, you can also import the raw helper sources individually:
+
+```typescript
+import fitCoverGLSL from 'shaderpad/helpers/fitCover.glsl';
+import fitCoverInverseGLSL from 'shaderpad/helpers/fitCoverInverse.glsl';
+```
+
+If you want the whole helper set injected for you, use the `helpers()` plugin. The raw GLSL exports are for pulling in specific helpers yourself.
+
+If you import `fitContain.glsl`, `fitContainInverse.glsl`, `fitCover.glsl`, or `fitCoverInverse.glsl` directly, you must declare `u_resolution` in your shader:
+
+```glsl
+uniform vec2 u_resolution;
+#include "/shaderpad/helpers/fitContain.glsl"
+```
+
+For `vite-plugin-glsl`, that leading `/` matches the common `root: '/node_modules/'` setup used in the ShaderPad starters.
 
 #### save
 

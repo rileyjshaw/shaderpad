@@ -25,6 +25,7 @@
 		"fast-glob": "^3.3.3",
 		"flexsearch": "^0.8.212",
 		"js-yaml": "^4.1.1",
+		"lygia": "^1.4.1",
 		"next": "16.1.6",
 		"next-themes": "^0.4.6",
 		"prism-react-renderer": "^2.4.1",
@@ -37,14 +38,18 @@
 		"typescript": "^5.9.3"
 	},
 	"devDependencies": {
-		"esbuild": "^0.27.4",
 		"@types/node": "^25.5.0",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
+		"esbuild": "^0.27.4",
 		"eslint": "^10.0.3",
 		"eslint-config-next": "16.1.6",
+		"glslify": "^7.1.1",
+		"glslify-loader": "^2.0.0",
 		"prettier": "^3.8.1",
 		"prettier-plugin-tailwindcss": "^0.7.2",
-		"sharp": "0.34.5"
+		"raw-loader": "^4.0.2",
+		"sharp": "0.34.5",
+		"string-replace-loader": "^3.3.0"
 	}
 }

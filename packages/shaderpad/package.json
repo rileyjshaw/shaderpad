@@ -43,6 +43,10 @@
 			"import": "./dist/plugins/helpers.mjs",
 			"require": "./dist/plugins/helpers.js"
 		},
+		"./helpers/*.glsl": {
+			"types": "./dist/helpers/*.glsl.d.ts",
+			"default": "./dist/helpers/*.glsl"
+		},
 		"./plugins/save": {
 			"types": "./dist/plugins/save.d.ts",
 			"development": {
@@ -106,6 +110,9 @@
 			"plugins/helpers": [
 				"dist/plugins/helpers.d.ts"
 			],
+			"helpers/*.glsl": [
+				"dist/helpers/*.glsl.d.ts"
+			],
 			"plugins/save": [
 				"dist/plugins/save.d.ts"
 			],
@@ -132,7 +139,8 @@
 	],
 	"scripts": {
 		"prebuild": "node ../../scripts/generate-error-code-artifacts.mjs",
-		"build": "tsup"
+		"build": "tsup",
+		"postbuild": "node ./scripts/copy-helper-glsl.mjs"
 	},
 	"peerDependencies": {
 		"@mediapipe/tasks-vision": "*"

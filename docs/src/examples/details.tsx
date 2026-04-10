@@ -116,6 +116,23 @@ const exampleDetails: Record<string, ExampleDetails> = {
 			</>
 		),
 	},
+	lygia: {
+		credit: (
+			<>
+				Credit: <ExtLink href="https://lygia.xyz/">LYGIA</ExtLink> by Patricio Gonzalez Vivo and contributors
+			</>
+		),
+		fullDescription: (
+			<>
+				<p>
+					This example keeps the ShaderPad side deliberately small: one fullscreen canvas, one{' '}
+					<code>ShaderPad</code> instance, and one imported fragment shader. The interesting bit is the shader
+					file itself, which uses <code>#include</code> directives to pull in LYGIA&apos;s <code>ratio</code>{' '}
+					and <code>worley</code> helpers before ShaderPad compiles the final GLSL.
+				</p>
+			</>
+		),
+	},
 	selfie: {
 		fullDescription: (
 			<>

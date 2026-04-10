@@ -6,10 +6,22 @@ vec2 fitContain(vec2 uv, vec2 textureSize) {
 	return (uv - 0.5) * max(scale, vec2(1.0)) + 0.5;
 }
 
+// Map source UVs back into viewport UVs using object-fit: contain.
+vec2 fitContainInverse(vec2 uv, vec2 textureSize) {
+	vec2 scale = u_resolution.xy * textureSize.yx / (u_resolution.yx * textureSize.xy);
+	return (uv - 0.5) / max(scale, vec2(1.0)) + 0.5;
+}
+
 // Apply aspect ratio correction (object-fit: cover)
 vec2 fitCover(vec2 uv, vec2 textureSize) {
 	vec2 scale = u_resolution.xy * textureSize.yx / (u_resolution.yx * textureSize.xy);
 	return (uv - 0.5) * min(scale, vec2(1.0)) + 0.5;
+}
+
+// Map source UVs back into viewport UVs using object-fit: cover.
+vec2 fitCoverInverse(vec2 uv, vec2 textureSize) {
+	vec2 scale = u_resolution.xy * textureSize.yx / (u_resolution.yx * textureSize.xy);
+	return (uv - 0.5) / min(scale, vec2(1.0)) + 0.5;
 }
 
 float _historyZ(int historyDepth, int frameOffset, int framesAgo) {
@@ -24,5 +36,5 @@ float historyZ(highp usampler2DArray tex, int frameOffset, int framesAgo) {
 float historyZ(highp isampler2DArray tex, int frameOffset, int framesAgo) {
 	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
 }
-`;function i(){return function(o,t){t.injectGLSL(e)}}var s=i;export{s as default};
+`;function i(){return function(o,t){t.injectGLSL(e)}}var a=i;export{a as default};
 //# sourceMappingURL=helpers.mjs.map

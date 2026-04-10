@@ -15,8 +15,16 @@ const createShaderpadChangelogPath = join(createShaderpadDir, 'CHANGELOG.md');
 const starterTemplateDirs = [
 	join(createShaderpadDir, 'template-basic-js'),
 	join(createShaderpadDir, 'template-basic-ts'),
+	join(createShaderpadDir, 'template-lygia-js'),
+	join(createShaderpadDir, 'template-lygia-ts'),
 	join(createShaderpadDir, 'template-face-js'),
 	join(createShaderpadDir, 'template-face-ts'),
+	join(createShaderpadDir, 'template-pose-js'),
+	join(createShaderpadDir, 'template-pose-ts'),
+	join(createShaderpadDir, 'template-hands-js'),
+	join(createShaderpadDir, 'template-hands-ts'),
+	join(createShaderpadDir, 'template-segmenter-js'),
+	join(createShaderpadDir, 'template-segmenter-ts'),
 ];
 
 const managedPackages = [

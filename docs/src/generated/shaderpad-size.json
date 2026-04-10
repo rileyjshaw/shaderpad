@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-04-03T13:34:46.777Z",
+	"generatedAt": "2026-04-10T22:17:00.850Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
@@ -37,11 +37,11 @@
 		},
 		"./plugins/helpers": {
 			"specifier": "shaderpad/plugins/helpers",
-			"minifiedBytes": 1271,
-			"minified": "1.2 kB",
-			"gzippedBytes": 448,
-			"gzipped": "0.4 kB",
-			"gzippedLabel": "0.4 kB gzipped"
+			"minifiedBytes": 1783,
+			"minified": "1.7 kB",
+			"gzippedBytes": 513,
+			"gzipped": "0.5 kB",
+			"gzippedLabel": "0.5 kB gzipped"
 		},
 		"./plugins/pose": {
 			"specifier": "shaderpad/plugins/pose",

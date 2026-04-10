@@ -132,10 +132,7 @@ export interface PluginContext {
 	canvas: HTMLCanvasElement | OffscreenCanvas;
 	injectGLSL: (code: string) => void;
 	emitHook: (name: LifecycleMethod, ...args: any[]) => void;
-	updateTexturesInternal: (
-		updates: Record<string, UpdateTextureSource>,
-		historySlots?: HistorySlots,
-	) => void;
+	updateTexturesInternal: (updates: Record<string, UpdateTextureSource>, historySlots?: HistorySlots) => void;
 }
 
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
@@ -1002,10 +999,7 @@ class ShaderPad {
 		this.emitHook('updateTextures', ...arguments);
 	}
 
-	private updateTexturesInternal(
-		updates: Record<string, UpdateTextureSource>,
-		historySlots?: HistorySlots,
-	) {
+	private updateTexturesInternal(updates: Record<string, UpdateTextureSource>, historySlots?: HistorySlots) {
 		Object.entries(updates).forEach(([name, source]) => {
 			this.updateTexture(name, source, historySlots);
 		});

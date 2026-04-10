@@ -340,6 +340,12 @@ const exampleFiles = await fg('*.ts', {
 	onlyFiles: true,
 	ignore: ['*.d.ts', 'main.ts'],
 });
+const exampleAssetFiles = await fg('*.{ts,glsl}', {
+	cwd: examplesDir,
+	absolute: true,
+	onlyFiles: true,
+	ignore: ['*.d.ts', 'main.ts'],
+});
 const exampleMetadataBySlug = new Map(exampleRegistry.map(entry => [entry.slug, entry]));
 const exampleOrderBySlug = new Map(exampleRegistry.map((entry, index) => [entry.slug, index]));
 
@@ -425,6 +431,7 @@ exampleEntries.sort(
 
 const curatedExampleTitles = [
 	'Basic',
+	'LYGIA',
 	'Webcam',
 	'Cursor feedback',
 	'Webcam trails',
@@ -475,10 +482,12 @@ for (const entry of [...docEntries, repoReadmeEntry]) {
 	await writeFile(outputPath, entry.raw, 'utf8');
 }
 
-for (const entry of exampleEntries) {
-	const outputPath = join(publicDir, entry.assetPath.replace(/^\//, ''));
+for (const filePath of exampleAssetFiles) {
+	const raw = (await readFile(filePath, 'utf8')).replace(/\r\n/g, '\n');
+	const filename = relative(examplesDir, filePath).replace(/\\/g, '/');
+	const outputPath = join(publicDir, 'examples', 'source', filename);
 	await mkdir(dirname(outputPath), { recursive: true });
-	await writeFile(outputPath, entry.raw, 'utf8');
+	await writeFile(outputPath, raw, 'utf8');
 }
 
 console.log(

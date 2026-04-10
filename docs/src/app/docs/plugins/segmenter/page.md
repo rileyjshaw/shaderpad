@@ -34,10 +34,10 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 
 ## Config
 
-| Field          | Meaning                                                                              |
-| -------------- | ------------------------------------------------------------------------------------ |
-| `textureName`  | The live texture name the plugin reads from.                                         |
-| `options?`     | MediaPipe and history options listed below.                                          |
+| Field         | Meaning                                      |
+| ------------- | -------------------------------------------- |
+| `textureName` | The live texture name the plugin reads from. |
+| `options?`    | MediaPipe and history options listed below.  |
 
 ## MediaPipe Options
 

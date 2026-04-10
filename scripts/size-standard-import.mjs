@@ -25,6 +25,13 @@ function compareExportPaths(a, b) {
 	return a.localeCompare(b);
 }
 
+function isMeasurableExportPath(exportPath) {
+	// Package export patterns like "./helpers/*.glsl" are routing rules, not
+	// concrete specifiers that esbuild can import directly. Raw GLSL helper
+	// exports are also excluded here because this size report is for the JS API.
+	return !exportPath.includes('*') && !exportPath.endsWith('.glsl');
+}
+
 function getSpecifier(exportPath) {
 	if (exportPath === '.') {
 		return shaderpadPackage.name;
@@ -70,7 +77,9 @@ async function measureExport(exportPath) {
 	};
 }
 
-const exportPaths = Object.keys(shaderpadPackage.exports).sort(compareExportPaths);
+const exportPaths = Object.keys(shaderpadPackage.exports)
+	.filter(isMeasurableExportPath)
+	.sort(compareExportPaths);
 const exportSizes = Object.fromEntries(
 	await Promise.all(
 		exportPaths.map(async exportPath => [exportPath, await measureExport(exportPath)]),

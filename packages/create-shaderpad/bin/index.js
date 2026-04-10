@@ -4,30 +4,69 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const DEFAULT_TARGET_DIR = 'shaderpad-app';
+const DEFAULT_TARGET_DIR = 'shaderpad-project';
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const templateDefinitions = {
-	'basic-ts': {
-		label: 'Basic + TypeScript',
-		hint: 'default',
-		dir: 'template-basic-ts',
+const starterDefinitions = {
+	basic: {
+		label: 'Basic shader',
+		hint: 'fullscreen fragment shader',
 	},
-	'basic-js': {
-		label: 'Basic + JavaScript',
-		dir: 'template-basic-js',
+	lygia: {
+		label: 'Shader with LYGIA',
+		hint: 'fullscreen shader with LYGIA imports',
 	},
-	'face-ts': {
-		label: 'Face Plugin + TypeScript',
-		hint: 'webcam + MediaPipe',
-		dir: 'template-face-ts',
+	face: {
+		label: 'Shader with face tracking',
+		hint: 'MediaPipe face tracking over webcam',
 	},
-	'face-js': {
-		label: 'Face Plugin + JavaScript',
-		hint: 'webcam + MediaPipe',
-		dir: 'template-face-js',
+	pose: {
+		label: 'Shader with pose tracking',
+		hint: 'MediaPipe pose tracking over webcam',
+	},
+	hands: {
+		label: 'Shader with hand tracking',
+		hint: 'MediaPipe hand tracking over webcam',
+	},
+	segmenter: {
+		label: 'Shader with segmentation',
+		hint: 'MediaPipe segmentation over webcam',
 	},
 };
-const defaultTemplate = 'basic-ts';
+const variantDefinitions = {
+	ts: {
+		label: 'TypeScript',
+	},
+	js: {
+		label: 'JavaScript',
+	},
+};
+const templateDefinitions = Object.fromEntries(
+	Object.keys(starterDefinitions).flatMap(starter =>
+		Object.keys(variantDefinitions).map(variant => [
+			`${starter}-${variant}`,
+			{
+				starter,
+				variant,
+				dir: `template-${starter}-${variant}`,
+			},
+		]),
+	),
+);
+const defaultStarter = 'basic';
+const defaultVariant = 'ts';
+const defaultTemplate = `${defaultStarter}-${defaultVariant}`;
+
+function getTemplateLabel(templateKey) {
+	const template = templateDefinitions[templateKey];
+	if (!template) return templateKey;
+	return `${starterDefinitions[template.starter].label} (${variantDefinitions[template.variant].label})`;
+}
+
+function getTemplateHelpText() {
+	return Object.keys(templateDefinitions)
+		.map(templateKey => `  ${templateKey.padEnd(18)}${getTemplateLabel(templateKey)}`)
+		.join('\n');
+}
 
 function printHelp() {
 	console.log(`Usage: create-shaderpad [project-name] [--template <name>] [--skip-install]
@@ -35,10 +74,7 @@ function printHelp() {
 Scaffold a ShaderPad starter project from one of the built-in templates.
 
 Templates:
-  basic-ts  Basic starter with TypeScript
-  basic-js  Basic starter with JavaScript
-  face-ts   Face plugin starter with TypeScript
-  face-js   Face plugin starter with JavaScript
+${getTemplateHelpText()}
 
 Options:
   --template <name>              Choose a template (default: ${defaultTemplate})
@@ -89,6 +125,9 @@ function parseArgs(args) {
 			continue;
 		}
 		if (arg === '--template') {
+			if (!args[i + 1]) {
+				fail('Missing value for --template');
+			}
 			options.template = args[i + 1];
 			i += 1;
 			continue;
@@ -115,7 +154,7 @@ async function promptForMissingOptions(options) {
 	let inputDir = options.inputDir;
 	if (!inputDir) {
 		const answer = await text({
-			message: 'Where should we create your project?',
+			message: 'Project name',
 			placeholder: DEFAULT_TARGET_DIR,
 			initialValue: DEFAULT_TARGET_DIR,
 			validate(value) {
@@ -133,23 +172,37 @@ async function promptForMissingOptions(options) {
 
 	let templateKey = options.template;
 	if (!templateKey) {
-		const answer = await select({
-			message: 'Which starter do you want?',
-			initialValue: defaultTemplate,
-			options: Object.entries(templateDefinitions).map(([value, template]) => ({
+		const starterAnswer = await select({
+			message: 'Select a starter',
+			initialValue: defaultStarter,
+			options: Object.entries(starterDefinitions).map(([value, starter]) => ({
 				value,
-				label: template.label,
-				hint: template.hint,
+				label: starter.label,
+				hint: starter.hint,
 			})),
 		});
-		if (isCancel(answer)) {
+		if (isCancel(starterAnswer)) {
 			cancel('Cancelled.');
 			process.exit(0);
 		}
-		templateKey = String(answer);
+
+		const variantAnswer = await select({
+			message: 'Select a variant',
+			initialValue: defaultVariant,
+			options: Object.entries(variantDefinitions).map(([value, variant]) => ({
+				value,
+				label: variant.label,
+			})),
+		});
+		if (isCancel(variantAnswer)) {
+			cancel('Cancelled.');
+			process.exit(0);
+		}
+
+		templateKey = `${String(starterAnswer)}-${String(variantAnswer)}`;
 	}
 
-	outro(`Using ${templateDefinitions[templateKey].label}`);
+	outro(`Using ${getTemplateLabel(templateKey)}`);
 	return { inputDir, templateKey };
 }
 
@@ -190,10 +243,10 @@ async function main() {
 
 	const packageJsonPath = path.join(targetDir, 'package.json');
 	const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-	packageJson.name = toValidPackageName(projectName) || 'shaderpad-app';
+	packageJson.name = toValidPackageName(projectName) || DEFAULT_TARGET_DIR;
 	fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
-	console.log(`\nScaffolded ${template.label} in ${path.relative(process.cwd(), targetDir) || '.'}`);
+	console.log(`\nScaffolded ${getTemplateLabel(templateKey)} in ${path.relative(process.cwd(), targetDir) || '.'}`);
 
 	if (parsed.shouldInstall) {
 		console.log('\nInstalling dependencies...\n');

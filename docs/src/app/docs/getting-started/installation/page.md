@@ -16,12 +16,14 @@ If you want to create a new project, use one of the provided starter templates:
 npm create shaderpad@latest
 ```
 
-The CLI will prompt you to choose a starter app interactively. You can also start exparimenting with the templates in your browser:
+The CLI will prompt you to choose a starter app interactively. You can also start experimenting with the TypeScript starter templates in your browser:
 
-- [Open the basic starter (TS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20TypeScript)
-- [Open the basic starter (JS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-js?title=ShaderPad%20Basic%20JavaScript)
-- [Open the face filter starter (TS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20Face%20TypeScript)
-- [Open the face filter starter (JS) in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-js?title=ShaderPad%20Face%20JavaScript)
+- [Open the basic starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20%28TypeScript%29)
+- [Open the LYGIA starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-lygia-ts?title=ShaderPad%20LYGIA%20%28TypeScript%29)
+- [Open the face tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20with%20face%20tracking%20%28TypeScript%29)
+- [Open the pose tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-pose-ts?title=ShaderPad%20with%20pose%20tracking%20%28TypeScript%29)
+- [Open the hand tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-hands-ts?title=ShaderPad%20with%20hand%20tracking%20%28TypeScript%29)
+- [Open the segmentation starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-segmenter-ts?title=ShaderPad%20with%20segmentation%20%28TypeScript%29)
 
 ## Install Into An Existing Project
 
@@ -60,8 +62,8 @@ The smoothest workflow is usually:
 
 Good prompts to start with:
 
-- “Read the [ShaderPad AI agent guide](/docs/getting-started/ai-agent-guide) and turn the basic starter into an animated shader that looks like a holographic orb.”
-- “Using the basic ShaderPad starter, build an animated pattern using Cairo tiling.”
-- “Using the face filter starter, make a face-tracked pixelation effect. Keep the first version as small and readable as possible.”
+- “Read the [ShaderPad AI agent guide](/docs/getting-started/ai-agent-guide) and turn the ‘Basic shader’ starter into an animated shader that looks like a holographic orb.”
+- “Read the [ShaderPad AI agent guide](/docs/getting-started/ai-agent-guide). Using the ‘Basic shader’ starter, build an animated pattern using worley noise from the LYGIA library.”
+- “Read the [ShaderPad AI agent guide](/docs/getting-started/ai-agent-guide). Using the ‘Shader with face tracking’ starter, make a face-tracked pixelation effect. Keep the first version as small and readable as possible.”
 
 If you are working locally with an editor agent, it also helps to tell it to start with one fragment shader, one `ShaderPad` instance, `createFullscreenCanvas()` plus `autosize()`, and `shader.play()` for animation. Those defaults line up with the rest of the docs and tend to produce the cleanest first pass.

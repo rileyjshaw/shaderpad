@@ -1,6 +1,6 @@
 import {
   index_default
-} from "../chunk-7O5CRMDG.mjs";
+} from "../chunk-3IFJQNXS.mjs";
 import "../chunk-OTFRVDNV.mjs";
 import {
   dummyTexture,
