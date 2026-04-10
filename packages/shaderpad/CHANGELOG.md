@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.73
+
+### Minor Changes
+
+- Expand `create-shaderpad` starters and support modular GLSL includes
+
 ## 1.0.0-beta.72
 
 ### Minor Changes
