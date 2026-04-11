@@ -25,19 +25,20 @@ async function getWebcam() {
 
 async function main() {
 	const video = await getWebcam();
-	const canvas = createFullscreenCanvas();
 	const shader = new ShaderPad(fragmentShaderSrc, {
+		canvas: createFullscreenCanvas(),
 		plugins: [
 			autosize(),
 			helpers(),
 			segmenter({
 				textureName: 'u_webcam',
 				options: {
+					modelPath:
+						'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
 					outputConfidenceMasks: true,
 				},
 			}),
 		],
-		canvas,
 	});
 
 	shader.initializeTexture('u_webcam', video);

@@ -25,19 +25,18 @@ async function getWebcam() {
 
 async function main() {
 	const video = await getWebcam();
-	const canvas = createFullscreenCanvas();
 	const shader = new ShaderPad(fragmentShaderSrc, {
+		canvas: createFullscreenCanvas(),
 		plugins: [
 			autosize(),
 			helpers(),
 			pose({
 				textureName: 'u_webcam',
 				options: {
-					maxPoses: 1,
+					maxPoses: 2,
 				},
 			}),
 		],
-		canvas,
 	});
 
 	shader.initializeTexture('u_webcam', video);

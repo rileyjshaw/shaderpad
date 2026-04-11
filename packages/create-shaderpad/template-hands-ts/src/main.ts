@@ -25,8 +25,8 @@ async function getWebcam() {
 
 async function main() {
 	const video = await getWebcam();
-	const canvas = createFullscreenCanvas();
 	const shader = new ShaderPad(fragmentShaderSrc, {
+		canvas: createFullscreenCanvas(),
 		plugins: [
 			autosize(),
 			helpers(),
@@ -37,7 +37,6 @@ async function main() {
 				},
 			}),
 		],
-		canvas,
 	});
 
 	shader.initializeTexture('u_webcam', video);
