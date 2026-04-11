@@ -17,6 +17,7 @@
 		"@headlessui/react": "^2.2.9",
 		"@markdoc/markdoc": "^0.5.6",
 		"@markdoc/next.js": "^0.5.0",
+		"@mediapipe/tasks-vision": "^0.10.34",
 		"@sindresorhus/slugify": "^3.0.0",
 		"@tailwindcss/postcss": "^4.2.1",
 		"@tailwindcss/typography": "^0.5.19",
