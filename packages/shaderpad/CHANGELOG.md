@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.75
+
+### Minor Changes
+
+- Improve face plugin performance and simplify templates
+
 ## 1.0.0-beta.74
 
 ### Minor Changes
