@@ -10,7 +10,8 @@ export interface AutosizeOptions {
 
 function autosize(options: AutosizeOptions = {}) {
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { canvas, emitHook } = context;
+		const { emit } = context;
+		const { canvas } = shaderPad;
 		const {
 			scale = window.devicePixelRatio || 1,
 			target = canvas instanceof HTMLCanvasElement ? canvas : window,
@@ -45,7 +46,7 @@ function autosize(options: AutosizeOptions = {}) {
 			if (canvas.width !== width || canvas.height !== height) {
 				canvas.width = width;
 				canvas.height = height;
-				emitHook('autosize:resize', width, height);
+				emit('autosize:resize', width, height);
 			}
 		}
 

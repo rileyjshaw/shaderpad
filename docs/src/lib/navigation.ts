@@ -47,7 +47,6 @@ export const navigation = [
 		links: [
 			{ title: 'helpers', href: '/docs/plugins/helpers' },
 			{ title: 'autosize', href: '/docs/plugins/autosize' },
-			{ title: 'save', href: '/docs/plugins/save' },
 			{ title: 'face', href: '/docs/plugins/face' },
 			{ title: 'pose', href: '/docs/plugins/pose' },
 			{ title: 'hands', href: '/docs/plugins/hands' },
@@ -63,7 +62,12 @@ export const navigation = [
 			{ title: 'Properties', href: '/docs/api/properties' },
 			{ title: 'Events', href: '/docs/api/events' },
 			{ title: 'Utilities', href: '/docs/api/utilities' },
+			{ title: 'Plugins', href: '/docs/api/plugins' },
 		],
+	},
+	{
+		title: 'About',
+		links: [{ title: 'Contributing', href: '/docs/about/contributing' }],
 	},
 ];
 

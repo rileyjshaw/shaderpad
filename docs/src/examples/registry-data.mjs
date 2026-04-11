@@ -32,7 +32,7 @@ export const exampleRegistry = [
 	{
 		slug: 'selfie',
 		title: 'Selfie',
-		description: 'Capture shader output to PNG with the save plugin.',
+		description: 'Capture shader output to PNG with the save utility.',
 	},
 	{
 		slug: 'webcam-trails',

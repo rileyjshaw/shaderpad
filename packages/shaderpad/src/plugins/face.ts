@@ -538,7 +538,7 @@ function face(config: FacePluginConfig) {
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, emitHook, updateTexturesInternal } = context;
+		const { injectGLSL, emit, updateTexture } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
@@ -554,18 +554,18 @@ function face(config: FacePluginConfig) {
 			const nFaces = detector.state.nFaces;
 			const nSlots = nFaces * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-			updateTexturesInternal(
+			const targetHistorySlots = history ? historySlots : undefined;
+			updateTexture(
+				'u_faceLandmarksTex',
 				{
-					u_faceLandmarksTex: {
-						data: detector.landmarks.data,
-						width: LANDMARKS_TEXTURE_WIDTH,
-						height: rowsToUpdate,
-						isPartial: true,
-					},
-					u_faceMask: detector.mask.canvas,
+					data: detector.landmarks.data,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: rowsToUpdate,
+					isPartial: true,
 				},
-				history ? historySlots : undefined,
+				targetHistorySlots,
 			);
+			updateTexture('u_faceMask', detector.mask.canvas, targetHistorySlots);
 			shaderPad.updateUniforms({ u_nFaces: nFaces }, { allowMissing: true });
 		}
 
@@ -576,7 +576,7 @@ function face(config: FacePluginConfig) {
 			} else {
 				writeTextures(historySlot);
 			}
-			emitHook('face:result', detector!.state.result);
+			emit('face:result', detector!.state.result);
 		}
 
 		async function initializeDetector() {
@@ -739,7 +739,7 @@ function face(config: FacePluginConfig) {
 			});
 			initPromise.then(() => {
 				if (destroyed || !detector) return;
-				emitHook('face:ready');
+				emit('face:ready');
 			});
 		});
 

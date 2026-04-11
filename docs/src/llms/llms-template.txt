@@ -16,7 +16,7 @@ Hard rules:
 - Use `play()` for normal animation, `step()` for manual advancement, and `draw()` only for render-only passes. `draw()` does not advance time, frame count, or history.
 - If using `helpers()`, do not manually declare `u_resolution`; the plugin injects it.
 - For region-only MediaPipe effects, prefer helper calls like `inFace()`, `faceAt()`, `poseAt()`, `segmentAt()`, and `handLandmark()` instead of decoding raw plugin textures unless you truly need custom decoding.
-- MediaPipe plugins (`face`, `pose`, `hands`, `segmenter`) require `@mediapipe/tasks-vision`.
+- Install `@mediapipe/tasks-vision` when using MediaPipe plugins (`face`, `pose`, `hands`, `segmenter`).
 - For MediaPipe plugins, the configured `textureName` must match the actual initialized live texture name.
 - Prefer one WebGL context whenever possible. Multi-pass pipelines should usually share one canvas/context, and the last draw in `requestAnimationFrame` is what appears on screen.
 - Downsample expensive intermediate passes before adding more passes or more detector work.
@@ -39,7 +39,6 @@ Start with these pages:
 Plugin docs:
 
 - `/shaderpad/docs/plugins/autosize/`
-- `/shaderpad/docs/plugins/save/`
 - `/shaderpad/docs/plugins/face/`
 - `/shaderpad/docs/plugins/pose/`
 - `/shaderpad/docs/plugins/hands/`

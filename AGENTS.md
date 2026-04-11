@@ -14,7 +14,7 @@ ShaderPad is a WebGL2-first library for fullscreen fragment shaders, live textur
 
 ```ts
 import ShaderPad from 'shaderpad';
-import { createFullscreenCanvas } from 'shaderpad/util';
+import { createFullscreenCanvas, save, toBlob } from 'shaderpad/util';
 import autosize from 'shaderpad/plugins/autosize';
 import helpers from 'shaderpad/plugins/helpers';
 ```
@@ -23,7 +23,6 @@ Plugin import paths:
 
 - `shaderpad/plugins/autosize`
 - `shaderpad/plugins/helpers`
-- `shaderpad/plugins/save`
 - `shaderpad/plugins/face`
 - `shaderpad/plugins/pose`
 - `shaderpad/plugins/hands`
@@ -68,7 +67,7 @@ Important:
 - For live DOM textures like video or webcam, call `updateTextures()` every frame.
 - For feedback or delay effects, use output `history` or per-texture `history`, usually with `helpers()` and `historyZ()`.
 - For multi-pass pipelines, a `ShaderPad` instance can be passed directly to `initializeTexture()`.
-- MediaPipe plugins require `@mediapipe/tasks-vision` as a peer dependency.
+- Install `@mediapipe/tasks-vision` when using MediaPipe plugins.
 - For MediaPipe plugins, the plugin `textureName` must match the initialized live texture name.
 
 ## Useful repo commands

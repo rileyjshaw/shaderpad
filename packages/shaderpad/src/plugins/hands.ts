@@ -111,7 +111,7 @@ function hands(config: HandsPluginConfig) {
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, emitHook, updateTexturesInternal } = context;
+		const { injectGLSL, emit, updateTexture } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
@@ -126,14 +126,13 @@ function hands(config: HandsPluginConfig) {
 			const { nHands } = detector.state;
 			const nSlots = nHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-			updateTexturesInternal(
+			updateTexture(
+				'u_handLandmarksTex',
 				{
-					u_handLandmarksTex: {
-						data: detector.landmarks.data,
-						width: LANDMARKS_TEXTURE_WIDTH,
-						height: rowsToUpdate,
-						isPartial: true,
-					},
+					data: detector.landmarks.data,
+					width: LANDMARKS_TEXTURE_WIDTH,
+					height: rowsToUpdate,
+					isPartial: true,
 				},
 				history ? historySlots : undefined,
 			);
@@ -147,7 +146,7 @@ function hands(config: HandsPluginConfig) {
 			} else {
 				writeTextures(historySlot);
 			}
-			emitHook('hands:result', detector!.state.result);
+			emit('hands:result', detector!.state.result);
 		}
 
 		async function initializeDetector() {
@@ -228,7 +227,7 @@ function hands(config: HandsPluginConfig) {
 			);
 			initPromise.then(() => {
 				if (destroyed || !detector) return;
-				emitHook('hands:ready');
+				emit('hands:ready');
 			});
 		});
 

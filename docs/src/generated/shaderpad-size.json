@@ -1,15 +1,15 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-04-10T22:17:00.850Z",
+	"generatedAt": "2026-04-11T06:10:59.494Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
-			"minifiedBytes": 18942,
-			"minified": "18.5 kB",
-			"gzippedBytes": 6010,
-			"gzipped": "5.9 kB",
-			"gzippedLabel": "5.9 kB gzipped"
+			"minifiedBytes": 18763,
+			"minified": "18.3 kB",
+			"gzippedBytes": 5989,
+			"gzipped": "5.8 kB",
+			"gzippedLabel": "5.8 kB gzipped"
 		},
 		"./plugins/autosize": {
 			"specifier": "shaderpad/plugins/autosize",
@@ -21,17 +21,17 @@
 		},
 		"./plugins/face": {
 			"specifier": "shaderpad/plugins/face",
-			"minifiedBytes": 151905,
+			"minifiedBytes": 151886,
 			"minified": "148.3 kB",
-			"gzippedBytes": 47119,
+			"gzippedBytes": 47105,
 			"gzipped": "46.0 kB",
 			"gzippedLabel": "46.0 kB gzipped"
 		},
 		"./plugins/hands": {
 			"specifier": "shaderpad/plugins/hands",
-			"minifiedBytes": 142707,
-			"minified": "139.4 kB",
-			"gzippedBytes": 43840,
+			"minifiedBytes": 142674,
+			"minified": "139.3 kB",
+			"gzippedBytes": 43814,
 			"gzipped": "42.8 kB",
 			"gzippedLabel": "42.8 kB gzipped"
 		},
@@ -45,35 +45,27 @@
 		},
 		"./plugins/pose": {
 			"specifier": "shaderpad/plugins/pose",
-			"minifiedBytes": 165141,
-			"minified": "161.3 kB",
-			"gzippedBytes": 50558,
-			"gzipped": "49.4 kB",
-			"gzippedLabel": "49.4 kB gzipped"
-		},
-		"./plugins/save": {
-			"specifier": "shaderpad/plugins/save",
-			"minifiedBytes": 814,
-			"minified": "0.8 kB",
-			"gzippedBytes": 550,
-			"gzipped": "0.5 kB",
-			"gzippedLabel": "0.5 kB gzipped"
+			"minifiedBytes": 164943,
+			"minified": "161.1 kB",
+			"gzippedBytes": 50519,
+			"gzipped": "49.3 kB",
+			"gzippedLabel": "49.3 kB gzipped"
 		},
 		"./plugins/segmenter": {
 			"specifier": "shaderpad/plugins/segmenter",
-			"minifiedBytes": 161311,
-			"minified": "157.5 kB",
-			"gzippedBytes": 49323,
-			"gzipped": "48.2 kB",
-			"gzippedLabel": "48.2 kB gzipped"
+			"minifiedBytes": 161099,
+			"minified": "157.3 kB",
+			"gzippedBytes": 49280,
+			"gzipped": "48.1 kB",
+			"gzippedLabel": "48.1 kB gzipped"
 		},
 		"./util": {
 			"specifier": "shaderpad/util",
-			"minifiedBytes": 331,
-			"minified": "0.3 kB",
-			"gzippedBytes": 250,
-			"gzipped": "0.2 kB",
-			"gzippedLabel": "0.2 kB gzipped"
+			"minifiedBytes": 1336,
+			"minified": "1.3 kB",
+			"gzippedBytes": 754,
+			"gzipped": "0.7 kB",
+			"gzippedLabel": "0.7 kB gzipped"
 		}
 	}
 }

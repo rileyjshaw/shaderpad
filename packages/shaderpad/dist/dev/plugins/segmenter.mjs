@@ -1,6 +1,6 @@
 import {
   index_default
-} from "../chunk-3IFJQNXS.mjs";
+} from "../chunk-KRIFZAFR.mjs";
 import "../chunk-OTFRVDNV.mjs";
 import {
   dummyTexture,
@@ -9,7 +9,7 @@ import {
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-VRJS34J4.mjs";
+} from "../chunk-ZVPQU2RM.mjs";
 
 // src/plugins/segmenter.ts
 var dummyTextureFloat32 = {
@@ -70,7 +70,7 @@ function segmenter(config) {
   const options = { ...DEFAULT_SEGMENTER_OPTIONS, ...mediapipeOptions };
   const optionsKey = hashOptions({ ...options, textureName });
   return function(shaderPad, context) {
-    const { injectGLSL, emitHook, updateTexturesInternal } = context;
+    const { injectGLSL, emit, updateTexture } = context;
     const existingDetector = sharedDetectors.get(optionsKey);
     const mediapipeCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
     let detector;
@@ -79,7 +79,7 @@ function segmenter(config) {
     let pendingBackfillSlots = [];
     function writeTextures(historySlots) {
       if (!detector) return;
-      updateTexturesInternal({ u_segmentMask: detector.mask.shader }, history ? historySlots : void 0);
+      updateTexture("u_segmentMask", detector.mask.shader, history ? historySlots : void 0);
     }
     function onResult() {
       if (history) {
@@ -88,7 +88,7 @@ function segmenter(config) {
       } else {
         writeTextures(historySlot);
       }
-      emitHook("segmenter:result", detector.state.result);
+      emit("segmenter:result", detector.state.result);
     }
     async function initializeDetector() {
       detector = await getOrCreateSharedResource(
@@ -169,7 +169,7 @@ function segmenter(config) {
       initPromise.then(() => {
         if (destroyed || !detector) return;
         shaderPad.updateUniforms({ u_numCategories: detector.numCategories }, { allowMissing: true });
-        emitHook("segmenter:ready");
+        emit("segmenter:ready");
       });
     });
     function requestSegments(source) {

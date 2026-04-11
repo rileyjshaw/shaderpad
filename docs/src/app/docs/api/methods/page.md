@@ -11,6 +11,7 @@ nextjs:
 - `play(onBeforeStep?)`
 - `step(options?)`
 - `draw(options?)`
+- `clear()`
 - `pause()`
 - `resetFrame()`
 - `reset()`
@@ -78,6 +79,14 @@ draw(options?: StepOptions): void
 ```
 
 `draw()` renders immediately without advancing time, frame, or history.
+
+### `clear()`
+
+```typescript
+clear(): void
+```
+
+`clear()` clears ShaderPad’s current render target immediately. Use it for advanced manual render flows; it does not advance time, frame, or history.
 
 ### Render Step Options Reference
 

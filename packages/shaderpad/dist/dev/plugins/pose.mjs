@@ -1,6 +1,6 @@
 import {
   index_default
-} from "../chunk-3IFJQNXS.mjs";
+} from "../chunk-KRIFZAFR.mjs";
 import "../chunk-OTFRVDNV.mjs";
 import {
   calculateBoundingBoxCenter,
@@ -10,7 +10,7 @@ import {
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-VRJS34J4.mjs";
+} from "../chunk-ZVPQU2RM.mjs";
 
 // src/plugins/pose.ts
 var STANDARD_LANDMARK_COUNT = 33;
@@ -207,7 +207,7 @@ function pose(config) {
   const nLandmarksMax = options.maxPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
   const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
   return function(shaderPad, context) {
-    const { injectGLSL, emitHook, updateTexturesInternal } = context;
+    const { injectGLSL, emit, updateTexture } = context;
     const existingDetector = sharedDetectors.get(optionsKey);
     const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
     const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
@@ -228,18 +228,18 @@ function pose(config) {
       const { nPoses } = detector.state;
       const nSlots = nPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
       const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-      updateTexturesInternal(
+      const targetHistorySlots = history ? historySlots : void 0;
+      updateTexture(
+        "u_poseLandmarksTex",
         {
-          u_poseLandmarksTex: {
-            data: detector.landmarks.data,
-            width: LANDMARKS_TEXTURE_WIDTH,
-            height: rowsToUpdate,
-            isPartial: true
-          },
-          u_poseMask: detector.maskShader
+          data: detector.landmarks.data,
+          width: LANDMARKS_TEXTURE_WIDTH,
+          height: rowsToUpdate,
+          isPartial: true
         },
-        history ? historySlots : void 0
+        targetHistorySlots
       );
+      updateTexture("u_poseMask", detector.maskShader, targetHistorySlots);
       shaderPad.updateUniforms({ u_nPoses: nPoses }, { allowMissing: true });
     }
     function onResult() {
@@ -249,7 +249,7 @@ function pose(config) {
       } else {
         writeTextures(historySlot);
       }
-      emitHook("pose:result", detector.state.result);
+      emit("pose:result", detector.state.result);
     }
     async function initializeDetector() {
       detector = await getOrCreateSharedResource(
@@ -336,7 +336,7 @@ function pose(config) {
       });
       initPromise.then(() => {
         if (destroyed || !detector) return;
-        emitHook("pose:ready");
+        emit("pose:ready");
       });
     });
     function requestPoses(source) {

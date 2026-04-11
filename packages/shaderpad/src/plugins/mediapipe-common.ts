@@ -84,9 +84,7 @@ let filesetPromise: Promise<any> | null = null;
 export function getSharedFileset(): Promise<any> {
 	if (!filesetPromise) {
 		filesetPromise = import('@mediapipe/tasks-vision').then(({ FilesetResolver }) =>
-			FilesetResolver.forVisionTasks(
-				`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${__MEDIAPIPE_TASKS_VISION_VERSION__}/wasm`,
-			),
+			FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm'),
 		);
 	}
 	return filesetPromise;

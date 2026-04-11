@@ -26,7 +26,8 @@ module.exports = __toCommonJS(autosize_exports);
 var THROTTLE_INTERVAL_DEFAULT = 1e3 / 30;
 function autosize(options = {}) {
   return function(shaderPad, context) {
-    const { canvas, emitHook } = context;
+    const { emit } = context;
+    const { canvas } = shaderPad;
     const {
       scale = window.devicePixelRatio || 1,
       target = canvas instanceof HTMLCanvasElement ? canvas : window,
@@ -59,7 +60,7 @@ function autosize(options = {}) {
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
-        emitHook("autosize:resize", width, height);
+        emit("autosize:resize", width, height);
       }
     }
     handleResize();

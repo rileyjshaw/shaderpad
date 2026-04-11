@@ -33,8 +33,8 @@ To add ShaderPad to a project you already have:
 npm install shaderpad
 ```
 
-{% callout title="Peer dependency requirements" %}
-If you wish to use the tracking plugins ([face](/docs/plugins/face), [pose](/docs/plugins/pose), [hands](/docs/plugins/hands), or [segmenter](/docs/plugins/segmenter)), you’ll also need to install MediaPipe as a peer dependency:
+{% callout title="Optional vision dependency" %}
+If you use the tracking plugins ([face](/docs/plugins/face), [pose](/docs/plugins/pose), [hands](/docs/plugins/hands), or [segmenter](/docs/plugins/segmenter)), also install MediaPipe:
 
 ```bash
 npm install @mediapipe/tasks-vision

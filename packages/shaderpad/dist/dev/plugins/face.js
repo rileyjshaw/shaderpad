@@ -221,9 +221,7 @@ var filesetPromise = null;
 function getSharedFileset() {
   if (!filesetPromise) {
     filesetPromise = import("@mediapipe/tasks-vision").then(
-      ({ FilesetResolver }) => FilesetResolver.forVisionTasks(
-        `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${"0.10.22-rc.20250304"}/wasm`
-      )
+      ({ FilesetResolver }) => FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm")
     );
   }
   return filesetPromise;
@@ -641,7 +639,7 @@ function face(config) {
   const nLandmarksMax = options.maxFaces * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
   const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
   return function(shaderPad, context) {
-    const { injectGLSL, emitHook, updateTexturesInternal } = context;
+    const { injectGLSL, emit, updateTexture } = context;
     const existingDetector = sharedDetectors.get(optionsKey);
     const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
     const maskCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
@@ -654,18 +652,18 @@ function face(config) {
       const nFaces = detector.state.nFaces;
       const nSlots = nFaces * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
       const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-      updateTexturesInternal(
+      const targetHistorySlots = history ? historySlots : void 0;
+      updateTexture(
+        "u_faceLandmarksTex",
         {
-          u_faceLandmarksTex: {
-            data: detector.landmarks.data,
-            width: LANDMARKS_TEXTURE_WIDTH,
-            height: rowsToUpdate,
-            isPartial: true
-          },
-          u_faceMask: detector.mask.canvas
+          data: detector.landmarks.data,
+          width: LANDMARKS_TEXTURE_WIDTH,
+          height: rowsToUpdate,
+          isPartial: true
         },
-        history ? historySlots : void 0
+        targetHistorySlots
       );
+      updateTexture("u_faceMask", detector.mask.canvas, targetHistorySlots);
       shaderPad.updateUniforms({ u_nFaces: nFaces }, { allowMissing: true });
     }
     function onResult() {
@@ -675,7 +673,7 @@ function face(config) {
       } else {
         writeTextures(historySlot);
       }
-      emitHook("face:result", detector.state.result);
+      emit("face:result", detector.state.result);
     }
     async function initializeDetector() {
       detector = await getOrCreateSharedResource(
@@ -824,7 +822,7 @@ function face(config) {
       });
       initPromise.then(() => {
         if (destroyed || !detector) return;
-        emitHook("face:ready");
+        emit("face:ready");
       });
     });
     function requestFaces(source) {

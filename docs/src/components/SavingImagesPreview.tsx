@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import ShaderPad from 'shaderpad';
 import autosize from 'shaderpad/plugins/autosize';
-import save, { WithSave } from 'shaderpad/plugins/save';
+import { save } from 'shaderpad/util';
 
 const fragmentShaderSrc = `#version 300 es
 precision highp float;
@@ -56,7 +56,7 @@ void main() {
 export function SavingImagesPreview() {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const shaderRef = useRef<WithSave<ShaderPad> | null>(null);
+	const shaderRef = useRef<ShaderPad | null>(null);
 
 	useEffect(() => {
 		const container = containerRef.current;
@@ -66,8 +66,8 @@ export function SavingImagesPreview() {
 
 		const shader = new ShaderPad(fragmentShaderSrc, {
 			canvas,
-			plugins: [save(), autosize()],
-		}) as WithSave<ShaderPad>;
+			plugins: [autosize()],
+		});
 
 		shaderRef.current = shader;
 
@@ -126,7 +126,9 @@ export function SavingImagesPreview() {
 	}, []);
 
 	const handleSave = () => {
-		void shaderRef.current?.save(
+		if (!shaderRef.current) return;
+		void save(
+			shaderRef.current,
 			'Surface tension',
 			'Saved from ShaderPad’s Saving Images guide: https://misery.co/shaderpad/docs/guides/saving-images',
 		);

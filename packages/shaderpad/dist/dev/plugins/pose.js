@@ -328,13 +328,11 @@ var ShaderPad = class _ShaderPad {
     if (plugins) {
       plugins.forEach(
         (plugin) => plugin(this, {
-          gl,
-          canvas: this.canvas,
           injectGLSL: (code) => {
             glslInjections.push(code);
           },
-          emitHook: this.emitHook.bind(this),
-          updateTexturesInternal: this.updateTexturesInternal.bind(this)
+          emit: this.emit.bind(this),
+          updateTexture: this.updateTexture.bind(this)
         })
       );
     }
@@ -377,7 +375,7 @@ var ShaderPad = class _ShaderPad {
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.useProgram(program);
     if (this.canvas instanceof HTMLCanvasElement) {
-      this.resolutionObserver = new MutationObserver(() => this.updateResolution());
+      this.resolutionObserver = new MutationObserver(() => this.syncResolution());
       this.resolutionObserver.observe(this.canvas, {
         attributes: true,
         attributeFilter: ["width", "height"]
@@ -393,7 +391,7 @@ var ShaderPad = class _ShaderPad {
             const entry = canvasRegistry.get(canvas2);
             if (entry) {
               for (const instance of entry.instances) {
-                instance.updateResolution();
+                instance.syncResolution();
               }
             }
           },
@@ -404,7 +402,7 @@ var ShaderPad = class _ShaderPad {
       wrapDimension("width");
       wrapDimension("height");
     }
-    this.updateResolution();
+    this.syncResolution();
     this.initializeUniform("u_cursor", "float", this.cursorPosition, { allowMissing: true });
     this.initializeUniform("u_click", "float", [...this.clickPosition, this.isMouseDown ? 1 : 0], {
       allowMissing: true
@@ -424,7 +422,7 @@ var ShaderPad = class _ShaderPad {
       });
     }
     this.addEventListeners();
-    this.emitHook("_init");
+    this.emit("_init");
   }
   resolveGLConstant(value) {
     const resolved = this.gl[value];
@@ -433,7 +431,7 @@ var ShaderPad = class _ShaderPad {
     }
     return resolved;
   }
-  emitHook(name, ...args) {
+  emit(name, ...args) {
     this.hooks.get(name)?.forEach((hook) => hook.call(this, ...args));
   }
   on(name, fn) {
@@ -555,7 +553,7 @@ var ShaderPad = class _ShaderPad {
       this.cursorTarget.addEventListener(event, listener);
     });
   }
-  updateResolution() {
+  syncResolution() {
     const resolution = [this.gl.drawingBufferWidth, this.gl.drawingBufferHeight];
     this.gl.viewport(0, 0, ...resolution);
     if (this.uniforms.has("u_resolution")) {
@@ -567,7 +565,7 @@ var ShaderPad = class _ShaderPad {
     if (this.historyDepth > 0) {
       this.resizeTexture(HISTORY_TEXTURE_KEY, ...resolution);
     }
-    this.emitHook("updateResolution", ...resolution);
+    this.emit("updateResolution", ...resolution);
   }
   resizeTexture(name, width, height) {
     const info = this.textures.get(name);
@@ -721,7 +719,7 @@ var ShaderPad = class _ShaderPad {
       this.uniforms.delete(name);
       throw error;
     }
-    this.emitHook("initializeUniform", ...arguments);
+    this.emit("initializeUniform", ...arguments);
   }
   updateUniforms(updates, options) {
     this.gl.useProgram(this.program);
@@ -803,7 +801,7 @@ var ShaderPad = class _ShaderPad {
         this.gl[glFunctionName](uniform.location, ...scalarValue);
       }
     });
-    this.emitHook("updateUniforms", ...arguments);
+    this.emit("updateUniforms", ...arguments);
   }
   createTexture(name, textureInfo) {
     const { width, height } = textureInfo;
@@ -903,16 +901,13 @@ var ShaderPad = class _ShaderPad {
   initializeTexture(name, source, options) {
     const opts = options?.history != null && options.history > 0 ? { ...options, history: options.history + 1 } : options;
     this._initializeTexture(name, source, opts);
-    this.emitHook("initializeTexture", ...arguments);
+    this.emit("initializeTexture", ...arguments);
   }
   updateTextures(updates) {
-    this.updateTexturesInternal(updates);
-    this.emitHook("updateTextures", ...arguments);
-  }
-  updateTexturesInternal(updates, historySlots) {
     Object.entries(updates).forEach(([name, source]) => {
-      this.updateTexture(name, source, historySlots);
+      this.updateTexture(name, source);
     });
+    this.emit("updateTextures", ...arguments);
   }
   updateTexture(name, source, historySlots) {
     const info = this.textures.get(name);
@@ -1062,7 +1057,7 @@ var ShaderPad = class _ShaderPad {
     }
   }
   draw(options) {
-    this.emitHook("beforeDraw", ...arguments);
+    this.emit("beforeDraw", ...arguments);
     const gl = this.gl;
     const w = gl.drawingBufferWidth;
     const h = gl.drawingBufferHeight;
@@ -1084,7 +1079,7 @@ var ShaderPad = class _ShaderPad {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       }
     }
-    this.emitHook("afterDraw", ...arguments);
+    this.emit("afterDraw", ...arguments);
   }
   step(options) {
     if (!Number.isFinite(this.startTime)) {
@@ -1093,7 +1088,7 @@ var ShaderPad = class _ShaderPad {
     this._step((performance.now() - this.startTime) / 1e3, options);
   }
   _step(time, options) {
-    this.emitHook("beforeStep", time, this.frame, options);
+    this.emit("beforeStep", time, this.frame, options);
     const updates = {};
     if (this.uniforms.has("u_time")) updates.u_time = time;
     if (this.uniforms.has("u_frame")) updates.u_frame = this.frame;
@@ -1122,7 +1117,7 @@ var ShaderPad = class _ShaderPad {
       historyInfo.history.writeIndex = nextWriteIndex;
     }
     ++this.frame;
-    this.emitHook("afterStep", time, this.frame, options);
+    this.emit("afterStep", time, this.frame, options);
   }
   play(onBeforeStep) {
     this._pause();
@@ -1137,7 +1132,7 @@ var ShaderPad = class _ShaderPad {
       if (this.isPlaying) this.animationFrameId = requestAnimationFrame(loop);
     };
     this.animationFrameId = requestAnimationFrame(loop);
-    this.emitHook("play");
+    this.emit("play");
   }
   _pause() {
     const wasPlaying = this.isPlaying;
@@ -1150,7 +1145,7 @@ var ShaderPad = class _ShaderPad {
   }
   pause() {
     if (this._pause()) {
-      this.emitHook("pause");
+      this.emit("pause");
     }
   }
   resetFrame() {
@@ -1163,10 +1158,10 @@ var ShaderPad = class _ShaderPad {
       this.resetHistoryTextureState(name, texture);
     });
     this.clear();
-    this.emitHook("reset");
+    this.emit("reset");
   }
   destroy() {
-    this.emitHook("destroy");
+    this.emit("destroy");
     this._pause();
     if (this.cursorTarget) {
       this.eventListeners.forEach((listener, event) => {
@@ -1263,9 +1258,7 @@ var filesetPromise = null;
 function getSharedFileset() {
   if (!filesetPromise) {
     filesetPromise = import("@mediapipe/tasks-vision").then(
-      ({ FilesetResolver }) => FilesetResolver.forVisionTasks(
-        `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${"0.10.22-rc.20250304"}/wasm`
-      )
+      ({ FilesetResolver }) => FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm")
     );
   }
   return filesetPromise;
@@ -1481,7 +1474,7 @@ function pose(config) {
   const nLandmarksMax = options.maxPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
   const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
   return function(shaderPad, context) {
-    const { injectGLSL, emitHook, updateTexturesInternal } = context;
+    const { injectGLSL, emit, updateTexture } = context;
     const existingDetector = sharedDetectors.get(optionsKey);
     const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
     const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
@@ -1502,18 +1495,18 @@ function pose(config) {
       const { nPoses } = detector.state;
       const nSlots = nPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
       const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-      updateTexturesInternal(
+      const targetHistorySlots = history ? historySlots : void 0;
+      updateTexture(
+        "u_poseLandmarksTex",
         {
-          u_poseLandmarksTex: {
-            data: detector.landmarks.data,
-            width: LANDMARKS_TEXTURE_WIDTH,
-            height: rowsToUpdate,
-            isPartial: true
-          },
-          u_poseMask: detector.maskShader
+          data: detector.landmarks.data,
+          width: LANDMARKS_TEXTURE_WIDTH,
+          height: rowsToUpdate,
+          isPartial: true
         },
-        history ? historySlots : void 0
+        targetHistorySlots
       );
+      updateTexture("u_poseMask", detector.maskShader, targetHistorySlots);
       shaderPad.updateUniforms({ u_nPoses: nPoses }, { allowMissing: true });
     }
     function onResult() {
@@ -1523,7 +1516,7 @@ function pose(config) {
       } else {
         writeTextures(historySlot);
       }
-      emitHook("pose:result", detector.state.result);
+      emit("pose:result", detector.state.result);
     }
     async function initializeDetector() {
       detector = await getOrCreateSharedResource(
@@ -1610,7 +1603,7 @@ function pose(config) {
       });
       initPromise.then(() => {
         if (destroyed || !detector) return;
-        emitHook("pose:ready");
+        emit("pose:ready");
       });
     });
     function requestPoses(source) {

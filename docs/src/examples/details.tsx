@@ -16,7 +16,6 @@ const docs = {
 	helpers: '/docs/plugins/helpers',
 	history: '/docs/core-concepts/history',
 	pose: '/docs/plugins/pose',
-	save: '/docs/plugins/save',
 	savingImages: '/docs/guides/saving-images',
 	segmenter: '/docs/plugins/segmenter',
 	shaderLifecycle: '/docs/core-concepts/shader-lifecycle',
@@ -137,16 +136,15 @@ const exampleDetails: Record<string, ExampleDetails> = {
 		fullDescription: (
 			<>
 				<p>
-					Selfie is a practical template using the <DocLink href={docs.save}>save plugin</DocLink>. It sets up
-					a fullscreen webcam view with{' '}
-					<CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink>,{' '}
+					Selfie is a practical template for the <code>save</code> utility. It sets up a fullscreen webcam
+					view with <CodeDocLink href={docs.utilities}>createFullscreenCanvas</CodeDocLink>,{' '}
 					<CodeDocLink href={docs.autosize}>autosize</CodeDocLink>, and{' '}
 					<CodeDocLink href={docs.helpers}>fitCover</CodeDocLink> to fill the screen without stretching.
 				</p>
 				<p>
 					Click the on-screen <code>Save</code> button to call{' '}
-					<CodeDocLink href={docs.save}>save</CodeDocLink> with a filename and caption. For the API details,
-					read the <DocLink href={docs.savingImages}>saving images guide</DocLink>.
+					<CodeDocLink href={docs.utilities}>save</CodeDocLink> with a filename and caption. For the API
+					details, read the <DocLink href={docs.savingImages}>saving images guide</DocLink>.
 				</p>
 			</>
 		),

@@ -35,3 +35,5 @@ Subscribe to an event with `shader.on(eventName, callback)` and remove an event 
 | `pose:ready`, `pose:result`           | Pose plugin lifecycle.                     |
 | `hands:ready`, `hands:result`         | Hands plugin lifecycle.                    |
 | `segmenter:ready`, `segmenter:result` | Segmenter plugin lifecycle.                |
+
+For writing custom plugins, see [Plugins](/docs/api/plugins).

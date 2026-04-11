@@ -6,8 +6,8 @@ nextjs:
         description: Hand landmarks and handedness helpers for ShaderPad.
 ---
 
-{% callout title="Peer dependency requirement" %}
-To use this plugin, you must install MediaPipe as a peer dependency:
+{% callout title="Additional install" %}
+If you use this plugin, also install MediaPipe:
 
 ```bash
 npm install @mediapipe/tasks-vision

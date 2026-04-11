@@ -10,6 +10,14 @@ nextjs:
 
 ## Instance Properties
 
+### `shader.gl`
+
+```typescript
+gl: WebGL2RenderingContext
+```
+
+The WebGL2 rendering context used by this `ShaderPad` instance.
+
 ### `shader.canvas`
 
 ```typescript

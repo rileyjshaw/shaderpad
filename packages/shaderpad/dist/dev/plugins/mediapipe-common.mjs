@@ -6,7 +6,7 @@ import {
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-VRJS34J4.mjs";
+} from "../chunk-ZVPQU2RM.mjs";
 export {
   calculateBoundingBoxCenter,
   dummyTexture,

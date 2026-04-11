@@ -113,7 +113,7 @@ function segmenter(config: SegmenterPluginConfig) {
 	const optionsKey = hashOptions({ ...options, textureName });
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
-		const { injectGLSL, emitHook, updateTexturesInternal } = context;
+		const { injectGLSL, emit, updateTexture } = context;
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const mediapipeCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
@@ -124,7 +124,7 @@ function segmenter(config: SegmenterPluginConfig) {
 
 		function writeTextures(historySlots: number | number[]) {
 			if (!detector) return;
-			updateTexturesInternal({ u_segmentMask: detector.mask.shader }, history ? historySlots : undefined);
+			updateTexture('u_segmentMask', detector.mask.shader, history ? historySlots : undefined);
 		}
 
 		function onResult() {
@@ -134,7 +134,7 @@ function segmenter(config: SegmenterPluginConfig) {
 			} else {
 				writeTextures(historySlot);
 			}
-			emitHook('segmenter:result', detector!.state.result);
+			emit('segmenter:result', detector!.state.result);
 		}
 
 		async function initializeDetector() {
@@ -221,7 +221,7 @@ function segmenter(config: SegmenterPluginConfig) {
 			initPromise.then(() => {
 				if (destroyed || !detector) return;
 				shaderPad.updateUniforms({ u_numCategories: detector.numCategories }, { allowMissing: true });
-				emitHook('segmenter:ready');
+				emit('segmenter:ready');
 			});
 		});
 

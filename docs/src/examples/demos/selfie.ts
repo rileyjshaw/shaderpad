@@ -1,12 +1,11 @@
 /**
- * Canvas saving using save plugin. Exports shader output with
+ * Canvas saving using the utility helpers. Exports shader output with
  * custom metadata.
  */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
-import save, { WithSave } from 'shaderpad/plugins/save';
 import autosize from 'shaderpad/plugins/autosize';
-import { createFullscreenCanvas } from 'shaderpad/util';
+import { createFullscreenCanvas, save } from 'shaderpad/util';
 
 import { getWebcamVideo, stopVideoStream } from '@/examples/demo-utils';
 import type { ExampleContext } from '@/examples/runtime';
@@ -29,14 +28,14 @@ void main() {
 	const canvas = createFullscreenCanvas(mount);
 	const shader = new ShaderPad(fragmentShaderSrc, {
 		canvas,
-		plugins: [helpers(), save(), autosize()],
-	}) as WithSave<ShaderPad>;
+		plugins: [helpers(), autosize()],
+	});
 
 	const saveButton = document.createElement('button');
 	saveButton.textContent = '✨Selfie🤳';
 	saveButton.className = 'save-demo-button';
 	saveButton.addEventListener('click', () => {
-		shader.save('Selfie', 'Took this selfie with ShaderPad.');
+		void save(shader, 'Selfie', 'I took this selfie with ShaderPad.');
 	});
 	overlay.appendChild(saveButton);
 

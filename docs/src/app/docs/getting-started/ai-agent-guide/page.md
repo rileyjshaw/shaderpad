@@ -124,7 +124,7 @@ Add `helpers()` only when you actually need helper GLSL like `fitCover()` or `hi
 
 ## Vision Plugin Quick Map
 
-All four MediaPipe plugins require `npm install @mediapipe/tasks-vision`, and all four require the configured `textureName` to match the actual initialized live texture name.
+Install `@mediapipe/tasks-vision` when using the MediaPipe plugins, and make sure the configured `textureName` matches the actual initialized live texture name.
 
 | Plugin        | Use when                                              | Fast region helper                             | Point helper                                      | History support                                                  |
 | ------------- | ----------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------- |

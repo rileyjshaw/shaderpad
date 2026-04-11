@@ -5,7 +5,7 @@ import {
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-VRJS34J4.mjs";
+} from "../chunk-ZVPQU2RM.mjs";
 
 // src/plugins/hands.ts
 var STANDARD_LANDMARK_COUNT = 21;
@@ -60,7 +60,7 @@ function hands(config) {
   const nLandmarksMax = options.maxHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
   const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
   return function(shaderPad, context) {
-    const { injectGLSL, emitHook, updateTexturesInternal } = context;
+    const { injectGLSL, emit, updateTexture } = context;
     const existingDetector = sharedDetectors.get(optionsKey);
     const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
     let detector;
@@ -72,14 +72,13 @@ function hands(config) {
       const { nHands } = detector.state;
       const nSlots = nHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
       const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
-      updateTexturesInternal(
+      updateTexture(
+        "u_handLandmarksTex",
         {
-          u_handLandmarksTex: {
-            data: detector.landmarks.data,
-            width: LANDMARKS_TEXTURE_WIDTH,
-            height: rowsToUpdate,
-            isPartial: true
-          }
+          data: detector.landmarks.data,
+          width: LANDMARKS_TEXTURE_WIDTH,
+          height: rowsToUpdate,
+          isPartial: true
         },
         history ? historySlots : void 0
       );
@@ -92,7 +91,7 @@ function hands(config) {
       } else {
         writeTextures(historySlot);
       }
-      emitHook("hands:result", detector.state.result);
+      emit("hands:result", detector.state.result);
     }
     async function initializeDetector() {
       detector = await getOrCreateSharedResource(
@@ -169,7 +168,7 @@ function hands(config) {
       );
       initPromise.then(() => {
         if (destroyed || !detector) return;
-        emitHook("hands:ready");
+        emit("hands:ready");
       });
     });
     function requestHands(source) {

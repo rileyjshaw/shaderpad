@@ -42,6 +42,10 @@ Constructor-level texture settings control:
 - the output history texture when `history > 0`
 - the texture exposed when another `ShaderPad` samples this instance directly
 
+## Exported Types
+
+Root `shaderpad` exports `Options`, `StepOptions`, `TextureOptions`, `InitializeTextureOptions`, `TextureSource`, `UpdateTextureSource`, `CustomTexture`, `PartialCustomTexture`, `Plugin`, `PluginContext`, `ShaderPadEventName`, and the GL literal string types. `shaderpad/util` exports `ToBlobOptions` and `SaveOptions`.
+
 ### GL Literal Types
 
 The render-texture options above use these literal unions:
@@ -59,3 +63,4 @@ The render-texture options above use these literal unions:
 - [Properties](/docs/api/properties)
 - [Events](/docs/api/events)
 - [Utilities](/docs/api/utilities)
+- [Plugins](/docs/api/plugins)

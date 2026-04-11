@@ -37,14 +37,12 @@ interface InitializeTextureOptions extends TextureOptions {
 type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | WebGLTexture | CustomTexture | ShaderPad;
 type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 interface PluginContext {
-    gl: WebGL2RenderingContext;
-    canvas: HTMLCanvasElement | OffscreenCanvas;
     injectGLSL: (code: string) => void;
-    emitHook: (name: LifecycleMethod, ...args: any[]) => void;
-    updateTexturesInternal: (updates: Record<string, UpdateTextureSource>, historySlots?: HistorySlots) => void;
+    emit: (name: ShaderPadEventName, ...args: any[]) => void;
+    updateTexture: (name: string, source: UpdateTextureSource, historySlots?: HistorySlots) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
-type LifecycleMethod = '_init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'beforeStep' | 'afterStep' | 'beforeDraw' | 'afterDraw' | 'updateResolution' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
+type ShaderPadEventName = '_init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'beforeStep' | 'afterStep' | 'beforeDraw' | 'afterDraw' | 'updateResolution' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
 type RenderTextureOptions = Omit<TextureOptions, 'preserveY'>;
 interface Options extends RenderTextureOptions {
     canvas?: HTMLCanvasElement | OffscreenCanvas | {
@@ -63,7 +61,7 @@ type HistorySlots = number | number[];
 declare class ShaderPad {
     private isHeadless;
     private isTouchDevice;
-    private gl;
+    readonly gl: WebGL2RenderingContext;
     private glHelpers;
     private uniforms;
     private textures;
@@ -88,13 +86,13 @@ declare class ShaderPad {
     private intermediateFbo;
     constructor(fragmentShaderSrc: string, { canvas, plugins, history, cursorTarget, ...textureOptions }?: Options);
     private resolveGLConstant;
-    private emitHook;
-    on(name: LifecycleMethod, fn: Function): void;
-    off(name: LifecycleMethod, fn: Function): void;
+    private emit;
+    on(name: ShaderPadEventName, fn: Function): void;
+    off(name: ShaderPadEventName, fn: Function): void;
     private createShader;
     private getCursorTargetRect;
     private addEventListeners;
-    updateResolution(): void;
+    private syncResolution;
     private resizeTexture;
     private reserveTextureUnit;
     private resolveTextureOptions;
@@ -115,7 +113,6 @@ declare class ShaderPad {
     private _initializeTexture;
     initializeTexture(name: string, source: TextureSource, options?: InitializeTextureOptions): void;
     updateTextures(updates: Record<string, UpdateTextureSource>): void;
-    private updateTexturesInternal;
     private updateTexture;
     private bindIntermediate;
     clear(): void;
@@ -130,4 +127,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type InitializeTextureOptions, type Options, type PartialCustomTexture, type PluginContext, type RenderTextureOptions, type StepOptions, type TextureOptions, type TextureSource, ShaderPad as default };
+export { type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type InitializeTextureOptions, type Options, type PartialCustomTexture, type Plugin, type PluginContext, type RenderTextureOptions, type ShaderPadEventName, type StepOptions, type TextureOptions, type TextureSource, type UpdateTextureSource, ShaderPad as default };

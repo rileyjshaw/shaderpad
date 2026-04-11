@@ -1,0 +1,7 @@
+var d={data:new Uint8Array(4),width:1,height:1};function M(n){return n instanceof HTMLVideoElement||n instanceof HTMLImageElement||n instanceof HTMLCanvasElement||n instanceof OffscreenCanvas}function T(n){return JSON.stringify(n,Object.keys(n).sort())}function $(n,a,o,s){let i=a.get(n);if(i)return Promise.resolve(i);let e=o.get(n);if(e)return e;let t;return t=s().then(r=>(r&&a.set(n,r),r)).finally(()=>{o.get(n)===t&&o.delete(n)}),o.set(n,t),t}function h(n,a,o,s,i=0){let e=1/0,t=-1/0,r=1/0,m=-1/0,f=0,l=0;for(let x of o){let u=(i+a*s+x)*4,c=n[u],p=n[u+1];e=Math.min(e,c),t=Math.max(t,c),r=Math.min(r,p),m=Math.max(m,p),f+=n[u+2],l+=n[u+3]}return[(e+t)/2,(r+m)/2,f/o.length,l/o.length]}var g=null;function b(){return g||(g=import("@mediapipe/tasks-vision").then(({FilesetResolver:n})=>n.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"))),g}function y(n){return{historyParams:n?", framesAgo":"",fn:n?(s,i,e,t)=>{let r=e.replace(/\w+ /g,""),m=e?`${e}, int framesAgo`:"int framesAgo",f=r?`${r}, 0`:"0";return`${s} ${i}(${m}) {
+${t}
+}
+${s} ${i}(${e}) { return ${i}(${f}); }`}:(s,i,e,t)=>`${s} ${i}(${e}) {
+${t}
+}`}}export{d as a,M as b,T as c,$ as d,h as e,b as f,y as g};
+//# sourceMappingURL=chunk-RWGXFWIP.mjs.map

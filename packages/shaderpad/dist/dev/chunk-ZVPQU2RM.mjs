@@ -49,9 +49,7 @@ var filesetPromise = null;
 function getSharedFileset() {
   if (!filesetPromise) {
     filesetPromise = import("@mediapipe/tasks-vision").then(
-      ({ FilesetResolver }) => FilesetResolver.forVisionTasks(
-        `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${"0.10.22-rc.20250304"}/wasm`
-      )
+      ({ FilesetResolver }) => FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm")
     );
   }
   return filesetPromise;
@@ -81,4 +79,4 @@ export {
   getSharedFileset,
   generateGLSLFn
 };
-//# sourceMappingURL=chunk-VRJS34J4.mjs.map
+//# sourceMappingURL=chunk-ZVPQU2RM.mjs.map

@@ -47,15 +47,6 @@
 			"types": "./dist/helpers/*.glsl.d.ts",
 			"default": "./dist/helpers/*.glsl"
 		},
-		"./plugins/save": {
-			"types": "./dist/plugins/save.d.ts",
-			"development": {
-				"import": "./dist/dev/plugins/save.mjs",
-				"require": "./dist/dev/plugins/save.js"
-			},
-			"import": "./dist/plugins/save.mjs",
-			"require": "./dist/plugins/save.js"
-		},
 		"./plugins/pose": {
 			"types": "./dist/plugins/pose.d.ts",
 			"development": {
@@ -113,9 +104,6 @@
 			"helpers/*.glsl": [
 				"dist/helpers/*.glsl.d.ts"
 			],
-			"plugins/save": [
-				"dist/plugins/save.d.ts"
-			],
 			"plugins/pose": [
 				"dist/plugins/pose.d.ts"
 			],
@@ -144,6 +132,11 @@
 	},
 	"peerDependencies": {
 		"@mediapipe/tasks-vision": "*"
+	},
+	"peerDependenciesMeta": {
+		"@mediapipe/tasks-vision": {
+			"optional": true
+		}
 	},
 	"publishConfig": {
 		"access": "public"

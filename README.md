@@ -248,7 +248,7 @@ Start the render loop.
 shader.play();
 
 // With per-frame callbacks.
-shader.play(() => {
+shader.play((_time, frame) => {
 	shader.updateTextures({ u_webcam: videoElement });
 	// Only save every 10th frame to history.
 	return { skipHistory: frame % 10 === 0 };
@@ -279,6 +279,10 @@ shader.draw({ skipClear: true });
 
 - `options?` (optional): `StepOptions` - Options to control rendering behavior (see below)
 
+#### `clear()`
+
+Clear ShaderPad’s current render target without advancing time, frame, or history.
+
 #### `StepOptions`
 
 ```typescript
@@ -304,7 +308,14 @@ shader.destroy(); // Clean up resources.
 
 ### Properties
 
+- `gl` (WebGL2RenderingContext): The WebGL2 context used for rendering
 - `canvas` (HTMLCanvasElement | OffscreenCanvas): The canvas element used for rendering
+
+### Type exports
+
+`shaderpad` exports `Options`, `StepOptions`, `TextureOptions`, `InitializeTextureOptions`, `TextureSource`,
+`UpdateTextureSource`, `CustomTexture`, `PartialCustomTexture`, `Plugin`, `PluginContext`, `ShaderPadEventName`, and
+the GL literal string types. `shaderpad/util` exports `ToBlobOptions` and `SaveOptions`.
 
 ### Event Listeners
 
@@ -347,10 +358,30 @@ Remove a previously registered callback.
 | `afterDraw`         | `(options?: StepOptions)`                              | Fired after each draw call                       |
 | `initializeTexture` | `(name, source, options?)`                             | Fired after a texture is initialized             |
 | `initializeUniform` | `(name, type, value, options?)`                        | Fired after a uniform is initialized             |
-| `updateTextures`    | `(updates, options?)`                                  | Fired after textures are updated                 |
+| `updateTextures`    | `(updates)`                                            | Fired after textures are updated                 |
 | `updateUniforms`    | `(updates, options?)`                                  | Fired after uniforms are updated                 |
 
 Plugins may emit additional namespaced events (e.g., `face:ready`, `pose:result`).
+
+#### Plugin authoring
+
+ShaderPad plugins are plain functions passed in `plugins: [...]`. Each plugin receives the `ShaderPad` instance and a
+small `PluginContext` during construction, before the fragment shader is compiled. In practice, that means a plugin can
+inject GLSL, listen to lifecycle events with `shader.on(...)`, emit its own namespaced events, and publish plugin-owned
+textures with `updateTexture(...)`. If a plugin needs the backing canvas or raw WebGL access, use `shader.canvas` and
+`shader.gl`.
+
+The most useful lifecycle hooks are usually `_init` for setup, `beforeStep` / `beforeDraw` for per-frame work, and
+`destroy` for cleanup. Plugin order is stable: plugins install in `plugins[]` order, handlers run in registration
+order, and GLSL injections preserve plugin order. If a plugin touches shared GL state directly, it should restore that
+state before returning.
+
+Start with the
+[autosize source](./packages/shaderpad/src/plugins/autosize.ts) if you
+want a compact example that listens to lifecycle events, emits a custom event, and cleans up after itself. For more
+examples, browse the
+[plugins source folder](./packages/shaderpad/src/plugins) or read the
+[plugin guide](https://misery.co/shaderpad/docs/api/plugins/).
 
 ## Options
 
@@ -466,17 +497,20 @@ uniform vec2 u_resolution;
 
 For `vite-plugin-glsl`, that leading `/` matches the common `root: '/node_modules/'` setup used in the ShaderPad starters.
 
-#### save
+#### save / toBlob
 
-The `save` plugin adds a `.save()` method to the shader that saves the current frame to a PNG file. It works on desktop and mobile.
+The `shaderpad/util` entrypoint exposes `toBlob(shader, options?)` for custom capture flows and
+`save(shader, filename?, text?, options?)` for download/share behavior. Both render the current frame before
+serializing it.
 
 ```typescript
-import save, { WithSave } from 'shaderpad/plugins/save';
-const shader = new ShaderPad(fragmentShaderSrc, { plugins: [save()] }) as WithSave<ShaderPad>;
-shader.save('filename', 'Optional mobile share text', { preventShare: true });
+import { save, toBlob } from 'shaderpad/util';
+
+await save(shader, 'filename', 'Optional mobile share text', { preventShare: true });
+const blob = await toBlob(shader);
 ```
 
-**Function parameters:**
+**`save()` parameters:**
 
 - `filename?` (string) - Output filename. Defaults to `export.png`
 - `text?` (string) - Optional share text for platforms that support the Web Share API
@@ -571,7 +605,7 @@ for (int i = 0; i < u_nFaces; ++i) {
 
 [Landmark indices are documented here.](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker#face_landmarker_model) This library adds two custom landmarks: `FACE_CENTER` and `MOUTH_CENTER`. This brings the total landmark count to 480.
 
-**Note:** The face plugin requires `@mediapipe/tasks-vision` as a peer dependency.
+**Note:** Install `@mediapipe/tasks-vision` when using the face plugin.
 
 **Note:** Confidence values are currently limited to 0.0 or 1.0.
 
@@ -590,6 +624,8 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 - `maxPoses?: number` - Maximum poses to detect (default: 1)
 - `history?: number` - Frames of history to store for landmarks and mask textures
+
+**Note:** Install `@mediapipe/tasks-vision` when using the pose plugin.
 
 **Events:**
 
@@ -754,7 +790,7 @@ for (int i = 0; i < u_maxHands; ++i) {
 }
 ```
 
-**Note:** The hands plugin requires `@mediapipe/tasks-vision` as a peer dependency.
+**Note:** Install `@mediapipe/tasks-vision` when using the hands plugin.
 
 #### segmenter
 
@@ -813,7 +849,7 @@ float isForeground = (1.0 - step(category, 0.0)) * confidence;
 color = mix(color, vec3(1.0, 0.0, 1.0), isForeground);
 ```
 
-**Note:** The segmenter plugin requires `@mediapipe/tasks-vision` as a peer dependency.
+**Note:** Install `@mediapipe/tasks-vision` when using the segmenter plugin.
 
 #### autosize
 

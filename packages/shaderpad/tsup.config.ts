@@ -1,18 +1,11 @@
 import { readFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
-import { createRequire } from 'module';
 import type { Plugin as EsbuildPlugin } from 'esbuild';
 import { defineConfig } from 'tsup';
 
-const require = createRequire(import.meta.url);
-const visionEntry = require.resolve('@mediapipe/tasks-vision');
-const visionPkg = JSON.parse(readFileSync(join(dirname(visionEntry), 'package.json'), 'utf-8'));
 const glslIncludePattern = /^[ \t]*#include\s+["']([^"']+)["'];?\s*$/gm;
 
 const entry = ['src/index.ts', 'src/plugins/*.ts', 'src/util.ts'];
-const baseDefine = {
-	__MEDIAPIPE_TASKS_VISION_VERSION__: JSON.stringify(visionPkg.version),
-};
 
 function inlineGLSLImports(source: string, filePath: string, stack = [filePath]): string {
 	return source.replace(glslIncludePattern, (_match, request: string) => {
@@ -57,7 +50,6 @@ export default defineConfig([
 		define: {
 			'process.env.NODE_ENV': '"production"',
 			__SHADERPAD_DEV__: 'false',
-			...baseDefine,
 		},
 	},
 	{
@@ -69,7 +61,6 @@ export default defineConfig([
 		define: {
 			'process.env.NODE_ENV': '"development"',
 			__SHADERPAD_DEV__: 'true',
-			...baseDefine,
 		},
 	},
 ]);

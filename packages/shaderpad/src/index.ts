@@ -125,19 +125,17 @@ export type TextureSource =
 	| ShaderPad;
 
 // Custom textures allow partial updates starting from (x, y).
-type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
+export type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 
 export interface PluginContext {
-	gl: WebGL2RenderingContext;
-	canvas: HTMLCanvasElement | OffscreenCanvas;
 	injectGLSL: (code: string) => void;
-	emitHook: (name: LifecycleMethod, ...args: any[]) => void;
-	updateTexturesInternal: (updates: Record<string, UpdateTextureSource>, historySlots?: HistorySlots) => void;
+	emit: (name: ShaderPadEventName, ...args: any[]) => void;
+	updateTexture: (name: string, source: UpdateTextureSource, historySlots?: HistorySlots) => void;
 }
 
-type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
+export type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 
-type LifecycleMethod =
+export type ShaderPadEventName =
 	| '_init'
 	| 'initializeTexture'
 	| 'initializeUniform'
@@ -226,7 +224,7 @@ function stringFrom(name: string | symbol) {
 class ShaderPad {
 	private isHeadless = false;
 	private isTouchDevice = false;
-	private gl: WebGL2RenderingContext;
+	public readonly gl: WebGL2RenderingContext;
 	private glHelpers!: {
 		typeToArray: Map<number, new (length: number) => ArrayBufferView>;
 		typeToInternalFormatString: Map<number, GLInternalFormatString>;
@@ -248,7 +246,7 @@ class ShaderPad {
 	private isMouseDown = false;
 	public canvas: HTMLCanvasElement | OffscreenCanvas;
 	private resolutionObserver: MutationObserver | null = null;
-	private hooks: Map<LifecycleMethod, Function[]> = new Map();
+	private hooks: Map<ShaderPadEventName, Function[]> = new Map();
 	private historyDepth = 0;
 	private textureOptions: TextureOptions;
 	private cursorTarget: Window | Element | undefined;
@@ -330,13 +328,11 @@ class ShaderPad {
 		if (plugins) {
 			plugins.forEach(plugin =>
 				plugin(this, {
-					gl,
-					canvas: this.canvas,
 					injectGLSL: (code: string) => {
 						glslInjections.push(code);
 					},
-					emitHook: this.emitHook.bind(this),
-					updateTexturesInternal: this.updateTexturesInternal.bind(this),
+					emit: this.emit.bind(this),
+					updateTexture: this.updateTexture.bind(this),
 				}),
 			);
 		}
@@ -386,7 +382,7 @@ class ShaderPad {
 		gl.useProgram(program);
 
 		if (this.canvas instanceof HTMLCanvasElement) {
-			this.resolutionObserver = new MutationObserver(() => this.updateResolution());
+			this.resolutionObserver = new MutationObserver(() => this.syncResolution());
 			this.resolutionObserver.observe(this.canvas, {
 				attributes: true,
 				attributeFilter: ['width', 'height'],
@@ -402,7 +398,7 @@ class ShaderPad {
 						const entry = canvasRegistry.get(canvas);
 						if (entry) {
 							for (const instance of entry.instances) {
-								instance.updateResolution();
+								instance.syncResolution();
 							}
 						}
 					},
@@ -413,7 +409,7 @@ class ShaderPad {
 			wrapDimension('width');
 			wrapDimension('height');
 		}
-		this.updateResolution();
+		this.syncResolution();
 
 		this.initializeUniform('u_cursor', 'float', this.cursorPosition, { allowMissing: true });
 		this.initializeUniform('u_click', 'float', [...this.clickPosition, this.isMouseDown ? 1.0 : 0.0], {
@@ -436,7 +432,7 @@ class ShaderPad {
 			});
 		}
 		this.addEventListeners();
-		this.emitHook('_init');
+		this.emit('_init');
 	}
 
 	private resolveGLConstant(value: GLConstantString): number {
@@ -447,18 +443,18 @@ class ShaderPad {
 		return resolved;
 	}
 
-	private emitHook(name: LifecycleMethod, ...args: any[]) {
+	private emit(name: ShaderPadEventName, ...args: any[]) {
 		this.hooks.get(name)?.forEach(hook => hook.call(this, ...args));
 	}
 
-	on(name: LifecycleMethod, fn: Function) {
+	on(name: ShaderPadEventName, fn: Function) {
 		if (!this.hooks.has(name)) {
 			this.hooks.set(name, []);
 		}
 		this.hooks.get(name)!.push(fn);
 	}
 
-	off(name: LifecycleMethod, fn: Function) {
+	off(name: ShaderPadEventName, fn: Function) {
 		const hooks = this.hooks.get(name);
 		if (hooks) {
 			const index = hooks.indexOf(fn);
@@ -588,7 +584,7 @@ class ShaderPad {
 		});
 	}
 
-	updateResolution() {
+	private syncResolution() {
 		const resolution: [number, number] = [this.gl.drawingBufferWidth, this.gl.drawingBufferHeight];
 		this.gl.viewport(0, 0, ...resolution);
 		if (this.uniforms.has('u_resolution')) {
@@ -600,7 +596,7 @@ class ShaderPad {
 		if (this.historyDepth > 0) {
 			this.resizeTexture(HISTORY_TEXTURE_KEY, ...resolution);
 		}
-		this.emitHook('updateResolution', ...resolution);
+		this.emit('updateResolution', ...resolution);
 	}
 
 	private resizeTexture(name: string | symbol, width: number, height: number) {
@@ -781,7 +777,7 @@ class ShaderPad {
 			this.uniforms.delete(name);
 			throw error;
 		}
-		this.emitHook('initializeUniform', ...arguments);
+		this.emit('initializeUniform', ...arguments);
 	}
 
 	updateUniforms(
@@ -872,7 +868,7 @@ class ShaderPad {
 				(this.gl as any)[glFunctionName](uniform.location, ...scalarValue);
 			}
 		});
-		this.emitHook('updateUniforms', ...arguments);
+		this.emit('updateUniforms', ...arguments);
 	}
 
 	private createTexture(
@@ -991,18 +987,14 @@ class ShaderPad {
 		const opts =
 			options?.history != null && options.history > 0 ? { ...options, history: options.history + 1 } : options;
 		this._initializeTexture(name, source, opts);
-		this.emitHook('initializeTexture', ...arguments);
+		this.emit('initializeTexture', ...arguments);
 	}
 
 	updateTextures(updates: Record<string, UpdateTextureSource>) {
-		this.updateTexturesInternal(updates);
-		this.emitHook('updateTextures', ...arguments);
-	}
-
-	private updateTexturesInternal(updates: Record<string, UpdateTextureSource>, historySlots?: HistorySlots) {
 		Object.entries(updates).forEach(([name, source]) => {
-			this.updateTexture(name, source, historySlots);
+			this.updateTexture(name, source);
 		});
+		this.emit('updateTextures', ...arguments);
 	}
 
 	private updateTexture(name: string | symbol, source: UpdateTextureSource, historySlots?: HistorySlots) {
@@ -1182,7 +1174,7 @@ class ShaderPad {
 	}
 
 	draw(options?: StepOptions) {
-		this.emitHook('beforeDraw', ...arguments);
+		this.emit('beforeDraw', ...arguments);
 		const gl = this.gl;
 		const w = gl.drawingBufferWidth;
 		const h = gl.drawingBufferHeight;
@@ -1207,7 +1199,7 @@ class ShaderPad {
 				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 			}
 		}
-		this.emitHook('afterDraw', ...arguments);
+		this.emit('afterDraw', ...arguments);
 	}
 
 	step(options?: StepOptions) {
@@ -1218,7 +1210,7 @@ class ShaderPad {
 	}
 
 	private _step(time: number, options?: StepOptions) {
-		this.emitHook('beforeStep', time, this.frame, options);
+		this.emit('beforeStep', time, this.frame, options);
 		const updates: Record<string, number> = {};
 		if (this.uniforms.has('u_time')) updates.u_time = time;
 		if (this.uniforms.has('u_frame')) updates.u_frame = this.frame;
@@ -1247,7 +1239,7 @@ class ShaderPad {
 			historyInfo.history!.writeIndex = nextWriteIndex;
 		}
 		++this.frame;
-		this.emitHook('afterStep', time, this.frame, options);
+		this.emit('afterStep', time, this.frame, options);
 	}
 
 	play(onBeforeStep?: (time: number, frame: number) => StepOptions | void) {
@@ -1263,7 +1255,7 @@ class ShaderPad {
 			if (this.isPlaying) this.animationFrameId = requestAnimationFrame(loop);
 		};
 		this.animationFrameId = requestAnimationFrame(loop);
-		this.emitHook('play');
+		this.emit('play');
 	}
 
 	private _pause() {
@@ -1278,7 +1270,7 @@ class ShaderPad {
 
 	pause() {
 		if (this._pause()) {
-			this.emitHook('pause');
+			this.emit('pause');
 		}
 	}
 
@@ -1293,11 +1285,11 @@ class ShaderPad {
 			this.resetHistoryTextureState(name, texture);
 		});
 		this.clear();
-		this.emitHook('reset');
+		this.emit('reset');
 	}
 
 	destroy() {
-		this.emitHook('destroy');
+		this.emit('destroy');
 
 		this._pause();
 
