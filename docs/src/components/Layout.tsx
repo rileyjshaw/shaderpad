@@ -108,7 +108,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 						</div>
 					</div>
 
-					<div className="flex w-full min-w-0 justify-center lg:pl-64 xl:pl-72">{children}</div>
+					<div className="flex min-h-screen w-full min-w-0 justify-center lg:pl-64 xl:pl-72">{children}</div>
 				</div>
 			</main>
 			{!isAiGuidePage && (

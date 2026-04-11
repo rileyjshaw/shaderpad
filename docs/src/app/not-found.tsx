@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function NotFound() {
 	return (
 		<div className="max-w-2xl min-w-0 flex-auto px-4 py-16 lg:max-w-none lg:pr-0 lg:pl-8 xl:px-16">
-			<div className="flex h-full flex-col items-center justify-center text-center">
+			<div className="flex h-full flex-col items-center pt-8 text-center">
 				<p className="font-display text-sm font-medium text-slate-900 dark:text-white">404</p>
 				<h1 className="mt-3 font-display text-3xl tracking-tight text-slate-900 dark:text-white">
 					Page not found

@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-04-11T06:53:39.422Z",
+	"generatedAt": "2026-04-11T07:01:01.441Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
