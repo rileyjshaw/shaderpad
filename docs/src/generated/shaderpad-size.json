@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-04-11T06:10:59.494Z",
+	"generatedAt": "2026-04-11T06:53:39.422Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
@@ -21,19 +21,19 @@
 		},
 		"./plugins/face": {
 			"specifier": "shaderpad/plugins/face",
-			"minifiedBytes": 151886,
-			"minified": "148.3 kB",
-			"gzippedBytes": 47105,
-			"gzipped": "46.0 kB",
-			"gzippedLabel": "46.0 kB gzipped"
+			"minifiedBytes": 15017,
+			"minified": "14.7 kB",
+			"gzippedBytes": 5852,
+			"gzipped": "5.7 kB",
+			"gzippedLabel": "5.7 kB gzipped"
 		},
 		"./plugins/hands": {
 			"specifier": "shaderpad/plugins/hands",
-			"minifiedBytes": 142674,
-			"minified": "139.3 kB",
-			"gzippedBytes": 43814,
-			"gzipped": "42.8 kB",
-			"gzippedLabel": "42.8 kB gzipped"
+			"minifiedBytes": 5954,
+			"minified": "5.8 kB",
+			"gzippedBytes": 2583,
+			"gzipped": "2.5 kB",
+			"gzippedLabel": "2.5 kB gzipped"
 		},
 		"./plugins/helpers": {
 			"specifier": "shaderpad/plugins/helpers",
@@ -45,25 +45,25 @@
 		},
 		"./plugins/pose": {
 			"specifier": "shaderpad/plugins/pose",
-			"minifiedBytes": 164943,
-			"minified": "161.1 kB",
-			"gzippedBytes": 50519,
-			"gzipped": "49.3 kB",
-			"gzippedLabel": "49.3 kB gzipped"
+			"minifiedBytes": 28084,
+			"minified": "27.4 kB",
+			"gzippedBytes": 9291,
+			"gzipped": "9.1 kB",
+			"gzippedLabel": "9.1 kB gzipped"
 		},
 		"./plugins/segmenter": {
 			"specifier": "shaderpad/plugins/segmenter",
-			"minifiedBytes": 161099,
-			"minified": "157.3 kB",
-			"gzippedBytes": 49280,
-			"gzipped": "48.1 kB",
-			"gzippedLabel": "48.1 kB gzipped"
+			"minifiedBytes": 24331,
+			"minified": "23.8 kB",
+			"gzippedBytes": 8070,
+			"gzipped": "7.9 kB",
+			"gzippedLabel": "7.9 kB gzipped"
 		},
 		"./util": {
 			"specifier": "shaderpad/util",
-			"minifiedBytes": 1336,
-			"minified": "1.3 kB",
-			"gzippedBytes": 754,
+			"minifiedBytes": 1178,
+			"minified": "1.2 kB",
+			"gzippedBytes": 706,
 			"gzipped": "0.7 kB",
 			"gzippedLabel": "0.7 kB gzipped"
 		}

@@ -14,6 +14,10 @@ const esbuildPath = require.resolve('esbuild', {
 });
 const { build } = await import(pathToFileURL(esbuildPath).href);
 const shaderpadPackage = JSON.parse(await readFile(shaderpadPackageJsonPath, 'utf8'));
+const optionalPeerDependencies = Object.entries(shaderpadPackage.peerDependenciesMeta ?? {})
+	.filter(([, metadata]) => metadata?.optional)
+	.map(([packageName]) => packageName)
+	.sort();
 
 function formatKilobytes(bytes) {
 	return `${(bytes / 1024).toFixed(1)} kB`;
@@ -61,6 +65,7 @@ async function measureExport(exportPath) {
 		minify: true,
 		treeShaking: true,
 		logLevel: 'silent',
+		external: optionalPeerDependencies,
 	});
 
 	const [{ contents }] = result.outputFiles;
