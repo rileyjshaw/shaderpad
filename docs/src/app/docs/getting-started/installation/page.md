@@ -16,14 +16,14 @@ If you want to create a new project, use one of the provided starter templates:
 npm create shaderpad@latest
 ```
 
-The CLI will prompt you to choose a starter app interactively. You can also start experimenting with the TypeScript starter templates in your browser:
+The CLI will prompt you to choose a starter app interactively. You can also start experimenting with the starter templates in your browser on StackBlitz:
 
-- [Open the basic starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20%28TypeScript%29)
-- [Open the LYGIA starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-lygia-ts?title=ShaderPad%20LYGIA%20%28TypeScript%29)
-- [Open the face tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20with%20face%20tracking%20%28TypeScript%29)
-- [Open the pose tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-pose-ts?title=ShaderPad%20with%20pose%20tracking%20%28TypeScript%29)
-- [Open the hand tracking starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-hands-ts?title=ShaderPad%20with%20hand%20tracking%20%28TypeScript%29)
-- [Open the segmentation starter in StackBlitz](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-segmenter-ts?title=ShaderPad%20with%20segmentation%20%28TypeScript%29)
+- [Open the basic starter](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-basic-ts?title=ShaderPad%20Basic%20%28TypeScript%29)
+- [Open the LYGIA starter](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-lygia-ts?title=ShaderPad%20LYGIA%20%28TypeScript%29)
+- [Open the face tracking starter](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-face-ts?title=ShaderPad%20with%20face%20tracking%20%28TypeScript%29)
+- [Open the pose tracking starter](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-pose-ts?title=ShaderPad%20with%20pose%20tracking%20%28TypeScript%29)
+- [Open the hand tracking starter](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-hands-ts?title=ShaderPad%20with%20hand%20tracking%20%28TypeScript%29)
+- [Open the segmentation starter](https://stackblitz.com/fork/github/miseryco/shaderpad/tree/main/packages/create-shaderpad/template-segmenter-ts?title=ShaderPad%20with%20segmentation%20%28TypeScript%29)
 
 ## Install Into An Existing Project
 
