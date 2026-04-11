@@ -45,7 +45,13 @@ export default defineConfig([
 	{
 		...sharedConfig,
 		clean: true,
-		dts: true,
+		dts: {
+			// tsup 8 injects `baseUrl: "."` into the dts bundler, which TS 6 flags as deprecated.
+			compilerOptions: {
+				moduleResolution: 'Bundler',
+				ignoreDeprecations: '6.0',
+			},
+		},
 		minify: true,
 		define: {
 			'process.env.NODE_ENV': '"production"',

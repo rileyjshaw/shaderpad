@@ -19,6 +19,11 @@ const tabs = [
 	{ name: 'shader.frag', isActive: false },
 ];
 
+const blurImageStyle = {
+	width: 'auto',
+	height: 'auto',
+} as const;
+
 function TrafficLightsIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
 	return (
 		<svg aria-hidden="true" viewBox="0 0 42 10" fill="none" {...props}>
@@ -41,6 +46,7 @@ export function Hero() {
 							alt=""
 							width={530}
 							height={530}
+							style={blurImageStyle}
 							unoptimized
 							priority
 						/>
@@ -74,6 +80,7 @@ export function Hero() {
 								alt=""
 								width={530}
 								height={530}
+								style={blurImageStyle}
 								unoptimized
 								priority
 							/>
@@ -83,6 +90,7 @@ export function Hero() {
 								alt=""
 								width={567}
 								height={567}
+								style={blurImageStyle}
 								unoptimized
 								priority
 							/>

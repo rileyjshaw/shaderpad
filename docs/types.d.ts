@@ -1,4 +1,4 @@
-import { type SearchOptions } from 'flexsearch';
+declare module '*.css';
 
 declare module '@/markdoc/search.mjs' {
 	export type Result = {
@@ -7,5 +7,5 @@ declare module '@/markdoc/search.mjs' {
 		pageTitle?: string;
 	};
 
-	export function search(query: string, options?: SearchOptions): Array<Result>;
+	export function search(query: string, options?: import('flexsearch').SearchOptions): Array<Result>;
 }

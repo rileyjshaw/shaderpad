@@ -2,8 +2,8 @@
 title: Overview
 nextjs:
     metadata:
-        title: ShaderPad | JavaScript Shader Library
-        description: ShaderPad is a lightweight WebGL2 library for fragment shaders, textures, history buffers, and creative camera effects.
+        title: ShaderPad | Get creative with shaders
+        description: ShaderPad is a lightweight, dependency-free library that reduces boilerplate when working with fragment shaders.
 ---
 
 ShaderPad handles the repetitive work required to render fragment shaders in the browser. It’s performant, flexible, and comes “batteries included” for most needs. ShaderPad has optional plugins — from PNG export to face/pose tracking — for more specific requirements. Simple, performant, and portable, ShaderPad lets you focus on writing GLSL. {% .lead %}

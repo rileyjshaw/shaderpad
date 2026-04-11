@@ -410,6 +410,7 @@ function face(config) {
     const { injectGLSL, emit, updateTexture } = context;
     const existingDetector = sharedDetectors.get(optionsKey);
     const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
+    const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
     const maskCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
     let detector;
     let destroyed = false;
@@ -459,6 +460,7 @@ function face(config) {
               modelAssetPath: options.modelPath,
               delegate: "GPU"
             },
+            canvas: mediapipeCanvas,
             runningMode: "VIDEO",
             numFaces: options.maxFaces,
             minFaceDetectionConfidence: options.minFaceDetectionConfidence,
@@ -473,6 +475,7 @@ function face(config) {
           }
           const detector2 = {
             landmarker: faceLandmarker,
+            mediapipeCanvas,
             mask: initMaskRenderer(maskCanvas),
             subscribers: /* @__PURE__ */ new Map(),
             maxFaces: options.maxFaces,

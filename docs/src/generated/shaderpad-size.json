@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-04-11T07:01:01.441Z",
+	"generatedAt": "2026-04-11T08:09:02.793Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
@@ -21,9 +21,9 @@
 		},
 		"./plugins/face": {
 			"specifier": "shaderpad/plugins/face",
-			"minifiedBytes": 15017,
+			"minifiedBytes": 15095,
 			"minified": "14.7 kB",
-			"gzippedBytes": 5852,
+			"gzippedBytes": 5879,
 			"gzipped": "5.7 kB",
 			"gzippedLabel": "5.7 kB gzipped"
 		},

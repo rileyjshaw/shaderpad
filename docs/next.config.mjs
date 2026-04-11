@@ -6,19 +6,6 @@ import withSearch from './src/markdoc/search.mjs';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const pagesBasePath = '/shaderpad';
-const nodeModulesDir = path.resolve(currentDir, '..', 'node_modules');
-
-function resolveGLSLImport(resourcePath, request) {
-	if (request.startsWith('/')) {
-		return path.resolve(nodeModulesDir, request.replace(/^\/+/, ''));
-	}
-
-	if (request.startsWith('.') || !request.includes('/')) {
-		return path.resolve(path.dirname(resourcePath), request);
-	}
-
-	return path.resolve(nodeModulesDir, request);
-}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -42,21 +29,7 @@ const nextConfig = {
 					},
 				},
 				{
-					loader: 'glslify-loader',
-				},
-				{
-					loader: 'string-replace-loader',
-					options: {
-						multiple: [
-							{
-								search: /#include\s+["']([^"']+)["'];?/g,
-								replace(match, request) {
-									const resolvedPath = resolveGLSLImport(this.resourcePath, request);
-									return `#pragma glslify: import('${resolvedPath.replace(/\\/g, '/')}')`;
-								},
-							},
-						],
-					},
+					loader: path.resolve(currentDir, 'loaders/inline-glsl-includes.cjs'),
 				},
 			],
 		});

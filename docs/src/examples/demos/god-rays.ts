@@ -4,6 +4,7 @@
  */
 import ShaderPad from 'shaderpad';
 import autosize from 'shaderpad/plugins/autosize';
+import helpers from 'shaderpad/plugins/helpers';
 import hands from 'shaderpad/plugins/hands';
 import face from 'shaderpad/plugins/face';
 import { createFullscreenCanvas } from 'shaderpad/util';
@@ -96,7 +97,7 @@ vec3 faceRays(float density, float weight, float decay, float exposure,
 }
 
 void main() {
-	vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
+	vec2 uv = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
 	vec4 webcamColor = texture(u_webcam, uv);
 	vec3 color = webcamColor.rgb * 0.75;
 
@@ -136,6 +137,7 @@ void main() {
 		canvas: outputCanvas,
 		plugins: [
 			autosize(),
+			helpers(),
 			face({
 				textureName: 'u_webcam',
 				options: { maxFaces: 3 },

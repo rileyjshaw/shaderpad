@@ -4,6 +4,7 @@
  */
 import ShaderPad from 'shaderpad';
 import autosize from 'shaderpad/plugins/autosize';
+import helpers from 'shaderpad/plugins/helpers';
 import hands from 'shaderpad/plugins/hands';
 import { createFullscreenCanvas } from 'shaderpad/util';
 
@@ -21,7 +22,6 @@ precision mediump float;
 	in vec2 v_uv;
 	out vec4 outColor;
 	uniform sampler2D u_webcam;
-	uniform vec2 u_resolution;
 
 	#define THUMB_TIP 4
 	#define INDEX_TIP 8
@@ -88,7 +88,7 @@ precision mediump float;
 	}
 
 	void main() {
-		vec2 uv = vec2(1.0 - v_uv.x, v_uv.y);
+		vec2 uv = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
 		vec4 webcamColor = texture(u_webcam, uv);
 		vec3 lineColor = vec3(0.0, 0.0, 0.0);
 		float lineIntensity = 0.0;
@@ -127,6 +127,7 @@ precision mediump float;
 		canvas: outputCanvas,
 		plugins: [
 			autosize(),
+			helpers(),
 			hands({
 				textureName: 'u_webcam',
 				options: { maxHands: 3 },
