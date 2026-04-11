@@ -24,16 +24,7 @@ function getCanvasBlob(canvas, { type, quality } = {}) {
 async function toBlob(shader, options = {}) {
   shader.draw();
   const { canvas } = shader;
-  if (canvas instanceof HTMLCanvasElement) {
-    return getCanvasBlob(canvas, options);
-  }
-  if (options.type === void 0 && options.quality === void 0) {
-    return canvas.convertToBlob();
-  }
-  const blobOptions = {};
-  if (options.type !== void 0) blobOptions.type = options.type;
-  if (options.quality !== void 0) blobOptions.quality = options.quality;
-  return canvas.convertToBlob(blobOptions);
+  return canvas instanceof HTMLCanvasElement ? getCanvasBlob(canvas, options) : canvas.convertToBlob(options);
 }
 async function save(shader, filename, text, options = {}) {
   const normalizedFilename = filename && /\.[a-z0-9]+$/i.test(filename) ? filename : `${filename || "export"}.${getDefaultExtension(options.type)}`;

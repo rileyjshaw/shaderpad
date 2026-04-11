@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.74
+
+### Minor Changes
+
+- API improvements for public release
+
 ## 1.0.0-beta.73
 
 ### Minor Changes
