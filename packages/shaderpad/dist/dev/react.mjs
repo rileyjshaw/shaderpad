@@ -315,7 +315,9 @@ var ShaderPad = forwardRef(function ShaderPad2({
   }, [shader, plugins, options, autosize, cursorTarget, cursorTargetVersion]);
   useEffect(() => {
     syncEventSubscriptions(shaderRef.current);
-  }, [Object.keys(events ?? {}).sort().join("\n")]);
+  }, [
+    Object.keys(events ?? {}).sort().join("\n")
+  ]);
   useEffect(() => {
     syncPlaybackRef.current?.();
   }, [autoPlay, pauseWhenOffscreen]);

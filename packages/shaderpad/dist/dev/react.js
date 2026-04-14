@@ -1560,7 +1560,9 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
   }, [shader, plugins, options, autosize2, cursorTarget, cursorTargetVersion]);
   (0, import_react.useEffect)(() => {
     syncEventSubscriptions(shaderRef.current);
-  }, [Object.keys(events ?? {}).sort().join("\n")]);
+  }, [
+    Object.keys(events ?? {}).sort().join("\n")
+  ]);
   (0, import_react.useEffect)(() => {
     syncPlaybackRef.current?.();
   }, [autoPlay, pauseWhenOffscreen]);
