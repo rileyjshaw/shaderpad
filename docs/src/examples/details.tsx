@@ -6,7 +6,7 @@ type ExampleDetails = {
 	fullDescription: ReactNode;
 };
 
-const docs = {
+export const docs = {
 	autosize: '/docs/plugins/autosize',
 	builtInInputs: '/docs/core-concepts/built-in-inputs',
 	canvasAndInput: '/docs/core-concepts/canvas-and-input',
@@ -16,6 +16,7 @@ const docs = {
 	helpers: '/docs/plugins/helpers',
 	history: '/docs/core-concepts/history',
 	pose: '/docs/plugins/pose',
+	react: '/docs/guides/react',
 	savingImages: '/docs/guides/saving-images',
 	segmenter: '/docs/plugins/segmenter',
 	shaderLifecycle: '/docs/core-concepts/shader-lifecycle',
@@ -26,11 +27,15 @@ const docs = {
 	webcamTrails: '/docs/examples/demos/webcam-trails',
 } as const;
 
-function DocLink({ href, children }: { href: string; children: ReactNode }) {
-	return <Link href={href}>{children}</Link>;
+export function DocLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
+	return (
+		<Link href={href} className={className}>
+			{children}
+		</Link>
+	);
 }
 
-function CodeDocLink({ href, children }: { href: string; children: ReactNode }) {
+export function CodeDocLink({ href, children }: { href: string; children: ReactNode }) {
 	return (
 		<DocLink href={href}>
 			<code>{children}</code>
@@ -61,6 +66,18 @@ const exampleDetails: Record<string, ExampleDetails> = {
 					The shader uses several <DocLink href={docs.builtInInputs}>built-in inputs</DocLink> such as{' '}
 					<code>u_time</code>, <code>u_resolution</code>, <code>u_cursor</code>, and <code>u_click</code>,
 					plus a <DocLink href={docs.uniforms}>custom color uniform</DocLink>.
+				</p>
+			</>
+		),
+	},
+	react: {
+		fullDescription: (
+			<>
+				<p>
+					Instead of creating and tearing down a ShaderPad instance manually in an effect,{' '}
+					<code>shaderpad/react</code> offers a <DocLink href={docs.react}>React wrapper</DocLink> that
+					renders directly inside a normal page layout. It is a good starting point for decorative overlays,
+					embeds, and content-aware UI composition.
 				</p>
 			</>
 		),

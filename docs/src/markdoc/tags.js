@@ -3,6 +3,7 @@ import { Callout } from '@/components/Callout';
 import { MarkdownImage } from '@/components/MarkdownImage';
 import { QuickstartPreview } from '@/components/QuickstartPreview';
 import { QuickLink, QuickLinks } from '@/components/QuickLinks';
+import { ReactPreview } from '@/components/ReactPreview';
 import { SavingImagesPreview } from '@/components/SavingImagesPreview';
 import { ShaderPadSizeInline } from '@/components/ShaderPadSize';
 
@@ -53,6 +54,10 @@ const tags = {
 	'quickstart-preview': {
 		selfClosing: true,
 		render: QuickstartPreview,
+	},
+	'react-preview': {
+		selfClosing: true,
+		render: ReactPreview,
 	},
 	'saving-images-preview': {
 		selfClosing: true,

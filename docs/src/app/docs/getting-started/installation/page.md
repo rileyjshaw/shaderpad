@@ -33,6 +33,8 @@ To add ShaderPad to a project you already have:
 npm install shaderpad
 ```
 
+If you are using React, ShaderPad also ships a component wrapper at [`shaderpad/react`](/docs/guides/react). Start with the [React guide](/docs/guides/react) for common patterns, then use the [React API reference](/docs/api/react) for the full props and ref surface.
+
 {% callout title="Optional vision dependency" %}
 If you use the tracking plugins ([face](/docs/plugins/face), [pose](/docs/plugins/pose), [hands](/docs/plugins/hands), or [segmenter](/docs/plugins/segmenter)), also install MediaPipe:
 

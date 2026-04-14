@@ -25,6 +25,15 @@
 			"import": "./dist/index.mjs",
 			"require": "./dist/index.js"
 		},
+		"./react": {
+			"types": "./dist/react.d.ts",
+			"development": {
+				"import": "./dist/dev/react.mjs",
+				"require": "./dist/dev/react.js"
+			},
+			"import": "./dist/react.mjs",
+			"require": "./dist/react.js"
+		},
 		"./plugins/face": {
 			"types": "./dist/plugins/face.d.ts",
 			"development": {
@@ -95,6 +104,9 @@
 	},
 	"typesVersions": {
 		"*": {
+			"react": [
+				"dist/react.d.ts"
+			],
 			"plugins/face": [
 				"dist/plugins/face.d.ts"
 			],
@@ -131,12 +143,20 @@
 		"postbuild": "node ./scripts/copy-helper-glsl.mjs"
 	},
 	"peerDependencies": {
-		"@mediapipe/tasks-vision": "*"
+		"@mediapipe/tasks-vision": "*",
+		"react": ">=18"
 	},
 	"peerDependenciesMeta": {
 		"@mediapipe/tasks-vision": {
 			"optional": true
+		},
+		"react": {
+			"optional": true
 		}
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.2",
+		"react": "^19.2.3"
 	},
 	"publishConfig": {
 		"access": "public"

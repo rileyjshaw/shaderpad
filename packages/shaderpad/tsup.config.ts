@@ -5,7 +5,7 @@ import { defineConfig } from 'tsup';
 
 const glslIncludePattern = /^[ \t]*#include\s+["']([^"']+)["'];?\s*$/gm;
 
-const entry = ['src/index.ts', 'src/plugins/*.ts', 'src/util.ts'];
+const entry = ['src/index.ts', 'src/react.tsx', 'src/plugins/*.ts', 'src/util.ts'];
 
 function inlineGLSLImports(source: string, filePath: string, stack = [filePath]): string {
 	return source.replace(glslIncludePattern, (_match, request: string) => {

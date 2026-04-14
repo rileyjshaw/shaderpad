@@ -2,10 +2,13 @@ import { exampleRegistry } from '@/examples/registry-data.mjs';
 
 import type { ExampleModule } from '@/examples/runtime';
 
+export type ExampleRenderMode = 'fullscreen' | 'article';
+
 type ExampleMetadata = {
 	slug: string;
 	title: string;
 	description?: string;
+	renderMode?: ExampleRenderMode;
 };
 
 type ExampleLoader = () => Promise<ExampleModule>;
@@ -39,14 +42,45 @@ const loaders: Record<string, ExampleLoader> = {
 
 const metadata = exampleRegistry as ExampleMetadata[];
 
-export const examples = metadata.map(entry => ({
-	...entry,
-	load: loaders[entry.slug],
-	sourcePath: `/examples/source/${entry.slug}.ts`,
-	sourcePagePath: `/examples/source/${entry.slug}`,
-}));
+type BaseExampleEntry = ExampleMetadata & {
+	renderMode: ExampleRenderMode;
+	sourcePagePath: string;
+};
 
-export type ExampleEntry = (typeof examples)[number];
+export type FullscreenExampleEntry = BaseExampleEntry & {
+	renderMode: 'fullscreen';
+	load: ExampleLoader;
+};
+
+export type ArticleExampleEntry = BaseExampleEntry & {
+	renderMode: 'article';
+};
+
+export type ExampleEntry = FullscreenExampleEntry | ArticleExampleEntry;
+
+export const examples: ExampleEntry[] = metadata.map(entry => {
+	const renderMode = entry.renderMode ?? 'fullscreen';
+
+	if (renderMode === 'article') {
+		return {
+			...entry,
+			renderMode: 'article',
+			sourcePagePath: `/examples/source/${entry.slug}`,
+		};
+	}
+
+	const load = loaders[entry.slug];
+	if (!load) {
+		throw new Error(`Missing example loader for "${entry.slug}"`);
+	}
+
+	return {
+		...entry,
+		renderMode: 'fullscreen',
+		sourcePagePath: `/examples/source/${entry.slug}`,
+		load,
+	};
+});
 
 export function getExampleBySlug(slug: string) {
 	return examples.find(entry => entry.slug === slug);

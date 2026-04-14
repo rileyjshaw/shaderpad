@@ -36,6 +36,7 @@ export const navigation = [
 	{
 		title: 'Guides',
 		links: [
+			{ title: 'React', href: '/docs/guides/react' },
 			{ title: 'Webcam input', href: '/docs/guides/webcam-input' },
 			{ title: 'Saving images', href: '/docs/guides/saving-images' },
 			{ title: 'Chaining shaders', href: '/docs/guides/chaining-shaders' },
@@ -63,6 +64,7 @@ export const navigation = [
 			{ title: 'Events', href: '/docs/api/events' },
 			{ title: 'Utilities', href: '/docs/api/utilities' },
 			{ title: 'Plugins', href: '/docs/api/plugins' },
+			{ title: 'React', href: '/docs/api/react' },
 		],
 	},
 	{

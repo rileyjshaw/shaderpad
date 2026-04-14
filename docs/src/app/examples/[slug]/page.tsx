@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import { ExampleArticlePage } from '@/examples/ExampleArticlePage';
 import { ExamplePlayer } from '@/examples/ExamplePlayer';
 import { examples, getExampleBySlug } from '@/examples/registry';
 
@@ -28,6 +29,10 @@ export default async function ExamplePage({ params }: { params: Promise<{ slug: 
 	const example = getExampleBySlug(slug);
 	if (!example) {
 		notFound();
+	}
+
+	if (example.renderMode === 'article') {
+		return <ExampleArticlePage example={example} />;
 	}
 
 	return (

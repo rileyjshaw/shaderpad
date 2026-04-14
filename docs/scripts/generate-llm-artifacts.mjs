@@ -334,13 +334,13 @@ const pageFiles = await fg('**/page.md', {
 	absolute: true,
 	onlyFiles: true,
 });
-const exampleFiles = await fg('*.ts', {
+const exampleFiles = await fg('*.{ts,tsx}', {
 	cwd: examplesDir,
 	absolute: true,
 	onlyFiles: true,
 	ignore: ['*.d.ts', 'main.ts'],
 });
-const exampleAssetFiles = await fg('*.{ts,glsl}', {
+const exampleAssetFiles = await fg('*.{ts,tsx,glsl}', {
 	cwd: examplesDir,
 	absolute: true,
 	onlyFiles: true,
@@ -402,8 +402,9 @@ const exampleEntries = [];
 for (const filePath of exampleFiles) {
 	const raw = (await readFile(filePath, 'utf8')).replace(/\r\n/g, '\n');
 	const filename = relative(examplesDir, filePath).replace(/\\/g, '/');
-	const stem = filename.replace(/\.ts$/, '');
+	const stem = filename.replace(/\.tsx?$/, '');
 	const metadata = exampleMetadataBySlug.get(stem);
+	const language = filename.endsWith('.tsx') ? 'tsx' : 'ts';
 
 	exampleEntries.push({
 		kind: 'example',
@@ -413,11 +414,11 @@ for (const filePath of exampleFiles) {
 		group: 'Examples',
 		raw,
 		body: raw,
-		llmsBody: `\`\`\`ts\n${raw.trim()}\n\`\`\``,
+		llmsBody: `\`\`\`${language}\n${raw.trim()}\n\`\`\``,
 		assetPath: `/examples/source/${filename}`,
 		assetUrl: absoluteSiteUrl(`/examples/source/${filename}`),
 		htmlUrl: null,
-		language: 'ts',
+		language,
 		slug: stem,
 		sourceUrl: new URL(`docs/src/examples/demos/${filename}`, repoBlobBase).toString(),
 	});

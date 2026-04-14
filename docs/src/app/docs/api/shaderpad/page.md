@@ -64,3 +64,4 @@ The render-texture options above use these literal unions:
 - [Events](/docs/api/events)
 - [Utilities](/docs/api/utilities)
 - [Plugins](/docs/api/plugins)
+- [React](/docs/api/react)

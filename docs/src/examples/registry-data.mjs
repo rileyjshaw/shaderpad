@@ -10,6 +10,12 @@ export const exampleRegistry = [
 		description: 'Animated visualizer with user-controlled patterns.',
 	},
 	{
+		slug: 'react',
+		title: 'React',
+		description: 'Embedding a shader in React using the built-in <ShaderPad> component.',
+		renderMode: 'article',
+	},
+	{
 		slug: 'lygia',
 		title: 'LYGIA import',
 		description: 'Using #include to pull LYGIA utilities into a shader.',

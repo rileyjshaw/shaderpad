@@ -36,11 +36,7 @@ const staticPaths = [
 export const dynamic = 'force-static';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-	const paths = new Set([
-		...staticPaths,
-		...examples.map(example => `/examples/${example.slug}`),
-		...examples.map(example => example.sourcePath),
-	]);
+	const paths = new Set([...staticPaths, ...examples.map(example => `/examples/${example.slug}`)]);
 
 	for (const section of navigation) {
 		for (const link of section.links) {

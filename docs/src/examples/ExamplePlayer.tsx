@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Logomark } from '@/components/Logo';
+import { ExampleBackLink } from '@/examples/ExampleBackLink';
 import { getExampleDetails } from '@/examples/details';
 import { createExampleContext } from '@/examples/runtime';
 import { getExampleBySlug } from '@/examples/registry';
@@ -37,7 +36,7 @@ export function ExamplePlayer({
 		const mount = mountRef.current;
 		const overlay = overlayRef.current;
 
-		if (!example || !mount || !overlay) {
+		if (!example || example.renderMode !== 'fullscreen' || !mount || !overlay) {
 			return;
 		}
 
@@ -104,18 +103,8 @@ export function ExamplePlayer({
 			<div ref={overlayRef} className="pointer-events-none fixed inset-0 z-20" />
 
 			<div className="pointer-events-none fixed inset-0 z-30 flex flex-col items-start justify-between p-4 sm:p-6">
-				<div className="-ml-6 inline-flex items-start gap-4 rounded-r-full border border-white/15 bg-black/60 py-4 pr-6 pl-6 shadow-2xl backdrop-blur">
-					<Link
-						href="/docs/getting-started/examples"
-						aria-label="Examples"
-						className="pointer-events-auto transition hover:text-white/85"
-					>
-						<div className="flex gap-3 text-white">
-							<Logomark className="hidden h-9 w-auto fill-white/90 lg:block" />
-							<span className="-mb-1 inline-block font-display text-3xl font-black">ShaderPad</span>
-							<span className="hidden align-baseline text-sm text-white/70 lg:block">v1β</span>
-						</div>
-					</Link>
+				<div className="pointer-events-auto">
+					<ExampleBackLink />
 				</div>
 
 				<div className="max-w-xl space-y-3">

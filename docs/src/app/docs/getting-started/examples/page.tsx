@@ -31,6 +31,10 @@ const tagStyles: Record<string, ExampleTag> = {
 		className:
 			'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300',
 	},
+	REACT: {
+		className:
+			'border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300',
+	},
 	MIDI: {
 		className:
 			'border-lime-200 bg-lime-50 text-lime-700 dark:border-lime-500/30 dark:bg-lime-500/10 dark:text-lime-300',
@@ -64,6 +68,7 @@ const defaultTag: ExampleTag = {
 const exampleTags: Record<string, string[]> = {
 	basic: ['UNIFORMS'],
 	sway: ['ANIMATION'],
+	react: ['REACT', 'ANIMATION'],
 	lygia: ['ANIMATION'],
 	'history-tiles': ['HISTORY'],
 	'cursor-feedback': ['HISTORY'],
@@ -96,6 +101,7 @@ const sections: ExampleSection[] = [
 		slugs: [
 			'basic',
 			'sway',
+			'react',
 			'lygia',
 			'cursor-feedback',
 			'history-tiles',
