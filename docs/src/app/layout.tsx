@@ -1,5 +1,6 @@
 import { type Metadata } from 'next';
 import localFont from 'next/font/local';
+import Script from 'next/script';
 import clsx from 'clsx';
 
 import { Providers } from '@/app/providers';
@@ -8,6 +9,8 @@ import { ThemeFavicon } from '@/components/ThemeFavicon';
 import { absoluteSiteUrl, siteOrigin } from '@/lib/site';
 
 import '@/styles/tailwind.css';
+
+const googleTagId = 'G-KB68X7DK43';
 
 const ufficio = localFont({
 	src: '../fonts/UfficioVF.woff2',
@@ -76,6 +79,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			suppressHydrationWarning
 		>
 			<head>
+				<Script src={`https://www.googletagmanager.com/gtag/js?id=${googleTagId}`} strategy="afterInteractive" />
+				<Script id="google-tag" strategy="afterInteractive">
+					{`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', '${googleTagId}');`}
+				</Script>
 				<link
 					rel="alternate"
 					type="text/plain"
