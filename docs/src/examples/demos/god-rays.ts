@@ -130,13 +130,19 @@ void main() {
 	outColor = vec4(color, 1.0);
 }`;
 
-	const video = await getWebcamVideo();
+	const video = await getWebcamVideo({
+		width: { ideal: 640 },
+		height: { ideal: 480 },
+		facingMode: 'user',
+	});
 	const outputCanvas = createFullscreenCanvas(mount);
+	outputCanvas.height = video.videoHeight;
+	outputCanvas.width = video.videoWidth;
+	outputCanvas.style.objectFit = 'cover';
 
 	const shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
 		plugins: [
-			autosize(),
 			helpers(),
 			face({
 				textureName: 'u_webcam',

@@ -433,12 +433,7 @@ const exampleDetails: Record<string, ExampleDetails> = {
 				<p>
 					God Rays combines the <DocLink href={docs.face}>face plugin</DocLink> and the{' '}
 					<DocLink href={docs.hands}>hands plugin</DocLink> in one pass to cast rays from tracked fingertips,
-					mouths, and eyes. It is less about realism and more about turning landmark data into a procedural
-					lighting source.
-				</p>
-				<p>
-					The effect is less about realism and more about treating tracked landmarks as procedural light
-					sources you can stylize aggressively.
+					mouths, and eyes. It’s an example of how multiple MediaPipe plugins can work on the same shader.
 				</p>
 			</>
 		),
