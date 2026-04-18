@@ -336,7 +336,9 @@ var ShaderPad = forwardRef(function ShaderPad2({
   );
 });
 ShaderPad.displayName = "ShaderPad";
+var react_default = ShaderPad;
 export {
-  ShaderPad
+  ShaderPad,
+  react_default as default
 };
 //# sourceMappingURL=react.mjs.map

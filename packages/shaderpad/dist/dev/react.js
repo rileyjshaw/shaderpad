@@ -21,7 +21,8 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/react.tsx
 var react_exports = {};
 __export(react_exports, {
-  ShaderPad: () => ShaderPad2
+  ShaderPad: () => ShaderPad2,
+  default: () => react_default
 });
 module.exports = __toCommonJS(react_exports);
 var import_react = require("react");
@@ -1581,6 +1582,7 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
   );
 });
 ShaderPad2.displayName = "ShaderPad";
+var react_default = ShaderPad2;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ShaderPad

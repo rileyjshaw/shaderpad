@@ -9,7 +9,7 @@ nextjs:
 The `shaderpad/react` entry exports:
 
 ```tsx
-import { ShaderPad, type ShaderPadProps } from 'shaderpad/react';
+import ShaderPad, { type ShaderPadProps } from 'shaderpad/react';
 ```
 
 If you want the common usage patterns first, start with the [React guide](/docs/guides/react).
@@ -18,7 +18,8 @@ If you want the common usage patterns first, start with the [React guide](/docs/
 
 | Export           | Type      | Meaning                                            |
 | ---------------- | --------- | -------------------------------------------------- |
-| `ShaderPad`      | component | React wrapper that renders one managed `<canvas>`. |
+| default          | component | React wrapper that renders one managed `<canvas>`. |
+| `ShaderPad`      | component | Alias for the default export.                      |
 | `ShaderPadProps` | type      | Prop type for the component.                       |
 
 ## Props

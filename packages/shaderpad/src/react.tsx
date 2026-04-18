@@ -437,3 +437,5 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 });
 
 ShaderPad.displayName = 'ShaderPad';
+
+export default ShaderPad;

@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { ShaderPad } from 'shaderpad/react';
+import ShaderPad from 'shaderpad/react';
 import { DocLink, docs } from '@/examples/details';
 
 const shader = `#version 300 es
@@ -58,7 +58,7 @@ export default function ReactWaveExample() {
 					<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.12),transparent_60%)]" />
 					<ShaderPad
 						shader={shader}
-						aria-label="Transparent green sine wave rendered with shaderpad/react"
+						aria-label="Transparent green sine wave rendered with ShaderPad and React"
 						className="relative z-10 h-full w-full"
 					/>
 				</div>

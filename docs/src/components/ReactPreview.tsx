@@ -1,6 +1,6 @@
 'use client';
 
-import { ShaderPad } from 'shaderpad/react';
+import ShaderPad from 'shaderpad/react';
 
 const shader = `#version 300 es
 precision highp float;

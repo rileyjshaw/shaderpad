@@ -33,4 +33,4 @@ interface ShaderPadProps extends Omit<ComponentPropsWithoutRef<'canvas'>, 'child
 }
 declare const ShaderPad: react.ForwardRefExoticComponent<ShaderPadProps & react.RefAttributes<ShaderPadHandle>>;
 
-export { ShaderPad, type ShaderPadProps };
+export { ShaderPad, type ShaderPadProps, ShaderPad as default };

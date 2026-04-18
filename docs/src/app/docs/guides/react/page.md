@@ -15,7 +15,7 @@ If you want the full prop and ref reference, read the [React API page](/docs/api
 ```tsx
 'use client';
 
-import { ShaderPad } from 'shaderpad/react';
+import ShaderPad from 'shaderpad/react';
 
 const shader = `#version 300 es
 precision highp float;
@@ -52,7 +52,7 @@ Use the wrapper from a client component:
 ```tsx
 'use client';
 
-import { ShaderPad } from 'shaderpad/react';
+import ShaderPad from 'shaderpad/react';
 ```
 
 ## Common Patterns
@@ -68,7 +68,7 @@ Pass extra plugins through `plugins` and any remaining core constructor options 
 ```tsx
 'use client';
 
-import { ShaderPad } from 'shaderpad/react';
+import ShaderPad from 'shaderpad/react';
 import helpers from 'shaderpad/plugins/helpers';
 
 export default function HistoryExample() {
@@ -131,7 +131,7 @@ Use a ref when you want direct control over playback or the underlying ShaderPad
 'use client';
 
 import { useRef } from 'react';
-import { ShaderPad } from 'shaderpad/react';
+import ShaderPad from 'shaderpad/react';
 
 export default function RefExample() {
   const shaderRef = useRef<React.ElementRef<typeof ShaderPad>>(null);
