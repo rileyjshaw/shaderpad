@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.77
+
+### Minor Changes
+
+- Add default export to shaderpad/react
+
 ## 1.0.0-beta.76
 
 ### Minor Changes
