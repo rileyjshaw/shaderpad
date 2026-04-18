@@ -142,8 +142,8 @@ precision mediump float;
 		vec3 lineColor = vec3(0.0, 0.0, 0.0);
 		float lineIntensity = 0.0;
 
-		float endpointRadiusPx = 16.0;
-		float sharpness = 1.5;
+		float endpointRadiusPx = 40.0;
+		float sharpness = 1.25;
 
 		for (int i = 0; i < u_nHands; ++i) {
 			vec2 thumb = vec2(handLandmark(i, THUMB_TIP));

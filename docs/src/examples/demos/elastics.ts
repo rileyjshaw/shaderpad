@@ -19,105 +19,103 @@ export async function init({ mount }: ExampleContext) {
 	const fragmentShaderSrc = `#version 300 es
 precision mediump float;
 
-	in vec2 v_uv;
-	out vec4 outColor;
-	uniform sampler2D u_webcam;
+in vec2 v_uv;
+out vec4 outColor;
+uniform sampler2D u_webcam;
 
-	#define THUMB_TIP 4
-	#define INDEX_TIP 8
-	#define MIDDLE_TIP 12
-	#define RING_TIP 16
-	#define PINKY_TIP 20
+#define THUMB_TIP 4
+#define INDEX_TIP 8
+#define MIDDLE_TIP 12
 
-	float falloffEase(float x) {
-		float t = clamp(1.0 - x, 0.0, 1.0);
-		t *= t;
-		t *= t;
-		t *= t;
-		return t;
+float falloffEase(float x) {
+	float t = clamp(1.0 - x, 0.0, 1.0);
+	t *= t;
+	t *= t;
+	t *= t;
+	return t;
+}
+
+float renderGlowingSegmentExpWidth(
+	vec2 uv,
+	vec2 p0,
+	vec2 p1,
+	float endpointRadiusPx,
+	float sharpnessPx
+) {
+	float pxPerUv = u_resolution.y;
+	sharpnessPx *= 0.01;
+	float endpointRadiusUv = endpointRadiusPx / pxPerUv;
+	float minThicknessPx = 2.0;
+	float minThicknessUv = minThicknessPx / pxPerUv;
+
+	vec2 segment = p1 - p0;
+	float segmentLengthSq = dot(segment, segment);
+	float segmentLength = sqrt(segmentLengthSq);
+	vec2 uvToP0 = uv - p0;
+
+	float projected = clamp(dot(uvToP0, segment) / segmentLengthSq, 0.0, 1.0);
+
+	float segmentLengthPx = segmentLength * pxPerUv;
+	float xPx = projected * segmentLengthPx;
+
+	float denom = 1.0 + exp(-segmentLengthPx * sharpnessPx);
+	float thicknessPx = endpointRadiusPx * (
+		exp(-xPx * sharpnessPx) +
+		exp((xPx - segmentLengthPx) * sharpnessPx)
+	) / denom;
+
+	thicknessPx = max(minThicknessPx, thicknessPx);
+	float thicknessUv = thicknessPx / pxPerUv;
+
+	vec2 closestPoint = p0 + segment * projected;
+	float distToLine = length(uv - closestPoint);
+	float distToP0 = length(uv - p0);
+	float distToP1 = length(uv - p1);
+
+	float lineNorm = distToLine / thicknessUv;
+	float endpointNorm0 = distToP0 / endpointRadiusUv;
+	float endpointNorm1 = distToP1 / endpointRadiusUv;
+
+	float dNorm = min(lineNorm, min(endpointNorm0, endpointNorm1));
+
+	float inner = falloffEase(dNorm * 0.6);
+	float outer = falloffEase(dNorm);
+	float intensity = inner + 0.4 * outer;
+
+	return intensity;
+}
+
+void main() {
+	vec2 uv = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
+	vec4 webcamColor = texture(u_webcam, uv);
+	vec3 lineColor = vec3(0.0, 0.0, 0.0);
+	float lineIntensity = 0.0;
+
+	float endpointRadiusPx = 40.0;
+	float sharpness = 1.25;
+
+	for (int i = 0; i < u_nHands; ++i) {
+		vec2 thumb = vec2(handLandmark(i, THUMB_TIP));
+		vec2 index = vec2(handLandmark(i, INDEX_TIP));
+		vec2 middle = vec2(handLandmark(i, MIDDLE_TIP));
+
+		float indexIntensity = renderGlowingSegmentExpWidth(uv, index, thumb, endpointRadiusPx, sharpness);
+		lineIntensity += indexIntensity;
+		lineColor += indexIntensity * vec3(1.0, 0.0, 0.0);
+
+		float middleIntensity = renderGlowingSegmentExpWidth(uv, middle, thumb, endpointRadiusPx, sharpness);
+		lineIntensity += middleIntensity;
+		lineColor += middleIntensity * vec3(0.0, 1.0, 0.0);
 	}
 
-	float renderGlowingSegmentExpWidth(
-		vec2 uv,
-		vec2 p0,
-		vec2 p1,
-		float endpointRadiusPx,
-		float sharpnessPx
-	) {
-		float pxPerUv = u_resolution.y;
-		sharpnessPx *= 0.01;
-		float endpointRadiusUv = endpointRadiusPx / pxPerUv;
-		float minThicknessPx = 2.0;
-		float minThicknessUv = minThicknessPx / pxPerUv;
+	vec3 core = lineColor * lineColor;
+	lineColor += core * 0.3;
 
-		vec2 segment = p1 - p0;
-		float segmentLengthSq = dot(segment, segment);
-		float segmentLength = sqrt(segmentLengthSq);
-		vec2 uvToP0 = uv - p0;
+	lineColor = lineColor / (1.0 + lineColor);
+	lineColor = pow(lineColor, vec3(0.4545));
 
-		float projected = clamp(dot(uvToP0, segment) / segmentLengthSq, 0.0, 1.0);
-
-		float segmentLengthPx = segmentLength * pxPerUv;
-		float xPx = projected * segmentLengthPx;
-
-		float denom = 1.0 + exp(-segmentLengthPx * sharpnessPx);
-		float thicknessPx = endpointRadiusPx * (
-			exp(-xPx * sharpnessPx) +
-			exp((xPx - segmentLengthPx) * sharpnessPx)
-		) / denom;
-
-		thicknessPx = max(minThicknessPx, thicknessPx);
-		float thicknessUv = thicknessPx / pxPerUv;
-
-		vec2 closestPoint = p0 + segment * projected;
-		float distToLine = length(uv - closestPoint);
-		float distToP0 = length(uv - p0);
-		float distToP1 = length(uv - p1);
-
-		float lineNorm = distToLine / thicknessUv;
-		float endpointNorm0 = distToP0 / endpointRadiusUv;
-		float endpointNorm1 = distToP1 / endpointRadiusUv;
-
-		float dNorm = min(lineNorm, min(endpointNorm0, endpointNorm1));
-
-		float inner = falloffEase(dNorm * 0.6);
-		float outer = falloffEase(dNorm);
-		float intensity = inner + 0.4 * outer;
-
-		return intensity;
-	}
-
-	void main() {
-		vec2 uv = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
-		vec4 webcamColor = texture(u_webcam, uv);
-		vec3 lineColor = vec3(0.0, 0.0, 0.0);
-		float lineIntensity = 0.0;
-
-		float endpointRadiusPx = 16.0;
-		float sharpness = 1.5;
-
-		for (int i = 0; i < u_nHands; ++i) {
-			vec2 thumb = vec2(handLandmark(i, THUMB_TIP));
-			vec2 index = vec2(handLandmark(i, INDEX_TIP));
-			vec2 middle = vec2(handLandmark(i, MIDDLE_TIP));
-
-			float indexIntensity = renderGlowingSegmentExpWidth(uv, index, thumb, endpointRadiusPx, sharpness);
-			lineIntensity += indexIntensity;
-			lineColor += indexIntensity * vec3(1.0, 0.0, 0.0);
-
-			float middleIntensity = renderGlowingSegmentExpWidth(uv, middle, thumb, endpointRadiusPx, sharpness);
-			lineIntensity += middleIntensity;
-			lineColor += middleIntensity * vec3(0.0, 1.0, 0.0);
-		}
-
-		vec3 core = lineColor * lineColor;
-		lineColor += core * 0.3;
-
-		lineColor = lineColor / (1.0 + lineColor);
-		lineColor = pow(lineColor, vec3(0.4545));
-
-		outColor = vec4(mix(webcamColor.rgb + lineColor, lineColor, clamp(lineIntensity, 0.0, 1.0)), 1.0);
-	}`;
+	outColor = vec4(mix(webcamColor.rgb + lineColor, lineColor, clamp(lineIntensity, 0.0, 1.0)), 1.0);
+}`;
 
 	video = await getWebcamVideo();
 

@@ -258,15 +258,9 @@ const exampleDetails: Record<string, ExampleDetails> = {
 		fullDescription: (
 			<>
 				<p>
-					This is the main "what does the face plugin expose?" demo. It uses the{' '}
-					<CodeDocLink href={docs.face}>face</CodeDocLink> plugin to draw region masks, facial landmarks, and
-					debug overlays in one pass, including brows, eyes, mouth regions, and the face mask texture in the
-					corner.
-				</p>
-				<p>
-					It shows both levels of the API at once: region helpers such as{' '}
-					<CodeDocLink href={docs.face}>faceAt</CodeDocLink> and raw landmark access. On touch devices,
-					double-tap to switch cameras.
+					This example uses the <CodeDocLink href={docs.face}>face plugin</CodeDocLink> to draw region masks
+					and facial landmarks. The bottom-right corner shows the raw face mask texture, though you never need
+					to access it directly.
 				</p>
 			</>
 		),
@@ -280,11 +274,6 @@ const exampleDetails: Record<string, ExampleDetails> = {
 					<DocLink href={docs.history}>history</DocLink> in one toggleable demo. Switch between face and body
 					mode to see the same camouflage idea driven by different tracked regions.
 				</p>
-				<p>
-					It still stays in one pass. With <CodeDocLink href={docs.helpers}>helpers</CodeDocLink>, one history
-					frame, and a small overlay UI, it becomes a compact recipe for invisibility-style effects without a
-					full segmentation pipeline.
-				</p>
 			</>
 		),
 	},
@@ -292,17 +281,14 @@ const exampleDetails: Record<string, ExampleDetails> = {
 		fullDescription: (
 			<>
 				<p>
-					MediaPipe chaining is the best example here for{' '}
-					<DocLink href={docs.chainingShaders}>multi-pass ShaderPad chaining</DocLink>. The first pass renders
-					webcam stripes inside the face region, and the second pass samples that first ShaderPad instance as
-					a texture via <CodeDocLink href={docs.textures}>initializeTexture</CodeDocLink> before adding a
-					complementary effect outside the face.
+					In this example, two separate ShaderPad instances efficiently share resources for a single MediaPipe
+					face detector. The first pass renders vertical stripes inside the face region, and the second pass
+					adds horizontal stripes outside the face.
 				</p>
 				<p>
-					It also demonstrates deliberate pass ordering: pass A advances with{' '}
-					<CodeDocLink href={docs.shaderLifecycle}>step</CodeDocLink>, then pass B reads its fresh output in
-					the same loop. Both passes use the same <CodeDocLink href={docs.face}>face</CodeDocLink> setup, so
-					it is a clear example of face-aware compositing.
+					It’s a contrived example, but it shows how the <DocLink href={docs.face}>face plugin</DocLink>{' '}
+					shares resources when possible. It also serves as an example of{' '}
+					<DocLink href={docs.chainingShaders}>chaining shaders</DocLink>.
 				</p>
 			</>
 		),
@@ -311,13 +297,9 @@ const exampleDetails: Record<string, ExampleDetails> = {
 		fullDescription: (
 			<>
 				<p>
-					Pose detection is the equivalent of the face debug example for the{' '}
-					<DocLink href={docs.pose}>pose plugin</DocLink>. It overlays tracked landmarks, color-coded body
-					regions, and a pose-mask preview, all on top of the live webcam feed.
-				</p>
-				<p>
-					It shows the difference between higher-level region queries and raw landmark access in one file,
-					which makes it a straightforward place to start for pose-based effects.
+					This example uses the <CodeDocLink href={docs.pose}>pose plugin</CodeDocLink> to draw landmarks and
+					color-coded body regions on the live webcam feed. The bottom-right corner shows the raw pose mask
+					texture, though you never need to access it directly.
 				</p>
 			</>
 		),
@@ -328,12 +310,12 @@ const exampleDetails: Record<string, ExampleDetails> = {
 				<p>
 					This example uses the <DocLink href={docs.segmenter}>segmenter plugin</DocLink> with the selfie
 					segmentation model as a matte for a compact Dual Kawase blur pipeline. A few small offscreen passes
-					build the blur efficiently, then the final pass keeps the segmented foreground sharp over the
-					mirrored webcam feed.
+					build the blur efficiently, then the final pass applies the filter over the background, keeping the
+					foreground sharp.
 				</p>
 				<p>
-					It is a good reference for multi-pass webcam compositing when you want a cleaner person outline than
-					pose masks usually give, without paying for a huge one-pass kernel.
+					This is a good example of a multi-pass effect, where stepping through multiple render passes is
+					actually more efficient than a single pass.
 				</p>
 			</>
 		),
@@ -342,13 +324,8 @@ const exampleDetails: Record<string, ExampleDetails> = {
 		fullDescription: (
 			<>
 				<p>
-					This is the simplest demonstration of the <DocLink href={docs.hands}>hands plugin</DocLink>. It
-					draws colored dots on the fingertips plus a center marker for each detected hand, making it easy to
-					see the landmark layout and handedness at a glance.
-				</p>
-				<p>
-					If you are about to build gestures, brushes, or music controls, this gives you a clean debugging
-					view first.
+					This example uses the <CodeDocLink href={docs.hands}>hands plugin</CodeDocLink> to mark fingertips
+					and hand centers on the live webcam feed, color-coded by handedness.
 				</p>
 			</>
 		),
@@ -357,13 +334,9 @@ const exampleDetails: Record<string, ExampleDetails> = {
 		fullDescription: (
 			<>
 				<p>
-					Elastics turns the <DocLink href={docs.hands}>hands plugin</DocLink> into a stylized glow renderer.
-					Instead of only marking points, it builds variable-width segments between thumb, index, and middle
-					fingertips, then blends that glow back over the live camera image.
-				</p>
-				<p>
-					Once the landmarks are available, the rest is just geometry and falloff in GLSL. It shows how to
-					turn tracked points into something more expressive than debug dots.
+					Elastics uses the <DocLink href={docs.hands}>hands plugin</DocLink> to create a stylized glow
+					between thumb, index, and middle fingertips. It shows how to turn tracked points into something more
+					expressive than debug dots.
 				</p>
 			</>
 		),
@@ -378,10 +351,12 @@ const exampleDetails: Record<string, ExampleDetails> = {
 					on the same canvas, the chain stays on the GPU.
 				</p>
 				<p>
-					Both passes also run the <DocLink href={docs.hands}>hands plugin</DocLink>. Since they read the same
-					source texture with the same options, detection is shared instead of duplicated. The trail pass only
-					updates every 3rd frame, stretching the history so the ink trails last longer. The final pass still
-					updates every frame so the webcam and fingertip markers stay responsive.
+					Both passes use the <DocLink href={docs.hands}>hands plugin</DocLink>. Since they read the same
+					source texture with the same options, detection is shared instead of duplicated.
+				</p>
+				<p>
+					The trail pass only updates every 3rd frame, stretching the history so the ink trails last longer.
+					The final pass updates every frame so the webcam and fingertip markers stay responsive.
 				</p>
 			</>
 		),
@@ -405,14 +380,9 @@ const exampleDetails: Record<string, ExampleDetails> = {
 		fullDescription: (
 			<>
 				<p>
-					Segmenter demonstrates the <DocLink href={docs.segmenter}>segmenter plugin</DocLink> as both a
-					high-level query and a raw mask source. The shader reads category and confidence through{' '}
-					<CodeDocLink href={docs.segmenter}>segmentAt</CodeDocLink>, then also previews the full segmentation
-					mask in the corner.
-				</p>
-				<p>
-					It helps show what the plugin is actually returning before doing more ambitious compositing. This
-					demo also enables confidence masks explicitly.
+					This example uses the <CodeDocLink href={docs.segmenter}>segmenter plugin</CodeDocLink> to query
+					category and confidence with <CodeDocLink href={docs.segmenter}>segmentAt</CodeDocLink> on the live
+					webcam feed. The bottom-right corner shows the raw segmentation mask; confidence masks are enabled.
 				</p>
 			</>
 		),

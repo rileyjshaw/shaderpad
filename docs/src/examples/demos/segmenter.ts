@@ -3,7 +3,6 @@
  * objects in webcam feed with mask overlay.
  */
 import ShaderPad from 'shaderpad';
-import autosize from 'shaderpad/plugins/autosize';
 import helpers from 'shaderpad/plugins/helpers';
 import segmenter from 'shaderpad/plugins/segmenter';
 import { createFullscreenCanvas } from 'shaderpad/util';
@@ -55,14 +54,20 @@ void main() {
 
 	outColor = vec4(color, 1.0);
 }`;
-	const video = await getWebcamVideo();
+	const video = await getWebcamVideo({
+		width: { ideal: 1280 },
+		height: { ideal: 720 },
+		facingMode: 'user',
+	});
 
 	const outputCanvas = createFullscreenCanvas(mount);
+	outputCanvas.width = video.videoWidth;
+	outputCanvas.height = video.videoHeight;
+	outputCanvas.style.objectFit = 'cover';
 
 	const shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
 		plugins: [
-			autosize(),
 			helpers(),
 			segmenter({
 				textureName: 'u_webcam',

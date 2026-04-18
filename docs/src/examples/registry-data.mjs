@@ -73,22 +73,22 @@ export const exampleRegistry = [
 	{
 		slug: 'face-detection',
 		title: 'Face detection',
-		description: 'Face landmarks, masks, and regions visualized live.',
+		description: 'Face landmarks, masks, and regions on webcam input.',
 	},
 	{
 		slug: 'pose-detection',
 		title: 'Pose detection',
-		description: 'Pose landmarks and segmentation overlays on live video.',
+		description: 'Pose landmarks and segmentation overlays on webcam input.',
 	},
 	{
 		slug: 'hand-detection',
 		title: 'Hand detection',
-		description: 'Hand landmarks and centers visualized over webcam input.',
+		description: 'Hand landmarks and centers on webcam input.',
 	},
 	{
 		slug: 'segmenter',
 		title: 'Segmenter',
-		description: 'Live multi-category segmentation masks composited over webcam video.',
+		description: 'A multi-category segmentation mask on webcam input.',
 	},
 	{
 		slug: 'mediapipe-chaining',
@@ -98,22 +98,22 @@ export const exampleRegistry = [
 	{
 		slug: 'background-blur',
 		title: 'Background blur',
-		description: 'An advanced segmentation filter demonstrating a chained ShaderPad pipeline.',
+		description: 'An advanced blur filter demonstrating a chained ShaderPad pipeline.',
 	},
 	{
 		slug: 'camo',
 		title: 'Camo',
-		description: 'Face- or body-centered camouflage with a live mode toggle.',
+		description: 'Face- or body-centered camouflage using a single history frame.',
 	},
 	{
 		slug: 'elastics',
 		title: 'Elastics',
-		description: 'Elastic glowing hand connections between fingertips and thumbs.',
+		description: 'Elastic glowing connections between fingertips and thumbs.',
 	},
 	{
 		slug: 'finger-pens',
 		title: 'Finger pens',
-		description: 'Interactive ink strokes demo controlled by your fingertips.',
+		description: 'Interactive ink strokes controlled by your fingertips.',
 	},
 	{
 		slug: 'midi-fingers',

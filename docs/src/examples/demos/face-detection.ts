@@ -3,7 +3,6 @@
  * region masks over a fullscreen mirrored webcam feed.
  */
 import ShaderPad from 'shaderpad';
-import autosize from 'shaderpad/plugins/autosize';
 import face from 'shaderpad/plugins/face';
 import helpers from 'shaderpad/plugins/helpers';
 import { createFullscreenCanvas } from 'shaderpad/util';
@@ -104,13 +103,19 @@ void main() {
 	outColor = vec4(color, 1.0);
 }`;
 
-	video = await getWebcamVideo({ facingMode: 'user' });
+	video = await getWebcamVideo({
+		width: { ideal: 1280 },
+		height: { ideal: 720 },
+		facingMode: 'user',
+	});
 	outputCanvas = createFullscreenCanvas(mount);
+	outputCanvas.width = video.videoWidth;
+	outputCanvas.height = video.videoHeight;
+	outputCanvas.style.objectFit = 'cover';
 
 	shader = new ShaderPad(fragmentShaderSrc, {
 		canvas: outputCanvas,
 		plugins: [
-			autosize(),
 			helpers(),
 			face({
 				textureName: 'u_webcam',
