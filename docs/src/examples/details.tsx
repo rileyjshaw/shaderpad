@@ -390,14 +390,13 @@ const exampleDetails: Record<string, ExampleDetails> = {
 		fullDescription: (
 			<>
 				<p>
-					MIDI fingers is half visualizer and half controller. It uses the{' '}
-					<DocLink href={docs.hands}>hands plugin</DocLink> for tracked fingertips, then mirrors those
-					finger-to-thumb distances into Web MIDI control changes in JavaScript. The overlay on screen helps
-					you see the same values you are sending to your synth or DAW.
+					MIDI fingers uses the <DocLink href={docs.hands}>hands plugin</DocLink> to track fingertips, then
+					mirrors those finger-to-thumb distances into Web MIDI control changes in JavaScript. The shader
+					helps you visualize the CC values as elastics between your fingers.
 				</p>
 				<p>
-					The current mapping is <code>41-43</code> for selected left-hand fingers and <code>44-47</code> for
-					selected right-hand fingers. It sends to the first available MIDI output.
+					The current mapping is <code>22-25</code> for the left-hand fingers and <code>26-29</code> for the
+					right-hand fingers. It sends to the first available MIDI output.
 				</p>
 			</>
 		),

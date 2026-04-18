@@ -1,7 +1,6 @@
 /**
  * Hand detection visualization using hands plugin. Shows glowing lines connecting
- * each finger tip to thumb. MIDI CC: left = middle 41, pinky 42, index 43;
- * right = index 44, middle 45, ring 46, pinky 47.
+ * each finger tip to thumb.
  */
 import ShaderPad from 'shaderpad';
 import autosize from 'shaderpad/plugins/autosize';
@@ -21,15 +20,16 @@ const PINKY_TIP = 20;
 // [finger tip landmark index, CC number] per hand. Distance = finger–thumb.
 const MIDI_CC_BY_HAND: Record<string, [number, number][]> = {
 	Left: [
-		[MIDDLE_TIP, 41],
-		[PINKY_TIP, 42],
-		[INDEX_TIP, 43],
+		[INDEX_TIP, 22],
+		[MIDDLE_TIP, 23],
+		[RING_TIP, 24],
+		[PINKY_TIP, 25],
 	],
 	Right: [
-		[INDEX_TIP, 44],
-		[MIDDLE_TIP, 45],
-		[RING_TIP, 46],
-		[PINKY_TIP, 47],
+		[INDEX_TIP, 26],
+		[MIDDLE_TIP, 27],
+		[RING_TIP, 28],
+		[PINKY_TIP, 29],
 	],
 };
 
