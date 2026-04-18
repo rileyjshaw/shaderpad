@@ -18,9 +18,9 @@ void main() {
   vec2 cursor = u_cursor * 2.0 - 1.0;
   vec2 uv = v_uv * 2.0 - 1.0 - cursor;
   uv.x *= u_resolution.x / u_resolution.y;
-
-  float glow = 0.25 / max(length(uv), 0.001);
-  vec3 color = 0.5 + 0.5 * cos(u_time + uv.xyx + vec3(0.0, 2.0, 4.0));
+  float r = length(uv);
+  float glow = 0.25 / max(r, 0.001);
+  vec3 color = 0.5 + 0.5 * cos(u_time + r + vec3(0.0, 2.0, 4.0));
   outColor = vec4(color * glow, 1.0);
 }`;
 

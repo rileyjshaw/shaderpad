@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-04-14T18:04:40.883Z",
+	"generatedAt": "2026-04-18T04:28:21.207Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
@@ -61,9 +61,9 @@
 		},
 		"./react": {
 			"specifier": "shaderpad/react",
-			"minifiedBytes": 23377,
-			"minified": "22.8 kB",
-			"gzippedBytes": 7788,
+			"minifiedBytes": 23401,
+			"minified": "22.9 kB",
+			"gzippedBytes": 7806,
 			"gzipped": "7.6 kB",
 			"gzippedLabel": "7.6 kB gzipped"
 		},
