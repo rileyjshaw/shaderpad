@@ -102,6 +102,14 @@ function copyTemplateFiles(sourceDir, targetDir) {
 	}
 }
 
+function copySharedGitignore(variant, targetDir) {
+	const sourcePath = path.resolve(__dirname, '..', 'shared', `gitignore-${variant}`);
+	if (!fs.existsSync(sourcePath)) {
+		fail(`Shared .gitignore template not found: ${sourcePath}`);
+	}
+	fs.copyFileSync(sourcePath, path.join(targetDir, '.gitignore'));
+}
+
 function fail(message) {
 	console.error(`\n${message}`);
 	process.exit(1);
@@ -240,6 +248,7 @@ async function main() {
 	}
 
 	copyTemplateFiles(templateDir, targetDir);
+	copySharedGitignore(template.variant, targetDir);
 
 	const packageJsonPath = path.join(targetDir, 'package.json');
 	const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
