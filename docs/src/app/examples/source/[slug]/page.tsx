@@ -27,33 +27,43 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 	};
 }
 
+async function tryAddSource(
+	sources: Array<{ filename: string; language: string }>,
+	demosDir: string,
+	filename: string,
+	language: string,
+) {
+	try {
+		await access(join(demosDir, filename));
+		sources.push({ filename, language });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 async function readExampleSource(example: ExampleEntry) {
 	const demosDir = join(process.cwd(), 'src', 'examples', 'demos');
-	const sources: Array<{ filename: string; language: 'ts' | 'tsx' | 'glsl' }> = [];
+	const sources: Array<{ filename: string; language: string }> = [];
 
-	for (const source of [
-		{ filename: `${example.slug}.ts`, language: 'ts' as const },
-		{ filename: `${example.slug}.tsx`, language: 'tsx' as const },
+	await tryAddSource(sources, demosDir, `${example.slug}.html`, 'html');
+
+	for (const candidate of [
+		{ filename: `${example.slug}.ts`, language: 'ts' },
+		{ filename: `${example.slug}.tsx`, language: 'tsx' },
+		{ filename: `${example.slug}.js`, language: 'js' },
+		{ filename: `${example.slug}.jsx`, language: 'jsx' },
 	]) {
-		try {
-			await access(join(demosDir, source.filename));
-			sources.push(source);
+		if (await tryAddSource(sources, demosDir, candidate.filename, candidate.language)) {
 			break;
-		} catch {}
+		}
 	}
 
 	if (sources.length === 0) {
 		throw new Error(`Missing source file for example "${example.slug}"`);
 	}
 
-	const shaderPath = join(demosDir, `${example.slug}.glsl`);
-	try {
-		await access(shaderPath);
-		sources.push({
-			filename: `${example.slug}.glsl`,
-			language: 'glsl',
-		});
-	} catch {}
+	await tryAddSource(sources, demosDir, `${example.slug}.glsl`, 'glsl');
 
 	return Promise.all(
 		sources.map(async source => ({

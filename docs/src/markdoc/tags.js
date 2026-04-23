@@ -6,6 +6,7 @@ import { QuickLink, QuickLinks } from '@/components/QuickLinks';
 import { ReactPreview } from '@/components/ReactPreview';
 import { SavingImagesPreview } from '@/components/SavingImagesPreview';
 import { ShaderPadSizeInline } from '@/components/ShaderPadSize';
+import { WebComponentPreview } from '@/components/WebComponentPreview';
 
 const tags = {
 	callout: {
@@ -58,6 +59,10 @@ const tags = {
 	'react-preview': {
 		selfClosing: true,
 		render: ReactPreview,
+	},
+	'web-component-preview': {
+		selfClosing: true,
+		render: WebComponentPreview,
 	},
 	'saving-images-preview': {
 		selfClosing: true,

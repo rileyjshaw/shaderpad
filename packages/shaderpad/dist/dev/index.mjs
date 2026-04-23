@@ -1,6 +1,6 @@
 import {
   index_default
-} from "./chunk-KRIFZAFR.mjs";
+} from "./chunk-QYD24S7K.mjs";
 import "./chunk-OTFRVDNV.mjs";
 export {
   index_default as default

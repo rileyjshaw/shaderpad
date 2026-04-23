@@ -40,12 +40,12 @@ export default function ReactWaveExample() {
 		<div className="space-y-8">
 			<p className="max-w-3xl text-lg text-slate-700 dark:text-slate-300">
 				Instead of creating and tearing down a ShaderPad instance manually in an effect,{' '}
-				<code>shaderpad/react</code> offers a{' '}
+				<code>shaderpad/react</code> offers a convenient{' '}
 				<DocLink className="underline" href={docs.react}>
 					React wrapper
 				</DocLink>{' '}
-				that renders directly inside a normal page layout. It is a good starting point for decorative overlays,
-				embeds, and content-aware UI composition.
+				that renders inside a normal page layout. It is a good starting point for decorative overlays, embeds,
+				and content-aware UI composition.
 			</p>
 
 			<section className="not-prose overflow-hidden rounded-[32px] border border-emerald-200/70 bg-white shadow-xl ring-1 shadow-emerald-100/70 ring-emerald-950/5 dark:border-emerald-500/30 dark:bg-slate-950 dark:shadow-none dark:ring-white/10">

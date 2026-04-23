@@ -35,6 +35,8 @@ Start with these pages:
 - `/shaderpad/docs/guides/chaining-shaders/` - multi-pass workflows
 - `/shaderpad/docs/guides/performance/` - bandwidth, context sharing, texture formats, and detector batching
 - `/shaderpad/docs/plugins/helpers/` - GLSL helpers, `fitCover()`, and the `u_resolution` caveat
+- `/shaderpad/docs/components/web-component/` - declarative `<shader-pad>` usage, child texture sources, and DOM events
+- `/shaderpad/docs/components/react/` - React wrapper usage, managed playback, and direct ShaderPad refs
 
 Plugin docs:
 

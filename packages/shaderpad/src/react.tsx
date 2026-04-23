@@ -2,19 +2,47 @@
 
 import {
 	type ComponentPropsWithoutRef,
+	createContext,
 	forwardRef,
+	type ReactNode,
 	type RefObject,
+	useContext,
 	useEffect,
 	useImperativeHandle,
+	useLayoutEffect,
 	useRef,
 	useState,
 } from 'react';
 
-import CoreShaderPad, { type Options, type Plugin, type StepOptions } from '.';
+import CoreShaderPad, { type InitializeTextureOptions, type Options, type Plugin, type StepOptions } from '.';
+import { createPlaybackVisibilityController, type PlaybackVisibilityController } from './internal/autoplay';
+import {
+	addDomTextureRefreshListener,
+	type DomTextureElement,
+	getLiveDomTextureSource,
+	isDomTextureElement,
+	isLiveDomTextureElement,
+	loadDomTextureSource,
+	parseTextureOptions,
+	parseTextureOptionsFromAttributes,
+} from './internal/declarative-textures';
 import autosizePlugin, { type AutosizeOptions } from './plugins/autosize';
 
 type CursorTarget = Window | Element | RefObject<Element | null>;
-type EventMap = Partial<Record<string, (...args: any[]) => void>>;
+type ShaderPadOptions = Omit<Options, 'canvas' | 'plugins' | 'cursorTarget'>;
+
+type TextureDataAttributes = {
+	'data-texture'?: string;
+	'data-texture-history'?: string | number;
+	'data-texture-preserve-y'?: string | boolean;
+	'data-texture-internal-format'?: string;
+	'data-texture-format'?: string;
+	'data-texture-type'?: string;
+	'data-texture-min-filter'?: string;
+	'data-texture-mag-filter'?: string;
+	'data-texture-wrap-s'?: string;
+	'data-texture-wrap-t'?: string;
+};
 
 type ShaderPadHandle = {
 	readonly shader: CoreShaderPad | null;
@@ -29,20 +57,62 @@ type ShaderPadHandle = {
 	destroy(): void;
 };
 
-export interface ShaderPadProps extends Omit<ComponentPropsWithoutRef<'canvas'>, 'children' | 'onError'> {
+export interface ShaderPadProps
+	extends Omit<ComponentPropsWithoutRef<'canvas'>, 'children' | 'onError'>, TextureDataAttributes {
 	shader: string;
+	children?: ReactNode;
 	plugins?: Plugin[];
-	options?: Omit<Options, 'canvas' | 'plugins' | 'cursorTarget'>;
+	options?: ShaderPadOptions;
 	autosize?: boolean | AutosizeOptions;
 	cursorTarget?: CursorTarget;
-	autoPlay?: boolean;
-	pauseWhenOffscreen?: boolean;
+	autoplay?: boolean;
+	autopause?: boolean;
 	onInit?: (shader: CoreShaderPad, canvas: HTMLCanvasElement) => void;
 	onBeforeStep?: (shader: CoreShaderPad, time: number, frame: number) => StepOptions | void;
 	onError?: (error: unknown) => void;
-	onOnscreenChange?: (isOnscreen: boolean) => void;
-	events?: EventMap;
 }
+
+type ReadyWaiter = {
+	resolve(shader: CoreShaderPad): void;
+	reject(error: unknown): void;
+};
+
+type NestedTextureRegistration = {
+	readonly id: symbol;
+	readonly name: string;
+	readonly options: InitializeTextureOptions;
+	waitForShader(): Promise<CoreShaderPad>;
+	getShader(): CoreShaderPad | null;
+	step(): void;
+	draw(): void;
+	subscribe(listener: (shader: CoreShaderPad) => void): () => void;
+};
+
+type NestedTextureRegistry = {
+	getCanvas(): HTMLCanvasElement | null;
+	register(registration: NestedTextureRegistration): () => void;
+};
+
+type DomTextureBinding = {
+	kind: 'dom';
+	element: DomTextureElement;
+	name: string;
+	options: InitializeTextureOptions;
+	live: boolean;
+};
+
+type NestedTextureBinding = {
+	kind: 'nested';
+	registration: NestedTextureRegistration;
+	name: string;
+	options: InitializeTextureOptions;
+	live: true;
+};
+
+type TextureBinding = DomTextureBinding | NestedTextureBinding;
+
+const ShaderPadTextureContext = createContext<NestedTextureRegistry | null>(null);
+const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 function isRefTarget(target: CursorTarget | undefined): target is RefObject<Element | null> {
 	return Boolean(target && typeof target === 'object' && 'current' in target);
@@ -56,156 +126,203 @@ function resolveCursorTarget(target: CursorTarget | undefined) {
 	return target;
 }
 
-function isElementInViewport(element: HTMLElement) {
-	const rect = element.getBoundingClientRect();
-	return (
-		rect.width > 0 &&
-		rect.height > 0 &&
-		rect.bottom > 0 &&
-		rect.right > 0 &&
-		rect.top < window.innerHeight &&
-		rect.left < window.innerWidth
-	);
-}
-
-function isElementRenderable(element: HTMLElement) {
-	if (typeof element.checkVisibility === 'function') {
-		return element.checkVisibility({
-			contentVisibilityAuto: true,
-			checkOpacity: true,
-			checkVisibilityCSS: true,
-		});
-	}
-
-	const style = window.getComputedStyle(element);
-	const rect = element.getBoundingClientRect();
-	return (
-		rect.width > 0 &&
-		rect.height > 0 &&
-		style.display !== 'none' &&
-		style.visibility !== 'hidden' &&
-		style.opacity !== '0'
-	);
+function queueUnhandledError(error: unknown) {
+	queueMicrotask(() => {
+		throw error;
+	});
 }
 
 export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function ShaderPad(
 	{
 		shader,
+		children,
 		plugins,
 		options,
 		autosize = true,
 		cursorTarget,
-		autoPlay = true,
-		pauseWhenOffscreen = true,
+		autoplay = true,
+		autopause = true,
 		onInit,
 		onBeforeStep,
 		onError,
-		onOnscreenChange,
-		events,
 		style,
+		'data-texture': textureNameValue,
+		'data-texture-history': textureHistory,
+		'data-texture-preserve-y': texturePreserveY,
+		'data-texture-internal-format': textureInternalFormat,
+		'data-texture-format': textureFormat,
+		'data-texture-type': textureType,
+		'data-texture-min-filter': textureMinFilter,
+		'data-texture-mag-filter': textureMagFilter,
+		'data-texture-wrap-s': textureWrapS,
+		'data-texture-wrap-t': textureWrapT,
 		...canvasProps
 	},
 	ref,
 ) {
+	const parentTextureRegistry = useContext(ShaderPadTextureContext);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const textureHostRef = useRef<HTMLDivElement>(null);
 	const shaderRef = useRef<CoreShaderPad | null>(null);
+	const liveTexturesRef = useRef<TextureBinding[]>([]);
+	const playbackControllerRef = useRef<PlaybackVisibilityController | null>(null);
 	const destroyedShadersRef = useRef(new WeakSet<CoreShaderPad>());
-	const eventSubscriptionsRef = useRef<{
-		shader: CoreShaderPad | null;
-		listeners: Map<string, (...args: any[]) => void>;
-	}>({
-		shader: null,
-		listeners: new Map(),
-	});
-	const syncPlaybackRef = useRef<(() => void) | null>(null);
+	const readyWaitersRef = useRef<ReadyWaiter[]>([]);
+	const nestedTextureListenersRef = useRef(new Set<(shader: CoreShaderPad) => void>());
+	const nestedTextureRegistrationsRef = useRef(new Map<symbol, NestedTextureRegistration>());
+	const nestedTextureNameRef = useRef<string | undefined>(undefined);
+	const nestedTextureOptionsRef = useRef<InitializeTextureOptions>({});
+	const nestedTextureRegistrationRef = useRef<NestedTextureRegistration | null>(null);
+	const textureRegistryRef = useRef<NestedTextureRegistry | null>(null);
 	const onInitRef = useRef(onInit);
 	const onBeforeStepRef = useRef(onBeforeStep);
 	const onErrorRef = useRef(onError);
-	const onOnscreenChangeRef = useRef(onOnscreenChange);
-	const eventsRef = useRef(events);
-	const autoPlayRef = useRef(autoPlay);
-	const pauseWhenOffscreenRef = useRef(pauseWhenOffscreen);
+	const autoplayRef = useRef(autoplay);
+	const autopauseRef = useRef(autopause);
 	const [cursorTargetVersion, setCursorTargetVersion] = useState(0);
 
+	const nestedTextureName = textureNameValue?.trim() || undefined;
+	const isManagedTexture = Boolean(parentTextureRegistry && nestedTextureName);
+	const nestedTextureAttributes: TextureDataAttributes = {
+		'data-texture-history': textureHistory,
+		'data-texture-preserve-y': texturePreserveY,
+		'data-texture-internal-format': textureInternalFormat,
+		'data-texture-format': textureFormat,
+		'data-texture-type': textureType,
+		'data-texture-min-filter': textureMinFilter,
+		'data-texture-mag-filter': textureMagFilter,
+		'data-texture-wrap-s': textureWrapS,
+		'data-texture-wrap-t': textureWrapT,
+	};
+
+	nestedTextureNameRef.current = nestedTextureName;
+	nestedTextureOptionsRef.current = parseTextureOptionsFromAttributes(
+		name => nestedTextureAttributes[name as keyof TextureDataAttributes],
+		'data-texture-',
+	);
 	onInitRef.current = onInit;
 	onBeforeStepRef.current = onBeforeStep;
 	onErrorRef.current = onError;
-	onOnscreenChangeRef.current = onOnscreenChange;
-	eventsRef.current = events;
-	autoPlayRef.current = autoPlay;
-	pauseWhenOffscreenRef.current = pauseWhenOffscreen;
+	autoplayRef.current = autoplay;
+	autopauseRef.current = autopause;
 
-	function clearEventSubscriptions(shader?: CoreShaderPad | null) {
-		const store = eventSubscriptionsRef.current;
-		const activeShader = shader ?? store.shader;
-		if (!activeShader) {
-			return;
-		}
-
-		for (const [name, listener] of store.listeners) {
-			activeShader.off(name as any, listener);
-		}
-
-		store.listeners.clear();
-		if (!shader || store.shader === shader) {
-			store.shader = null;
-		}
+	if (!nestedTextureRegistrationRef.current) {
+		nestedTextureRegistrationRef.current = {
+			id: Symbol('ShaderPad texture'),
+			get name() {
+				return nestedTextureNameRef.current ?? '';
+			},
+			get options() {
+				return nestedTextureOptionsRef.current;
+			},
+			waitForShader() {
+				if (shaderRef.current) return Promise.resolve(shaderRef.current);
+				return new Promise<CoreShaderPad>((resolve, reject) => {
+					readyWaitersRef.current.push({ resolve, reject });
+				});
+			},
+			getShader() {
+				return shaderRef.current;
+			},
+			step() {
+				const shaderInstance = shaderRef.current;
+				if (shaderInstance) managedStepShader(shaderInstance);
+			},
+			draw() {
+				const shaderInstance = shaderRef.current;
+				if (shaderInstance) drawShader(shaderInstance);
+			},
+			subscribe(listener) {
+				nestedTextureListenersRef.current.add(listener);
+				return () => nestedTextureListenersRef.current.delete(listener);
+			},
+		};
 	}
 
-	function syncEventSubscriptions(shader: CoreShaderPad | null) {
-		const store = eventSubscriptionsRef.current;
-		if (store.shader && store.shader !== shader) {
-			clearEventSubscriptions(store.shader);
-		}
-		if (!shader) {
+	if (!textureRegistryRef.current) {
+		textureRegistryRef.current = {
+			getCanvas: () => canvasRef.current,
+			register(registration) {
+				nestedTextureRegistrationsRef.current.set(registration.id, registration);
+				return () => {
+					if (nestedTextureRegistrationsRef.current.get(registration.id) === registration) {
+						nestedTextureRegistrationsRef.current.delete(registration.id);
+					}
+				};
+			},
+		};
+	}
+
+	function resolveReadyWaiters(shaderInstance: CoreShaderPad) {
+		const waiters = readyWaitersRef.current.splice(0);
+		for (const waiter of waiters) waiter.resolve(shaderInstance);
+		for (const listener of nestedTextureListenersRef.current) listener(shaderInstance);
+	}
+
+	function rejectReadyWaiters(error: unknown) {
+		const waiters = readyWaitersRef.current.splice(0);
+		for (const waiter of waiters) waiter.reject(error);
+	}
+
+	function destroyShader(shaderInstance: CoreShaderPad | null) {
+		if (!shaderInstance || destroyedShadersRef.current.has(shaderInstance)) {
 			return;
 		}
 
-		const entries = Object.entries(eventsRef.current ?? {}).filter(([, handler]) => typeof handler === 'function');
-		const nextKeys = new Set(entries.map(([name]) => name));
-
-		for (const [name, listener] of store.listeners) {
-			if (!nextKeys.has(name)) {
-				shader.off(name as any, listener);
-				store.listeners.delete(name);
-			}
+		destroyedShadersRef.current.add(shaderInstance);
+		if (shaderRef.current === shaderInstance) {
+			shaderRef.current = null;
 		}
+		shaderInstance.destroy();
+	}
 
-		for (const [name] of entries) {
-			if (store.listeners.has(name)) {
+	function destroyCurrentInstance() {
+		playbackControllerRef.current?.destroy();
+		playbackControllerRef.current = null;
+		liveTexturesRef.current = [];
+		destroyShader(shaderRef.current);
+		rejectReadyWaiters(new Error('ShaderPad was destroyed before initialization completed.'));
+	}
+
+	function updateLiveTextures(shaderInstance: CoreShaderPad, nestedRenderMode?: 'step' | 'draw') {
+		if (liveTexturesRef.current.length === 0) return;
+
+		const updates: Record<string, HTMLVideoElement | HTMLCanvasElement | CoreShaderPad> = {};
+		for (const binding of liveTexturesRef.current) {
+			if (binding.kind === 'dom') {
+				const source = getLiveDomTextureSource(binding.element);
+				if (source) updates[binding.name] = source;
 				continue;
 			}
 
-			const listener = (...args: any[]) => {
-				const handler = eventsRef.current?.[name];
-				if (typeof handler === 'function') {
-					handler(...args);
-				}
-			};
-
-			shader.on(name as any, listener);
-			store.listeners.set(name, listener);
+			const nestedShader = binding.registration.getShader();
+			if (!nestedShader) continue;
+			if (nestedRenderMode === 'step') {
+				binding.registration.step();
+			} else if (nestedRenderMode === 'draw') {
+				binding.registration.draw();
+			}
+			updates[binding.name] = nestedShader;
 		}
 
-		store.shader = shader;
+		if (Object.keys(updates).length > 0) shaderInstance.updateTextures(updates);
 	}
 
-	function destroyShader(shader: CoreShaderPad | null) {
-		if (!shader || destroyedShadersRef.current.has(shader)) {
-			return;
-		}
-
-		destroyedShadersRef.current.add(shader);
-		clearEventSubscriptions(shader);
-		if (shaderRef.current === shader) {
-			shaderRef.current = null;
-			syncPlaybackRef.current = null;
-		}
-		shader.destroy();
+	function playShader(shaderInstance: CoreShaderPad) {
+		shaderInstance.play(() => (onBeforeStepRef.current ? {} : undefined));
 	}
 
-	function playShader(shader: CoreShaderPad) {
-		shader.play((time, frame) => onBeforeStepRef.current?.(shader, time, frame));
+	function managedStepShader(shaderInstance: CoreShaderPad) {
+		shaderInstance.step(onBeforeStepRef.current ? {} : undefined);
+	}
+
+	function stepShader(shaderInstance: CoreShaderPad, stepOptions?: StepOptions) {
+		shaderInstance.step(stepOptions ? { ...stepOptions } : onBeforeStepRef.current ? {} : undefined);
+	}
+
+	function drawShader(shaderInstance: CoreShaderPad, stepOptions?: StepOptions) {
+		updateLiveTextures(shaderInstance, 'draw');
+		shaderInstance.draw(stepOptions);
 	}
 
 	useImperativeHandle(
@@ -218,19 +335,21 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 				return canvasRef.current;
 			},
 			play() {
-				const shader = shaderRef.current;
-				if (shader) {
-					playShader(shader);
+				const shaderInstance = shaderRef.current;
+				if (shaderInstance) {
+					playShader(shaderInstance);
 				}
 			},
 			pause() {
 				shaderRef.current?.pause();
 			},
 			step(stepOptions) {
-				shaderRef.current?.step(stepOptions);
+				const shaderInstance = shaderRef.current;
+				if (shaderInstance) stepShader(shaderInstance, stepOptions);
 			},
 			draw(stepOptions) {
-				shaderRef.current?.draw(stepOptions);
+				const shaderInstance = shaderRef.current;
+				if (shaderInstance) drawShader(shaderInstance, stepOptions);
 			},
 			clear() {
 				shaderRef.current?.clear();
@@ -242,11 +361,16 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 				shaderRef.current?.reset();
 			},
 			destroy() {
-				destroyShader(shaderRef.current);
+				destroyCurrentInstance();
 			},
 		}),
 		[],
 	);
+
+	useClientLayoutEffect(() => {
+		if (!parentTextureRegistry || !nestedTextureName) return;
+		return parentTextureRegistry.register(nestedTextureRegistrationRef.current!);
+	}, [parentTextureRegistry, nestedTextureName]);
 
 	useEffect(() => {
 		if (!isRefTarget(cursorTarget) || cursorTarget.current) {
@@ -288,18 +412,18 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 			return;
 		}
 
+		const effectiveAutosize =
+			isManagedTexture && autosize === true ? { target: parentTextureRegistry?.getCanvas() ?? canvas } : autosize;
 		const installedPlugins =
-			autosize === false
+			effectiveAutosize === false
 				? [...(plugins ?? [])]
-				: [autosizePlugin(autosize === true ? undefined : autosize), ...(plugins ?? [])];
+				: [autosizePlugin(effectiveAutosize === true ? undefined : effectiveAutosize), ...(plugins ?? [])];
 
 		let instance: CoreShaderPad | null = null;
+		let playbackController: PlaybackVisibilityController | null = null;
 		let isDisposed = false;
-		let isDocumentVisible = document.visibilityState === 'visible';
-		let isIntersecting = isElementInViewport(canvas);
-		let lastOnscreen: boolean | null = null;
 		let isPlaying = false;
-		let isManagedPlayback = false;
+		const cleanupCallbacks: Array<() => void> = [];
 
 		const handlePlay = () => {
 			isPlaying = true;
@@ -307,132 +431,168 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 		const handlePause = () => {
 			isPlaying = false;
 		};
+		const handleBeforeStep = (time: number, frame: number, stepOptions?: StepOptions) => {
+			if (!instance) return;
 
-		const handleVisibilityChange = () => {
-			isDocumentVisible = document.visibilityState === 'visible';
-			syncPlayback();
+			updateLiveTextures(instance, 'step');
+			const nextOptions = onBeforeStepRef.current?.(instance, time, frame);
+			if (nextOptions && stepOptions) {
+				Object.assign(stepOptions, nextOptions);
+			}
 		};
-
-		const syncPlayback = () => {
-			if (!instance || isDisposed) {
-				return;
+		const cleanupInstance = () => {
+			if (playbackControllerRef.current === playbackController) {
+				playbackControllerRef.current = null;
 			}
-
-			const isOnscreen = isDocumentVisible && isIntersecting && isElementRenderable(canvas) && canvas.isConnected;
-
-			if (lastOnscreen !== isOnscreen) {
-				lastOnscreen = isOnscreen;
-				onOnscreenChangeRef.current?.(isOnscreen);
-			}
-
-			if (!autoPlayRef.current) {
-				if (isManagedPlayback && isPlaying) {
-					instance.pause();
-				}
-				isManagedPlayback = false;
-				return;
-			}
-
-			if (!pauseWhenOffscreenRef.current) {
-				if (!isPlaying) {
-					playShader(instance);
-				}
-				isManagedPlayback = true;
-				return;
-			}
-
-			if (isOnscreen) {
-				if (!isPlaying) {
-					playShader(instance);
-				}
-				isManagedPlayback = true;
-				return;
-			}
-
-			if (isPlaying) {
-				instance.pause();
-			}
-			isManagedPlayback = false;
-		};
-
-		const intersectionObserver =
-			typeof IntersectionObserver === 'function'
-				? new IntersectionObserver(
-						entries => {
-							isIntersecting = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0);
-							syncPlayback();
-						},
-						{ threshold: 0.01 },
-					)
-				: null;
-
-		try {
-			instance = new CoreShaderPad(shader, {
-				...options,
-				canvas,
-				plugins: installedPlugins,
-				...(resolvedCursorTarget ? { cursorTarget: resolvedCursorTarget } : {}),
-			});
-			instance.on('play', handlePlay);
-			instance.on('pause', handlePause);
-			shaderRef.current = instance;
-			syncEventSubscriptions(instance);
-			onInitRef.current?.(instance, canvas);
-
-			intersectionObserver?.observe(canvas);
-			document.addEventListener('visibilitychange', handleVisibilityChange);
-			syncPlaybackRef.current = syncPlayback;
-			syncPlayback();
-		} catch (error) {
-			intersectionObserver?.disconnect();
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			playbackController?.destroy();
+			for (const cleanup of cleanupCallbacks.splice(0)) cleanup();
+			liveTexturesRef.current = [];
 			if (instance) {
 				instance.off('play', handlePlay);
 				instance.off('pause', handlePause);
+				instance.off('beforeStep', handleBeforeStep);
 			}
 			destroyShader(instance);
+		};
+		const handleSetupError = (error: unknown) => {
+			cleanupInstance();
+			rejectReadyWaiters(error);
 			if (onErrorRef.current) {
 				onErrorRef.current(error);
 				return;
 			}
-			throw error;
-		}
+			queueUnhandledError(error);
+		};
+
+		const initialize = async () => {
+			try {
+				instance = new CoreShaderPad(shader, {
+					...options,
+					canvas,
+					plugins: installedPlugins,
+					...(resolvedCursorTarget ? { cursorTarget: resolvedCursorTarget } : {}),
+				});
+				instance.on('play', handlePlay);
+				instance.on('pause', handlePause);
+				instance.on('beforeStep', handleBeforeStep);
+
+				const domTextureBindings: DomTextureBinding[] = [];
+				for (const child of Array.from(textureHostRef.current?.children ?? [])) {
+					const name = child.getAttribute('data-texture');
+					if (!name || !isDomTextureElement(child)) continue;
+					domTextureBindings.push({
+						kind: 'dom',
+						element: child,
+						name,
+						options: parseTextureOptions(child, 'data-texture-'),
+						live: isLiveDomTextureElement(child),
+					});
+				}
+				const nestedTextureBindings: NestedTextureBinding[] = Array.from(
+					nestedTextureRegistrationsRef.current.values(),
+				)
+					.filter(registration => registration.name)
+					.map(registration => ({
+						kind: 'nested',
+						registration,
+						name: registration.name,
+						options: registration.options,
+						live: true,
+					}));
+				const textureBindings: TextureBinding[] = [...domTextureBindings, ...nestedTextureBindings];
+
+				for (const binding of textureBindings) {
+					const source =
+						binding.kind === 'dom'
+							? await loadDomTextureSource(binding.element)
+							: await binding.registration.waitForShader();
+					if (isDisposed) return;
+					instance.initializeTexture(binding.name, source, binding.options);
+				}
+
+				liveTexturesRef.current = textureBindings.filter(binding => binding.live);
+				for (const binding of textureBindings) {
+					if (binding.kind === 'dom') {
+						const cleanup = addDomTextureRefreshListener(binding.element, () => {
+							instance?.updateTextures({ [binding.name]: binding.element });
+						});
+						if (cleanup) cleanupCallbacks.push(cleanup);
+						continue;
+					}
+
+					cleanupCallbacks.push(
+						binding.registration.subscribe(nestedShader => {
+							instance?.updateTextures({ [binding.name]: nestedShader });
+						}),
+					);
+				}
+
+				if (isDisposed) return;
+				shaderRef.current = instance;
+				onInitRef.current?.(instance, canvas);
+				resolveReadyWaiters(instance);
+
+				playbackController = createPlaybackVisibilityController({
+					target: canvas,
+					autoplay: isManagedTexture ? false : autoplayRef.current,
+					autopause: isManagedTexture ? false : autopauseRef.current,
+					isPlaying: () => isPlaying,
+					play: () => {
+						if (instance && !isDisposed) {
+							playShader(instance);
+						}
+					},
+					pause: () => instance?.pause(),
+				});
+				playbackControllerRef.current = playbackController;
+				playbackController.sync();
+			} catch (error) {
+				if (!isDisposed) handleSetupError(error);
+			}
+		};
+
+		void initialize();
 
 		return () => {
 			isDisposed = true;
-			intersectionObserver?.disconnect();
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
-			if (instance) {
-				instance.off('play', handlePlay);
-				instance.off('pause', handlePause);
-			}
-			destroyShader(instance);
+			cleanupInstance();
 		};
-	}, [shader, plugins, options, autosize, cursorTarget, cursorTargetVersion]);
-
-	useEffect(() => {
-		syncEventSubscriptions(shaderRef.current);
 	}, [
-		Object.keys(events ?? {})
-			.sort()
-			.join('\n'),
+		shader,
+		plugins,
+		options,
+		autosize,
+		cursorTarget,
+		cursorTargetVersion,
+		isManagedTexture,
+		parentTextureRegistry,
 	]);
 
 	useEffect(() => {
-		syncPlaybackRef.current?.();
-	}, [autoPlay, pauseWhenOffscreen]);
+		playbackControllerRef.current?.update({
+			autoplay: isManagedTexture ? false : autoplay,
+			autopause: isManagedTexture ? false : autopause,
+		});
+	}, [autoplay, autopause, isManagedTexture]);
 
 	return (
-		<canvas
-			ref={canvasRef}
-			style={{
-				display: 'block',
-				width: '100%',
-				height: '100%',
-				...style,
-			}}
-			{...canvasProps}
-		/>
+		<ShaderPadTextureContext.Provider value={textureRegistryRef.current}>
+			<canvas
+				ref={canvasRef}
+				style={{
+					display: 'block',
+					width: '100%',
+					height: '100%',
+					...style,
+				}}
+				{...canvasProps}
+			/>
+			{children ? (
+				<div ref={textureHostRef} hidden>
+					{children}
+				</div>
+			) : null}
+		</ShaderPadTextureContext.Provider>
 	);
 });
 

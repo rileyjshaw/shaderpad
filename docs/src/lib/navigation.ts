@@ -36,7 +36,6 @@ export const navigation = [
 	{
 		title: 'Guides',
 		links: [
-			{ title: 'React', href: '/docs/guides/react' },
 			{ title: 'Webcam input', href: '/docs/guides/webcam-input' },
 			{ title: 'Saving images', href: '/docs/guides/saving-images' },
 			{ title: 'Chaining shaders', href: '/docs/guides/chaining-shaders' },
@@ -55,6 +54,13 @@ export const navigation = [
 		],
 	},
 	{
+		title: 'Components',
+		links: [
+			{ title: 'Web component', href: '/docs/components/web-component' },
+			{ title: 'React', href: '/docs/components/react' },
+		],
+	},
+	{
 		title: 'API Reference',
 		links: [
 			{ title: 'ShaderPad', href: '/docs/api/shaderpad' },
@@ -64,6 +70,7 @@ export const navigation = [
 			{ title: 'Events', href: '/docs/api/events' },
 			{ title: 'Utilities', href: '/docs/api/utilities' },
 			{ title: 'Plugins', href: '/docs/api/plugins' },
+			{ title: 'Web component', href: '/docs/api/web-component' },
 			{ title: 'React', href: '/docs/api/react' },
 		],
 	},

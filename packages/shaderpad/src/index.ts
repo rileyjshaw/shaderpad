@@ -1,4 +1,4 @@
-import { spError, safeMod } from './internal/util';
+import { safeMod, spError } from './internal/util';
 
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
 in vec2 a_position;
@@ -356,11 +356,10 @@ class ShaderPad {
 		gl.deleteShader(fragmentShader);
 
 		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-			const programInfoLog = gl.getProgramInfoLog(program);
 			const linkError = spError(
 				2,
 				__SHADERPAD_DEV__ && {
-					programInfoLog,
+					programInfoLog: gl.getProgramInfoLog(program),
 					fragmentShaderLength: fragmentShaderSrc.length,
 					glslInjectionCount: glslInjections.length,
 				},
@@ -469,13 +468,11 @@ class ShaderPad {
 		this.gl.shaderSource(shader, source);
 		this.gl.compileShader(shader);
 		if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-			const shaderInfoLog = this.gl.getShaderInfoLog(shader);
-			const shaderType = type === this.gl.VERTEX_SHADER ? 'vertex' : 'fragment';
+			console.error(this.gl.getShaderInfoLog(shader));
 			const compilationError = spError(
 				4,
 				__SHADERPAD_DEV__ && {
-					shaderType,
-					shaderInfoLog,
+					shaderType: type === this.gl.VERTEX_SHADER ? 'vertex' : 'fragment',
 					source,
 				},
 			);

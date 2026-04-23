@@ -3,7 +3,7 @@ title: React
 nextjs:
     metadata:
         title: React API
-        description: Props, ref methods, and runtime behavior for `shaderpad/react`.
+        description: Props, ref methods, and runtime behavior for shaderpad/react.
 ---
 
 The `shaderpad/react` entry exports:
@@ -12,7 +12,7 @@ The `shaderpad/react` entry exports:
 import ShaderPad, { type ShaderPadProps } from 'shaderpad/react';
 ```
 
-If you want the common usage patterns first, start with the [React guide](/docs/guides/react).
+If you want the usage patterns first, start with [Components / React](/docs/components/react).
 
 ## Exports
 
@@ -26,9 +26,9 @@ If you want the common usage patterns first, start with the [React guide](/docs/
 
 ### Required
 
-| Prop     | Type     | Meaning                                                              |
-| -------- | -------- | -------------------------------------------------------------------- |
-| `shader` | `string` | Fragment shader source passed into the core `ShaderPad` constructor. |
+| Prop     | Type     | Meaning                 |
+| -------- | -------- | ----------------------- |
+| `shader` | `string` | Fragment shader source. |
 
 ### Core Configuration
 
@@ -41,32 +41,49 @@ If you want the common usage patterns first, start with the [React guide](/docs/
 
 ### Playback
 
-| Prop                 | Type      | Default | Meaning                                                                    |
-| -------------------- | --------- | ------- | -------------------------------------------------------------------------- |
-| `autoPlay`           | `boolean` | `true`  | Starts playback automatically after initialization.                        |
-| `pauseWhenOffscreen` | `boolean` | `true`  | Pauses when offscreen or document-hidden, then resumes when visible again. |
+| Prop        | Type      | Default | Meaning                                                                             |
+| ----------- | --------- | ------- | ----------------------------------------------------------------------------------- |
+| `autoplay`  | `boolean` | `true`  | Starts playback automatically after initialization.                                 |
+| `autopause` | `boolean` | `true`  | Pauses autoplay when offscreen or document-hidden, then resumes when visible again. |
 
 ### Callbacks
 
-| Prop               | Type                                           | Meaning                                                                                      |
-| ------------------ | ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `onInit`           | `(shader, canvas) => void`                     | Runs after the instance is created and subscriptions are installed, before auto-play starts. |
-| `onBeforeStep`     | `(shader, time, frame) => StepOptions \| void` | Runs before each managed `play()` frame and can return step options.                         |
-| `onError`          | `(error) => void`                              | Receives initialization errors instead of throwing them through React.                       |
-| `onOnscreenChange` | `(isOnscreen) => void`                         | Runs when the effective onscreen state changes.                                              |
-| `events`           | `Record<string, (...args: any[]) => void>`     | Subscribes to core ShaderPad events and namespaced plugin events.                            |
+| Prop           | Type                                           | Meaning                                                                                                                         |
+| -------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `onInit`       | `(shader, canvas) => void`                     | Runs after setup, before autoplay starts.                                                                                       |
+| `onBeforeStep` | `(shader, time, frame) => StepOptions \| void` | Runs whenever the underlying ShaderPad emits `beforeStep`. Returned step options apply to frames started through the component. |
+| `onError`      | `(error) => void`                              | Receives constructor/setup errors instead of letting them surface as uncaught runtime errors.                                   |
+
+### Texture Children
+
+`ShaderPadProps` allows children for declarative texture sources:
+
+```tsx
+<ShaderPad shader={shader}>
+  <img data-texture="u_image" src="/image.png" alt="" />
+  <video data-texture="u_video" src="/video.mp4" muted playsInline />
+  <canvas data-texture="u_canvas" width={512} height={512} />
+  <ShaderPad shader={passShader} data-texture="u_pass" />
+</ShaderPad>
+```
+
+Texture option props map onto `initializeTexture()`:
+
+| Prop                           | Meaning                        |
+| ------------------------------ | ------------------------------ |
+| `data-texture-history`         | Texture history depth.         |
+| `data-texture-preserve-y`      | Preserves or flips source Y.   |
+| `data-texture-internal-format` | WebGL internal texture format. |
+| `data-texture-format`          | WebGL texture format.          |
+| `data-texture-type`            | WebGL texture type.            |
+| `data-texture-min-filter`      | WebGL minification filter.     |
+| `data-texture-mag-filter`      | WebGL magnification filter.    |
+| `data-texture-wrap-s`          | WebGL horizontal wrap mode.    |
+| `data-texture-wrap-t`          | WebGL vertical wrap mode.      |
 
 ### Canvas Props
 
-`ShaderPadProps` extends normal React canvas props except `children` and the DOM `onError`.
-
-- `className`
-- `style`
-- `id`
-- `role`
-- `tabIndex`
-- `aria-label`
-- other standard canvas DOM props
+`ShaderPadProps` extends normal React canvas props, like `className` and `aria-label`, except the DOM `onError`.
 
 Default inline style values:
 
@@ -78,10 +95,20 @@ Your `style` prop is merged on top of those defaults.
 
 ## Events
 
-The `events` prop subscribes to:
+To add events listeners, subscribe through the underlying ShaderPad instance:
 
-- core ShaderPad events such as `updateUniforms`, `beforeStep`, and `updateResolution`
-- namespaced plugin events such as `autosize:resize`
+```tsx
+const ref = useRef<React.ElementRef<typeof ShaderPad>>(null);
+
+useEffect(() => {
+  const shader = ref.current?.shader;
+  if (!shader) return;
+
+  const handleResize = (width: number, height: number) => {};
+  shader.on('autosize:resize', handleResize);
+  return () => shader.off('autosize:resize', handleResize);
+}, [ready]);
+```
 
 Core event signatures are documented on the main [Events](/docs/api/events) page.
 
@@ -93,42 +120,24 @@ The component uses `forwardRef`. The public way to type the ref is:
 const ref = useRef<React.ElementRef<typeof ShaderPad>>(null);
 ```
 
-The ref exposes:
-
-| Member           | Type / Behavior                                           |
-| ---------------- | --------------------------------------------------------- |
-| `shader`         | Underlying core `ShaderPad` instance or `null`.           |
-| `canvas`         | Managed `HTMLCanvasElement` or `null`.                    |
-| `play()`         | Starts playback using the latest `onBeforeStep` callback. |
-| `pause()`        | Pauses playback.                                          |
-| `step(options?)` | Advances one frame manually.                              |
-| `draw(options?)` | Draws without advancing time or frame.                    |
-| `clear()`        | Clears the current output.                                |
-| `resetFrame()`   | Resets frame counting.                                    |
-| `reset()`        | Resets time, frame state, and history.                    |
-| `destroy()`      | Destroys the underlying instance.                         |
+The ref exposes the managed `canvas`, the underlying core `shader`, and the same playback methods documented on the [ShaderPad API page](/docs/api/shaderpad).
 
 ## Runtime Behavior
 
-The wrapper keeps callback props and event handlers live without recreating the instance.
-
-When `pauseWhenOffscreen` is enabled, onscreen state is computed from:
-
-- `IntersectionObserver`
-- `document.visibilityState`
-- `canvas.isConnected`
-- `checkVisibility()` when available, with a layout/style fallback
+The wrapper keeps callback props and playback props live without recreating the instance. By default, it starts playing after setup and pauses autoplay while the canvas is not visible.
 
 Behavior by prop combination:
 
-| `autoPlay` | `pauseWhenOffscreen` | Behavior                                               |
-| ---------- | -------------------- | ------------------------------------------------------ |
-| `true`     | `true`               | Play when visible, pause when not visible.             |
-| `true`     | `false`              | Start once after init and keep running.                |
-| `false`    | either               | Never auto-start, but still report `onOnscreenChange`. |
+| `autoplay` | `autopause` | Behavior                                                     |
+| ---------- | ----------- | ------------------------------------------------------------ |
+| `true`     | `true`      | Play when visible, pause autoplay when not visible.          |
+| `true`     | `false`     | Start after init and keep running until user code pauses it. |
+| `false`    | either      | Never auto-start.                                            |
+
+`autopause` only affects automatic playback started by the component. If you call `play()` yourself, pausing and resuming that loop is up to your code.
 
 ## Rules
 
 - Use this component only from client components in frameworks such as Next.js.
 - Do not pass your own `autosize()` plugin in `plugins` unless you also set `autosize={false}`.
-- The wrapper is intentionally thin. Declarative uniform and texture props are not part of this API; use `onInit`, `onBeforeStep`, events, or the ref for that work.
+- Use `onInit`, `onBeforeStep`, or the ref for dynamic uniform and texture work.

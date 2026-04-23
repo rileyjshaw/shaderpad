@@ -11,12 +11,14 @@ export const docs = {
 	builtInInputs: '/docs/core-concepts/built-in-inputs',
 	canvasAndInput: '/docs/core-concepts/canvas-and-input',
 	chainingShaders: '/docs/guides/chaining-shaders',
+	componentsReact: '/docs/components/react',
+	componentsWebComponent: '/docs/components/web-component',
 	face: '/docs/plugins/face',
 	hands: '/docs/plugins/hands',
 	helpers: '/docs/plugins/helpers',
 	history: '/docs/core-concepts/history',
 	pose: '/docs/plugins/pose',
-	react: '/docs/guides/react',
+	react: '/docs/components/react',
 	savingImages: '/docs/guides/saving-images',
 	segmenter: '/docs/plugins/segmenter',
 	shaderLifecycle: '/docs/core-concepts/shader-lifecycle',
@@ -70,13 +72,34 @@ const exampleDetails: Record<string, ExampleDetails> = {
 			</>
 		),
 	},
+	'web-component': {
+		fullDescription: (
+			<>
+				<p>
+					This demo has seven uniforms controlling its animation behavior, from maximum sway angle to whether
+					it uses color. These values are organized into “presets” and swapped with a single{' '}
+					<CodeDocLink href={docs.uniforms}>updateUniforms</CodeDocLink> call.
+				</p>
+				<p>
+					Swipe or use <code>Left Arrow</code> and <code>Right Arrow</code> to cycle through presets, and
+					press <code>Space</code> to pause or resume. It shows how to get multiple looks out of one shader
+					with a small set of uniforms.
+				</p>
+				<p>
+					This example uses the <code>&lt;shader-pad&gt;</code> web component. The fullscreen render canvas
+					and ShaderPad setup come from the component, while the TypeScript file waits for <code>load</code>{' '}
+					to initialize uniforms and wire keyboard and touch controls.
+				</p>
+			</>
+		),
+	},
 	react: {
 		fullDescription: (
 			<>
 				<p>
 					Instead of creating and tearing down a ShaderPad instance manually in an effect,{' '}
-					<code>shaderpad/react</code> offers a <DocLink href={docs.react}>React wrapper</DocLink> that
-					renders directly inside a normal page layout. It is a good starting point for decorative overlays,
+					<code>shaderpad/react</code> offers a convenient <DocLink href={docs.react}>React wrapper</DocLink>{' '}
+					that renders inside a normal page layout. It is a good starting point for decorative overlays,
 					embeds, and content-aware UI composition.
 				</p>
 			</>
@@ -112,22 +135,6 @@ const exampleDetails: Record<string, ExampleDetails> = {
 				<p>
 					A brief history delay is added between the left and right halves to show that they are reading from
 					different parts of the chain.
-				</p>
-			</>
-		),
-	},
-	sway: {
-		fullDescription: (
-			<>
-				<p>
-					This demo has seven uniforms controlling its animation behavior, from maximum sway angle to whether
-					it uses color. These values are organized into “presets” and swapped with a single{' '}
-					<CodeDocLink href={docs.uniforms}>updateUniforms</CodeDocLink> call.
-				</p>
-				<p>
-					Swipe or use <code>Left Arrow</code> and <code>Right Arrow</code> to cycle through presets, and
-					press <code>Space</code> to pause or resume. It shows how to get multiple looks out of one shader
-					with a small set of uniforms.
 				</p>
 			</>
 		),

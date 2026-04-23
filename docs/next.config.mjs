@@ -34,6 +34,19 @@ const nextConfig = {
 			],
 		});
 
+		config.module.rules.push({
+			test: /\.html$/i,
+			include: [path.resolve(currentDir, 'src/examples/demos')],
+			use: [
+				{
+					loader: 'raw-loader',
+					options: {
+						esModule: false,
+					},
+				},
+			],
+		});
+
 		return config;
 	},
 };

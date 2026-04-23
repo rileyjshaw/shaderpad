@@ -25,6 +25,7 @@ const markdownGroupOrder = [
 	'Guides',
 	'Examples',
 	'Plugins',
+	'Components',
 	'API Reference',
 	'Reference',
 ];
@@ -150,6 +151,10 @@ function markdownGroupForRoute(route) {
 
 	if (route.startsWith('/docs/plugins/')) {
 		return 'Plugins';
+	}
+
+	if (route.startsWith('/docs/components/')) {
+		return 'Components';
 	}
 
 	if (route.startsWith('/docs/api/')) {
@@ -340,7 +345,7 @@ const exampleFiles = await fg('*.{ts,tsx}', {
 	onlyFiles: true,
 	ignore: ['*.d.ts', 'main.ts'],
 });
-const exampleAssetFiles = await fg('*.{ts,tsx,glsl}', {
+const exampleAssetFiles = await fg('*.{ts,tsx,js,jsx,glsl,html}', {
 	cwd: examplesDir,
 	absolute: true,
 	onlyFiles: true,

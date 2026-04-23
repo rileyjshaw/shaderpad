@@ -5,9 +5,9 @@ export const exampleRegistry = [
 		description: 'Interactive dot grid with cursor tracking and animated custom uniforms.',
 	},
 	{
-		slug: 'sway',
-		title: 'Sway',
-		description: 'Animated visualizer with user-controlled patterns.',
+		slug: 'web-component',
+		title: 'Web component',
+		description: 'Fullscreen animated visualizer built with the <shader-pad> web component.',
 	},
 	{
 		slug: 'react',

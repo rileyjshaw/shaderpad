@@ -34,6 +34,15 @@
 			"import": "./dist/react.mjs",
 			"require": "./dist/react.js"
 		},
+		"./web-component": {
+			"types": "./dist/web-component.d.ts",
+			"development": {
+				"import": "./dist/dev/web-component.mjs",
+				"require": "./dist/dev/web-component.js"
+			},
+			"import": "./dist/web-component.mjs",
+			"require": "./dist/web-component.js"
+		},
 		"./plugins/face": {
 			"types": "./dist/plugins/face.d.ts",
 			"development": {
@@ -106,6 +115,9 @@
 		"*": {
 			"react": [
 				"dist/react.d.ts"
+			],
+			"web-component": [
+				"dist/web-component.d.ts"
 			],
 			"plugins/face": [
 				"dist/plugins/face.d.ts"

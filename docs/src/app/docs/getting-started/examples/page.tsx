@@ -35,6 +35,10 @@ const tagStyles: Record<string, ExampleTag> = {
 		className:
 			'border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300',
 	},
+	'WEB COMPONENT': {
+		className:
+			'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300',
+	},
 	MIDI: {
 		className:
 			'border-lime-200 bg-lime-50 text-lime-700 dark:border-lime-500/30 dark:bg-lime-500/10 dark:text-lime-300',
@@ -67,7 +71,7 @@ const defaultTag: ExampleTag = {
 
 const exampleTags: Record<string, string[]> = {
 	basic: ['UNIFORMS'],
-	sway: ['ANIMATION'],
+	'web-component': ['WEB COMPONENT', 'ANIMATION'],
 	react: ['REACT', 'ANIMATION'],
 	lygia: ['ANIMATION'],
 	'history-tiles': ['HISTORY'],
@@ -100,7 +104,7 @@ const sections: ExampleSection[] = [
 			'Core ShaderPad patterns: uniforms, animation, save workflows, live inputs, and straightforward feedback pipelines.',
 		slugs: [
 			'basic',
-			'sway',
+			'web-component',
 			'react',
 			'lygia',
 			'cursor-feedback',

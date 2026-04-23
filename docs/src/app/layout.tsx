@@ -79,7 +79,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			suppressHydrationWarning
 		>
 			<head>
-				<Script src={`https://www.googletagmanager.com/gtag/js?id=${googleTagId}`} strategy="afterInteractive" />
+				<Script
+					src={`https://www.googletagmanager.com/gtag/js?id=${googleTagId}`}
+					strategy="afterInteractive"
+				/>
 				<Script id="google-tag" strategy="afterInteractive">
 					{`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}

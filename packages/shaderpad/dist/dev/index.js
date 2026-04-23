@@ -343,11 +343,10 @@ var ShaderPad = class _ShaderPad {
     gl.deleteShader(vertexShader);
     gl.deleteShader(fragmentShader);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      const programInfoLog = gl.getProgramInfoLog(program);
       const linkError = spError(
         2,
         {
-          programInfoLog,
+          programInfoLog: gl.getProgramInfoLog(program),
           fragmentShaderLength: fragmentShaderSrc.length,
           glslInjectionCount: glslInjections.length
         }
@@ -444,13 +443,11 @@ var ShaderPad = class _ShaderPad {
     this.gl.shaderSource(shader, source);
     this.gl.compileShader(shader);
     if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      const shaderInfoLog = this.gl.getShaderInfoLog(shader);
-      const shaderType = type === this.gl.VERTEX_SHADER ? "vertex" : "fragment";
+      console.error(this.gl.getShaderInfoLog(shader));
       const compilationError = spError(
         4,
         {
-          shaderType,
-          shaderInfoLog,
+          shaderType: type === this.gl.VERTEX_SHADER ? "vertex" : "fragment",
           source
         }
       );
