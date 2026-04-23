@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.79
+
+### Patch Changes
+
+- Add package READMEs
+
 ## 1.0.0-beta.78
 
 ### Minor Changes
