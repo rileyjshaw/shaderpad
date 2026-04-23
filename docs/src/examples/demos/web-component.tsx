@@ -41,8 +41,8 @@ export default function WebComponentExample() {
 
 			<div className="max-w-3xl space-y-3">
 				<p className="text-lg text-slate-700 dark:text-slate-300">
-					Embedded texture children are declared with <code>data-texture</code>. Here the image becomes the{' '}
-					<code>u_trees</code> sampler, and the fragment shader can read from it immediately.
+					Embedded texture children are declared with <code>data-texture</code>. Here the image is bound to
+					<code>u_trees</code>, so the fragment shader can read from it immediately.
 				</p>
 				<pre className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-950 px-5 py-4 text-sm text-slate-100 dark:border-white/10">
 					<code>{`<shader-pad>

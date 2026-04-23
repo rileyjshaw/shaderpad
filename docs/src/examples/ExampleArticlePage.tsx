@@ -5,7 +5,7 @@ import { ExampleBackLink } from '@/examples/ExampleBackLink';
 import { getArticleExampleBySlug } from '@/examples/article-registry';
 import { getExampleDetails } from '@/examples/details';
 import { type ArticleExampleEntry } from '@/examples/registry';
-import { withBasePath } from '@/lib/site';
+import { sitePath } from '@/lib/site';
 
 export function ExampleArticlePage({ example }: { example: ArticleExampleEntry }) {
 	const ArticleExample = getArticleExampleBySlug(example.slug);
@@ -42,7 +42,7 @@ export function ExampleArticlePage({ example }: { example: ArticleExampleEntry }
 
 						<div className="flex flex-wrap gap-3">
 							<a
-								href={withBasePath(example.sourcePagePath)}
+								href={sitePath(example.sourcePagePath)}
 								className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-700 dark:text-emerald-300 dark:hover:border-emerald-700 dark:hover:bg-slate-800"
 							>
 								View source

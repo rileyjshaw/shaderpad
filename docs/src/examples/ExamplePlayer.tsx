@@ -6,7 +6,7 @@ import { ExampleBackLink } from '@/examples/ExampleBackLink';
 import { getExampleDetails } from '@/examples/details';
 import { createExampleContext } from '@/examples/runtime';
 import { getExampleBySlug } from '@/examples/registry';
-import { withBasePath } from '@/lib/site';
+import { sitePath } from '@/lib/site';
 
 import type { ExampleCleanup, ExampleModule } from '@/examples/runtime';
 
@@ -29,7 +29,7 @@ export function ExamplePlayer({
 	const [error, setError] = useState<string | null>(null);
 	const [showDescription, setShowDescription] = useState(Boolean(descriptionContent));
 
-	const sourceHref = useMemo(() => withBasePath(sourcePagePath), [sourcePagePath]);
+	const sourceHref = useMemo(() => sitePath(sourcePagePath), [sourcePagePath]);
 
 	useEffect(() => {
 		const example = getExampleBySlug(slug);

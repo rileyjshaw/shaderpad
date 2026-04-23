@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { DocsHeader } from '@/components/DocsHeader';
 import { Fence } from '@/components/Fence';
 import { type ExampleEntry, examples, getExampleBySlug } from '@/examples/registry';
-import { withBasePath } from '@/lib/site';
+import { sitePath } from '@/lib/site';
 
 export function generateStaticParams() {
 	return examples.map(example => ({
@@ -111,7 +111,7 @@ export default async function ExampleSourcePage({ params }: { params: Promise<{ 
 							{example.description}
 						</p>
 						<a
-							href={withBasePath(`/examples/${example.slug}`)}
+							href={sitePath(`/examples/${example.slug}`)}
 							className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50 dark:border-slate-700 dark:text-sky-300 dark:hover:border-sky-700 dark:hover:bg-slate-800"
 						>
 							View live demo

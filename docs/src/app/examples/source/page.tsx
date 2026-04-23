@@ -1,6 +1,6 @@
 import { DocsHeader } from '@/components/DocsHeader';
 import { examples } from '@/examples/registry';
-import { withBasePath } from '@/lib/site';
+import { sitePath } from '@/lib/site';
 
 export const metadata = {
 	title: 'Example Source',
@@ -22,7 +22,7 @@ export default function ExampleSourceIndexPage() {
 						{examples.map(example => (
 							<a
 								key={example.slug}
-								href={withBasePath(example.sourcePagePath)}
+								href={sitePath(example.sourcePagePath)}
 								className="block rounded-2xl border border-slate-200 bg-white px-5 py-4 transition hover:border-sky-300 hover:bg-sky-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-700 dark:hover:bg-slate-800"
 							>
 								<div className="flex items-start justify-between gap-4">

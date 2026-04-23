@@ -12,8 +12,7 @@
 		void main() {
 		  vec2 p = v_uv - 0.5;
 		  float r = length(p);
-		  vec2 uv = 0.18 + v_uv * 0.64;
-		  uv += p * (0.20 + 0.06 * sin(u_time * 2.0)) * r;
+		  vec2 uv = 0.2 + v_uv * 0.6 + p * (0.2 + 0.05 * sin(u_time * 2.0)) * r;
 		  vec3 color = texture(u_trees, uv).rgb;
 		  color *= 1.15 - 0.8 * r;
 		  outColor = vec4(color, 1.0);

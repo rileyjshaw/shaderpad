@@ -258,6 +258,13 @@ function renderLlmsIndex(entries) {
 	);
 }
 
+function exampleMirrorOutputPath(filename) {
+	if (/\.html?$/i.test(filename)) {
+		return join(publicDir, 'examples', 'source', 'assets', filename);
+	}
+	return join(publicDir, 'examples', 'source', filename);
+}
+
 function renderLlmsFull(entries) {
 	const parts = [
 		'# ShaderPad llms-full',
@@ -491,7 +498,7 @@ for (const entry of [...docEntries, repoReadmeEntry]) {
 for (const filePath of exampleAssetFiles) {
 	const raw = (await readFile(filePath, 'utf8')).replace(/\r\n/g, '\n');
 	const filename = relative(examplesDir, filePath).replace(/\\/g, '/');
-	const outputPath = join(publicDir, 'examples', 'source', filename);
+	const outputPath = exampleMirrorOutputPath(filename);
 	await mkdir(dirname(outputPath), { recursive: true });
 	await writeFile(outputPath, raw, 'utf8');
 }
