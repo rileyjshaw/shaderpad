@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.78
+
+### Minor Changes
+
+- Add `<shader-pad>` web component
+
 ## 1.0.0-beta.77
 
 ### Minor Changes

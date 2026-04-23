@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"lygia": "^1.4.1",
-		"shaderpad": "1.0.0-beta.77"
+		"shaderpad": "1.0.0-beta.78"
 	},
 	"devDependencies": {
 		"typescript": "^6.0.2",
