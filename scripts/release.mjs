@@ -9,7 +9,9 @@ const repoRoot = resolve(scriptDir, '..');
 const changesetConfigPath = join(repoRoot, '.changeset', 'config.json');
 const docsDir = join(repoRoot, 'docs');
 const docsChangelogPath = join(docsDir, 'CHANGELOG.md');
+const rootReadmePath = join(repoRoot, 'README.md');
 const shaderpadDir = join(repoRoot, 'packages', 'shaderpad');
+const shaderpadReadmePath = join(shaderpadDir, 'README.md');
 const createShaderpadDir = join(repoRoot, 'packages', 'create-shaderpad');
 const createShaderpadChangelogPath = join(createShaderpadDir, 'CHANGELOG.md');
 const starterTemplateDirs = [
@@ -375,8 +377,28 @@ function isPublished(packageName, version) {
 	return result.status === 0;
 }
 
+function syncShaderpadReadmeForPublish() {
+	writeFileSync(shaderpadReadmePath, readFileSync(rootReadmePath, 'utf8'));
+}
+
+function cleanupShaderpadReadmeAfterPublish() {
+	if (existsSync(shaderpadReadmePath)) {
+		unlinkSync(shaderpadReadmePath);
+	}
+}
+
 function publishPackage(pkg, tag) {
 	run('npm', [...pkg.publishArgs, '--tag', tag]);
+}
+
+function publishShaderpadPackage(pkg, tag) {
+	syncShaderpadReadmeForPublish();
+
+	try {
+		publishPackage(pkg, tag);
+	} finally {
+		cleanupShaderpadReadmeAfterPublish();
+	}
 }
 
 function sleep(ms) {
@@ -464,7 +486,7 @@ async function deployRelease(options, releaseInfo) {
 
 		if (shaderpadPackage) {
 			console.log(`- ${shaderpadPackage.name}@${shaderpadPackage.version} (${options.tag})`);
-			publishPackage(shaderpadPackage, options.tag);
+			publishShaderpadPackage(shaderpadPackage, options.tag);
 			await waitForPublishedPackage(shaderpadPackage.name, shaderpadPackage.version);
 			addLatestDistTag(shaderpadPackage);
 		}
