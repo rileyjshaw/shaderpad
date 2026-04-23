@@ -11,16 +11,27 @@
 		"docs:build": "npm run build --workspace shaderpad-docs",
 		"docs:dev": "npm run dev --workspace shaderpad-docs",
 		"docs:start": "npm run start --workspace shaderpad-docs",
+		"prepare": "simple-git-hooks",
+		"precommit:format": "node scripts/precommit-format.mjs",
 		"release": "node scripts/release.mjs",
 		"size:exports": "node scripts/size-standard-import.mjs",
 		"size:standard-import": "npm run size:exports",
-		"format": "prettier --write \"./**/*.{ts,js,tsx,jsx,html,css,json,md}\""
+		"format": "prettier --write \"./**/*.{ts,tsx,js,jsx,mjs,cjs,html,css,json,md,mdx,yml,yaml}\"",
+		"format:check": "prettier --check \"./**/*.{ts,tsx,js,jsx,mjs,cjs,html,css,json,md,mdx,yml,yaml}\""
 	},
 	"devDependencies": {
 		"@changesets/changelog-github": "^0.6.0",
 		"@changesets/cli": "^2.30.0",
+		"lint-staged": "^15.5.2",
 		"prettier": "^3.8.2",
+		"simple-git-hooks": "^2.13.1",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.2"
+	},
+	"simple-git-hooks": {
+		"pre-commit": "npm run precommit:format"
+	},
+	"lint-staged": {
+		"*.{ts,tsx,js,jsx,mjs,cjs,html,css,json,md,mdx,yml,yaml}": "prettier --write"
 	}
 }

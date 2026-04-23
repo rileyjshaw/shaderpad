@@ -44,6 +44,24 @@ async function tryAddSource(
 
 async function readExampleSource(example: ExampleEntry) {
 	const demosDir = join(process.cwd(), 'src', 'examples', 'demos');
+
+	if (example.slug === 'web-component') {
+		const html = await readFile(join(demosDir, 'web-component.html'), 'utf8');
+
+		return [
+			{
+				filename: 'index.html',
+				language: 'html',
+				content: `<script type="module">
+  import { createShaderPadElement } from 'shaderpad/web-component';
+  customElements.define('shader-pad', createShaderPadElement());
+</script>
+
+${html}`,
+			},
+		];
+	}
+
 	const sources: Array<{ filename: string; language: string }> = [];
 
 	await tryAddSource(sources, demosDir, `${example.slug}.html`, 'html');

@@ -95,13 +95,21 @@ export const DEV_ERRORS: Record<ErrorCode, DevErrorDetails> | undefined = __SHAD
 await mkdir(dirname(runtimeOutputPath), { recursive: true });
 await mkdir(dirname(runtimeDevOutputPath), { recursive: true });
 await mkdir(dirname(docsOutputPath), { recursive: true });
-await writeFile(runtimeOutputPath, await formatGeneratedArtifact(renderRuntimeArtifact(uniqueErrors), runtimeOutputPath), 'utf8');
+await writeFile(
+	runtimeOutputPath,
+	await formatGeneratedArtifact(renderRuntimeArtifact(uniqueErrors), runtimeOutputPath),
+	'utf8',
+);
 await writeFile(
 	runtimeDevOutputPath,
 	await formatGeneratedArtifact(renderRuntimeDevArtifact(uniqueErrors), runtimeDevOutputPath),
 	'utf8',
 );
-await writeFile(docsOutputPath, await formatGeneratedArtifact(renderDocsArtifact(uniqueErrors), docsOutputPath), 'utf8');
+await writeFile(
+	docsOutputPath,
+	await formatGeneratedArtifact(renderDocsArtifact(uniqueErrors), docsOutputPath),
+	'utf8',
+);
 
 console.log(`Generated ${runtimeOutputPath}`);
 console.log(`Generated ${runtimeDevOutputPath}`);

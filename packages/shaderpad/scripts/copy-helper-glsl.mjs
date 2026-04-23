@@ -6,11 +6,9 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageDir = dirname(scriptDir);
 const srcDir = join(packageDir, 'src', 'helpers');
 const outputDir = join(packageDir, 'dist', 'helpers');
-const typeDefinition = "declare const value: string;\nexport default value;\n";
+const typeDefinition = 'declare const value: string;\nexport default value;\n';
 
-const helperFiles = (await readdir(srcDir))
-	.filter(name => name.endsWith('.glsl') && name !== 'all.glsl')
-	.sort();
+const helperFiles = (await readdir(srcDir)).filter(name => name.endsWith('.glsl') && name !== 'all.glsl').sort();
 const helperSources = await Promise.all(
 	helperFiles.map(async name => ({
 		name,

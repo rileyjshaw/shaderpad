@@ -5,20 +5,14 @@ export const exampleRegistry = [
 		description: 'Interactive dot grid with cursor tracking and animated custom uniforms.',
 	},
 	{
-		slug: 'web-component',
-		title: 'Web component',
-		description: 'Fullscreen animated visualizer built with the <shader-pad> web component.',
-	},
-	{
-		slug: 'react',
-		title: 'React',
-		description: 'Embedding a shader in React using the built-in <ShaderPad> component.',
-		renderMode: 'article',
-	},
-	{
 		slug: 'lygia',
 		title: 'LYGIA import',
 		description: 'Using #include to pull LYGIA utilities into a shader.',
+	},
+	{
+		slug: 'uniform-presets',
+		title: 'Uniform presets',
+		description: 'Cycling through preset uniform values to get multiple looks from one shader.',
 	},
 	{
 		slug: 'history-tiles',
@@ -124,5 +118,17 @@ export const exampleRegistry = [
 		slug: 'god-rays',
 		title: 'God rays',
 		description: 'Volumetric glow from tracked hands and face landmarks.',
+	},
+	{
+		slug: 'web-component',
+		title: 'Web component',
+		description: 'Using <shader-pad> directly in HTML with one image texture and one inline shader.',
+		renderMode: 'article',
+	},
+	{
+		slug: 'react',
+		title: 'React',
+		description: 'Embedding a shader in React using the built-in <ShaderPad> component.',
+		renderMode: 'article',
 	},
 ];

@@ -139,10 +139,7 @@ function versionsPrivatePackages(changesetConfig) {
 		return false;
 	}
 
-	if (
-		changesetConfig.privatePackages &&
-		typeof changesetConfig.privatePackages === 'object'
-	) {
+	if (changesetConfig.privatePackages && typeof changesetConfig.privatePackages === 'object') {
 		return changesetConfig.privatePackages.version ?? true;
 	}
 
@@ -386,11 +383,7 @@ function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitForPublishedPackage(
-	packageName,
-	version,
-	{ attempts = 30, delayMs = 4000 } = {},
-) {
+async function waitForPublishedPackage(packageName, version, { attempts = 30, delayMs = 4000 } = {}) {
 	for (let attempt = 1; attempt <= attempts; attempt += 1) {
 		if (isPublished(packageName, version)) {
 			if (attempt > 1) {
@@ -412,9 +405,7 @@ async function waitForPublishedPackage(
 
 	throw new Error(
 		[
-			`Published ${packageName}@${version}, but npm did not resolve it within ${
-				(attempts - 1) * delayMs
-			}ms.`,
+			`Published ${packageName}@${version}, but npm did not resolve it within ${(attempts - 1) * delayMs}ms.`,
 			'Stopping before dependent release steps so the release can be resumed safely.',
 		].join('\n'),
 	);

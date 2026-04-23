@@ -26,14 +26,7 @@ async function formatGeneratedArtifact(source, filepath) {
 }
 
 await mkdir(generatedDir, { recursive: true });
-await writeFile(
-	outputPath,
-	await formatGeneratedArtifact(
-		`${JSON.stringify(report, null, 2)}\n`,
-		outputPath,
-	),
-	'utf8',
-);
+await writeFile(outputPath, await formatGeneratedArtifact(`${JSON.stringify(report, null, 2)}\n`, outputPath), 'utf8');
 
 console.log(
 	`Updated ${outputPath} with ${Object.keys(report.exports).length} exports; core import is ${coreImport.gzippedLabel}`,

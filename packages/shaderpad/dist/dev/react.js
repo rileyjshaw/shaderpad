@@ -1709,10 +1709,7 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
       return;
     }
     const effectiveAutosize = isManagedTexture && autosize2 === true ? { target: parentTextureRegistry?.getCanvas() ?? canvas } : autosize2;
-    const installedPlugins = effectiveAutosize === false ? [...plugins ?? []] : [
-      autosize_default(effectiveAutosize === true ? void 0 : effectiveAutosize),
-      ...plugins ?? []
-    ];
+    const installedPlugins = effectiveAutosize === false ? [...plugins ?? []] : [autosize_default(effectiveAutosize === true ? void 0 : effectiveAutosize), ...plugins ?? []];
     let instance = null;
     let playbackController = null;
     let isDisposed = false;

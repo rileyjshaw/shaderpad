@@ -82,13 +82,9 @@ async function measureExport(exportPath) {
 	};
 }
 
-const exportPaths = Object.keys(shaderpadPackage.exports)
-	.filter(isMeasurableExportPath)
-	.sort(compareExportPaths);
+const exportPaths = Object.keys(shaderpadPackage.exports).filter(isMeasurableExportPath).sort(compareExportPaths);
 const exportSizes = Object.fromEntries(
-	await Promise.all(
-		exportPaths.map(async exportPath => [exportPath, await measureExport(exportPath)]),
-	),
+	await Promise.all(exportPaths.map(async exportPath => [exportPath, await measureExport(exportPath)])),
 );
 
 const report = {
@@ -102,9 +98,7 @@ if (args.has('--json')) {
 	console.log(JSON.stringify(report, null, 2));
 } else if (args.has('--raw')) {
 	console.log(
-		exportPaths
-			.map(exportPath => `${getSpecifier(exportPath)} ${exportSizes[exportPath].gzippedBytes}`)
-			.join('\n'),
+		exportPaths.map(exportPath => `${getSpecifier(exportPath)} ${exportSizes[exportPath].gzippedBytes}`).join('\n'),
 	);
 } else {
 	console.log(

@@ -72,23 +72,27 @@ const exampleDetails: Record<string, ExampleDetails> = {
 			</>
 		),
 	},
+	'uniform-presets': {
+		fullDescription: (
+			<>
+				<p>
+					This demo keeps several looks for the same shader in a small presets object. Clicking or using the
+					arrow keys swaps those values with a single{' '}
+					<CodeDocLink href={docs.uniforms}>updateUniforms</CodeDocLink> call.
+				</p>
+				<p>
+					It is a compact example of using one shader to capture multiple moods without changing the GLSL
+					itself.
+				</p>
+			</>
+		),
+	},
 	'web-component': {
 		fullDescription: (
 			<>
 				<p>
-					This demo has seven uniforms controlling its animation behavior, from maximum sway angle to whether
-					it uses color. These values are organized into “presets” and swapped with a single{' '}
-					<CodeDocLink href={docs.uniforms}>updateUniforms</CodeDocLink> call.
-				</p>
-				<p>
-					Swipe or use <code>Left Arrow</code> and <code>Right Arrow</code> to cycle through presets, and
-					press <code>Space</code> to pause or resume. It shows how to get multiple looks out of one shader
-					with a small set of uniforms.
-				</p>
-				<p>
-					This example uses the <code>&lt;shader-pad&gt;</code> web component. The fullscreen render canvas
-					and ShaderPad setup come from the component, while the TypeScript file waits for <code>load</code>{' '}
-					to initialize uniforms and wire keyboard and touch controls.
+					A minimal <code>&lt;shader-pad&gt;</code> example using one image texture and one inline fragment
+					shader.
 				</p>
 			</>
 		),

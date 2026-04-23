@@ -71,9 +71,8 @@ const defaultTag: ExampleTag = {
 
 const exampleTags: Record<string, string[]> = {
 	basic: ['UNIFORMS'],
-	'web-component': ['WEB COMPONENT', 'ANIMATION'],
-	react: ['REACT', 'ANIMATION'],
 	lygia: ['ANIMATION'],
+	'uniform-presets': ['UNIFORMS', 'ANIMATION'],
 	'history-tiles': ['HISTORY'],
 	'cursor-feedback': ['HISTORY'],
 	'reading-history': ['ANIMATION', 'HISTORY'],
@@ -95,6 +94,8 @@ const exampleTags: Record<string, string[]> = {
 	'finger-pens': ['HANDS', 'HISTORY', 'WEBCAM'],
 	'midi-fingers': ['HANDS', 'MIDI', 'WEBCAM'],
 	'god-rays': ['FACE', 'HANDS', 'WEBCAM'],
+	'web-component': ['WEB COMPONENT'],
+	react: ['REACT', 'ANIMATION'],
 };
 
 const sections: ExampleSection[] = [
@@ -104,9 +105,8 @@ const sections: ExampleSection[] = [
 			'Core ShaderPad patterns: uniforms, animation, save workflows, live inputs, and straightforward feedback pipelines.',
 		slugs: [
 			'basic',
-			'web-component',
-			'react',
 			'lygia',
+			'uniform-presets',
 			'cursor-feedback',
 			'history-tiles',
 			'reading-history',
@@ -116,6 +116,8 @@ const sections: ExampleSection[] = [
 			'webcam-grid',
 			'single-channel-textures',
 			'fragmentum',
+			'web-component',
+			'react',
 		],
 	},
 	{
