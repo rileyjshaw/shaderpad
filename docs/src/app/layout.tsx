@@ -9,6 +9,7 @@ import { ThemeFavicon } from '@/components/ThemeFavicon';
 import { absoluteSiteUrl, siteOrigin } from '@/lib/site';
 
 import '@/styles/tailwind.css';
+import 'shaderpad/web-component.css';
 
 const googleTagId = 'G-KB68X7DK43';
 

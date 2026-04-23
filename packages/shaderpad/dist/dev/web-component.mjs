@@ -19,6 +19,8 @@ import "./chunk-OTFRVDNV.mjs";
 // src/web-component.ts
 var DEFAULT_AUTOPLAY = true;
 var DEFAULT_AUTOPAUSE = true;
+var HOST_DEFAULT_ATTRIBUTE = "data-shaderpad-host";
+var HOST_DEFAULT_STYLE_ID = "shaderpad-web-component-defaults";
 var ShaderPadElementBase = typeof HTMLElement === "undefined" ? class {
 } : HTMLElement;
 function normalizeShaderPadConfig(config) {
@@ -30,6 +32,20 @@ function normalizeShaderPadConfig(config) {
     autoplay: config?.autoplay ?? DEFAULT_AUTOPLAY,
     autopause: config?.autopause ?? DEFAULT_AUTOPAUSE
   };
+}
+function ensureShaderPadHostDefaults(element) {
+  if (!element.hasAttribute(HOST_DEFAULT_ATTRIBUTE)) {
+    element.setAttribute(HOST_DEFAULT_ATTRIBUTE, "");
+  }
+  const document = element.ownerDocument;
+  if (!document || document.getElementById(HOST_DEFAULT_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = HOST_DEFAULT_STYLE_ID;
+  style.textContent = [
+    `:where([${HOST_DEFAULT_ATTRIBUTE}]) { display: block; width: 100%; }`,
+    `:where([${HOST_DEFAULT_ATTRIBUTE}]:not([for])) { height: 100%; }`
+  ].join("\n");
+  (document.head ?? document.documentElement ?? document.body)?.appendChild(style);
 }
 async function loadNestedShaderPadSource(element) {
   if (element.shader) return element.shader;
@@ -72,6 +88,7 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
   liveTextures = [];
   constructor() {
     super();
+    ensureShaderPadHostDefaults(this);
     const defaults = this.constructor.shaderPadConfig;
     this.pluginsValue = [...defaults.plugins];
     this.defaultOptionsValue = { ...defaults.options };

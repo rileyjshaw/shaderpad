@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-04-23T19:27:46.435Z",
+	"generatedAt": "2026-04-23T21:42:08.823Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
@@ -77,11 +77,11 @@
 		},
 		"./web-component": {
 			"specifier": "shaderpad/web-component",
-			"minifiedBytes": 31234,
-			"minified": "30.5 kB",
-			"gzippedBytes": 9796,
-			"gzipped": "9.6 kB",
-			"gzippedLabel": "9.6 kB gzipped"
+			"minifiedBytes": 31633,
+			"minified": "30.9 kB",
+			"gzippedBytes": 9971,
+			"gzipped": "9.7 kB",
+			"gzippedLabel": "9.7 kB gzipped"
 		}
 	}
 }

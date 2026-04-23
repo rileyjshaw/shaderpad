@@ -53,6 +53,7 @@ async function readExampleSource(example: ExampleEntry) {
 				filename: 'index.html',
 				language: 'html',
 				content: `<script type="module">
+  import 'shaderpad/web-component.css';
   import { createShaderPadElement } from 'shaderpad/web-component';
   customElements.define('shader-pad', createShaderPadElement());
 </script>

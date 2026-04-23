@@ -43,6 +43,9 @@
 			"import": "./dist/web-component.mjs",
 			"require": "./dist/web-component.js"
 		},
+		"./web-component.css": {
+			"default": "./dist/web-component.css"
+		},
 		"./plugins/face": {
 			"types": "./dist/plugins/face.d.ts",
 			"development": {
@@ -145,7 +148,9 @@
 			]
 		}
 	},
-	"sideEffects": false,
+	"sideEffects": [
+		"**/*.css"
+	],
 	"files": [
 		"dist"
 	],

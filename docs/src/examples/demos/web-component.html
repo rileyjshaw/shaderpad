@@ -1,5 +1,5 @@
-<shader-pad style="display: block; width: 320px; height: 480px">
-	<img src="/trees.jpg" data-texture="u_trees" width="640" height="960" />
+<shader-pad style="width: 320px; height: 480px">
+	<img src="/trees.jpg" data-texture="u_trees" />
 	<script type="x-shader/x-fragment">
 		#version 300 es
 		precision highp float;
@@ -10,12 +10,10 @@
 		out vec4 outColor;
 
 		void main() {
-		  vec2 p = v_uv - 0.5;
-		  float r = length(p);
-		  vec2 uv = 0.2 + v_uv * 0.6 + p * (0.2 + 0.05 * sin(u_time * 2.0)) * r;
-		  vec3 color = texture(u_trees, uv).rgb;
-		  color *= 1.15 - 0.8 * r;
-		  outColor = vec4(color, 1.0);
+			vec2 p = 2.0 * (v_uv - 0.5);
+			float r = length(p);
+			vec2 uv = 0.15 + v_uv * 0.7 + p * (0.1 + 0.025 * sin(u_time * 2.0)) * r;
+			outColor = texture(u_trees, uv);
 		}
 	</script>
 </shader-pad>

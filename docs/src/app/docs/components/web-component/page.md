@@ -8,8 +8,12 @@ nextjs:
 
 Use `shaderpad/web-component` when you want to write ShaderPad directly in HTML. Register `<shader-pad>` once in JavaScript, then put your fragment shader and texture elements inside it. {% .lead %}
 
+Import `shaderpad/web-component.css` once when raw `<shader-pad>` markup can appear before registration runs, such as SSR pages or static HTML. The JavaScript entry also applies the same defaults after upgrade, so client-only markup still works without a CSS import.
+
 ```ts
+import 'shaderpad/web-component.css';
 import { createShaderPadElement } from 'shaderpad/web-component';
+
 customElements.define('shader-pad', createShaderPadElement());
 ```
 
@@ -110,7 +114,7 @@ You can also bind an external canvas with `for`:
 </shader-pad>
 ```
 
-When the component owns its canvas, it handles autosizing. If you bind an external canvas with `for`, size that canvas from your own code.
+When the component owns its canvas, it handles autosizing and fills its parent by default. If you bind an external canvas with `for`, size that canvas from your own code.
 
 ## Events
 

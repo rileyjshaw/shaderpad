@@ -14,6 +14,8 @@ import autosizePlugin, { type AutosizeOptions } from './plugins/autosize';
 
 const DEFAULT_AUTOPLAY = true;
 const DEFAULT_AUTOPAUSE = true;
+const HOST_DEFAULT_ATTRIBUTE = 'data-shaderpad-host';
+const HOST_DEFAULT_STYLE_ID = 'shaderpad-web-component-defaults';
 
 const ShaderPadElementBase = (typeof HTMLElement === 'undefined' ? class {} : HTMLElement) as typeof HTMLElement;
 
@@ -89,6 +91,23 @@ function normalizeShaderPadConfig(config?: ShaderPadElementConfig): NormalizedSh
 	};
 }
 
+function ensureShaderPadHostDefaults(element: HTMLElement) {
+	if (!element.hasAttribute(HOST_DEFAULT_ATTRIBUTE)) {
+		element.setAttribute(HOST_DEFAULT_ATTRIBUTE, '');
+	}
+
+	const document = element.ownerDocument;
+	if (!document || document.getElementById(HOST_DEFAULT_STYLE_ID)) return;
+
+	const style = document.createElement('style');
+	style.id = HOST_DEFAULT_STYLE_ID;
+	style.textContent = [
+		`:where([${HOST_DEFAULT_ATTRIBUTE}]) { display: block; width: 100%; }`,
+		`:where([${HOST_DEFAULT_ATTRIBUTE}]:not([for])) { height: 100%; }`,
+	].join('\n');
+	(document.head ?? document.documentElement ?? document.body)?.appendChild(style);
+}
+
 async function loadNestedShaderPadSource(element: NestedShaderPadElement) {
 	if (element.shader) return element.shader;
 
@@ -135,6 +154,7 @@ export class ShaderPadElement extends ShaderPadElementBase {
 
 	constructor() {
 		super();
+		ensureShaderPadHostDefaults(this);
 		const defaults = (this.constructor as typeof ShaderPadElement).shaderPadConfig;
 		this.pluginsValue = [...defaults.plugins];
 		this.defaultOptionsValue = { ...defaults.options };

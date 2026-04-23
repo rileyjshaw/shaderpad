@@ -9,6 +9,7 @@ nextjs:
 The `shaderpad/web-component` entry exports:
 
 ```ts
+import 'shaderpad/web-component.css';
 import {
   createShaderPadElement,
   ShaderPadElement,
@@ -23,6 +24,8 @@ If you want the usage patterns first, start with the [Web component guide](/docs
 | ------------------------ | -------- | ------------------------------------------------------------- |
 | `ShaderPadElement`       | class    | Element class used for `<shader-pad>`.                        |
 | `createShaderPadElement` | function | Creates the element you pass to `customElements.define(...)`. |
+
+The `shaderpad/web-component.css` asset provides pre-upgrade host styles for raw HTML and SSR. The JavaScript entry applies the same defaults after upgrade.
 
 Register a tag with the browser:
 

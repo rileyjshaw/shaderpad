@@ -33,7 +33,7 @@ function isMeasurableExportPath(exportPath) {
 	// Package export patterns like "./helpers/*.glsl" are routing rules, not
 	// concrete specifiers that esbuild can import directly. Raw GLSL helper
 	// exports are also excluded here because this size report is for the JS API.
-	return !exportPath.includes('*') && !exportPath.endsWith('.glsl');
+	return !exportPath.includes('*') && !exportPath.endsWith('.glsl') && !exportPath.endsWith('.css');
 }
 
 function getSpecifier(exportPath) {

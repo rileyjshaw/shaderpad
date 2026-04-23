@@ -1,0 +1,8 @@
+:where(shader-pad, [data-shaderpad-host]) {
+	display: block;
+	width: 100%;
+}
+
+:where(shader-pad:not([for]), [data-shaderpad-host]:not([for])) {
+	height: 100%;
+}
