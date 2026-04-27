@@ -15,7 +15,7 @@ npm install @mediapipe/tasks-vision
 
 {% /callout %}
 
-The `hands` plugin uses MediaPipe's [Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) and exposes ShaderPad textures and GLSL helper functions for hand-driven effects.
+The `hands` plugin uses MediaPipe’s [Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) and exposes ShaderPad textures and GLSL helper functions for hand-driven effects.
 
 ```javascript
 import hands from 'shaderpad/plugins/hands';
@@ -32,7 +32,7 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 | Field                  | Meaning                                                              |
 | ---------------------- | -------------------------------------------------------------------- |
 | `textureName`          | The live texture name the plugin reads from.                         |
-| `wasmBaseUrl?: string` | Base URL for MediaPipe's vision WASM runtime files. Defaults to CDN. |
+| `wasmBaseUrl?: string` | Base URL for MediaPipe’s vision WASM runtime files. Defaults to CDN. |
 | `options?`             | MediaPipe and history options listed below.                          |
 
 ## MediaPipe Options

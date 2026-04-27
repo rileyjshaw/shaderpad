@@ -171,7 +171,7 @@ shader.updateUniforms(
 | ---------------------- | -------------- | --------------------------------------------------------------------------------- |
 | `u_time`               | float          | The current time in seconds.                                                      |
 | `u_frame`              | int            | The current frame number.                                                         |
-| `u_resolution`         | float[2]       | The canvas element's dimensions.                                                  |
+| `u_resolution`         | float[2]       | The canvas element’s dimensions.                                                  |
 | `u_cursor`             | float[2]       | Cursor position (x, y), normalized to [0,1] over the `cursorTarget` bounding box. |
 | `u_click`              | float[3]       | Click position (x, y) and left click state (z).                                   |
 | `u_history`            | sampler2DArray | Buffer texture of prior frames. Available if `history` option is set.             |
@@ -214,7 +214,7 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 **Texture Options:**
 
 - `history?: number` - Number of previous frames to store (creates a `sampler2DArray`)
-- `preserveY?: boolean` - For DOM sources only: if `true`, don't flip vertically (default: `false`, flips to match WebGL's bottom-up convention)
+- `preserveY?: boolean` - For DOM sources only: if `true`, don't flip vertically (default: `false`, flips to match WebGL’s bottom-up convention)
 - `internalFormat?: string` - Storage format in GPU memory (e.g., `'RGBA8'`, `'RGBA32F'`, `'R8'`). Defaults to `'RGBA8'` for 8-bit, or `'RGBA32F'` if `type` is `'FLOAT'`
 - `format?: string` - Source data layout (default: `'RGBA'`). Describes the channels in your input data (e.g., `'RGBA'`, `'RGB'`, `'RED'`)
 - `type?: string` - Source data type (default: `'UNSIGNED_BYTE'` for DOM sources, must be specified for typed arrays). Examples: `'UNSIGNED_BYTE'`, `'FLOAT'`, `'HALF_FLOAT'`
@@ -794,7 +794,7 @@ for (int i = 0; i < u_maxHands; ++i) {
 
 #### segmenter
 
-The `segmenter` plugin uses [MediaPipe Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) to segment objects in video or image textures. It supports models with multiple categories (e.g., background, hair, chair, dog…). By default, it uses MediaPipe's selfie segmenter model.
+The `segmenter` plugin uses [MediaPipe Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) to segment objects in video or image textures. It supports models with multiple categories (e.g., background, hair, chair, dog…). By default, it uses MediaPipe’s selfie segmenter model.
 
 ```typescript
 import ShaderPad from 'shaderpad';

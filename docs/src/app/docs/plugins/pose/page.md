@@ -15,7 +15,7 @@ npm install @mediapipe/tasks-vision
 
 {% /callout %}
 
-The `pose` plugin uses MediaPipe's [Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) and exposes landmark and mask data in a ShaderPad-friendly GLSL format.
+The `pose` plugin uses MediaPipe’s [Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) and exposes landmark and mask data in a ShaderPad-friendly GLSL format.
 
 ```javascript
 import pose from 'shaderpad/plugins/pose';
@@ -32,7 +32,7 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 | Field                  | Meaning                                                              |
 | ---------------------- | -------------------------------------------------------------------- |
 | `textureName`          | The live texture name the plugin reads from.                         |
-| `wasmBaseUrl?: string` | Base URL for MediaPipe's vision WASM runtime files. Defaults to CDN. |
+| `wasmBaseUrl?: string` | Base URL for MediaPipe’s vision WASM runtime files. Defaults to CDN. |
 | `options?`             | MediaPipe and history options listed below.                          |
 
 ## MediaPipe Options

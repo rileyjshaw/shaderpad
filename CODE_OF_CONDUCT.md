@@ -8,7 +8,7 @@ We are committed to fostering an environment that respects and promotes the dign
 
 ## Encouraged Behaviors
 
-While acknowledging differences in social norms, we all strive to meet our community's expectations for positive behavior. We also understand that our words and actions may be interpreted differently than we intend based on culture, background, or native language.
+While acknowledging differences in social norms, we all strive to meet our community’s expectations for positive behavior. We also understand that our words and actions may be interpreted differently than we intend based on culture, background, or native language.
 
 With these considerations in mind, we agree to behave mindfully toward each other and act in ways that center our shared values, including:
 
@@ -28,7 +28,7 @@ We agree to restrict the following behaviors in our community. Instances, threat
 2. **Character attacks.** Making insulting, demeaning, or pejorative comments directed at a community member or group of people.
 3. **Stereotyping or discrimination.** Characterizing anyone’s personality or behavior on the basis of immutable identities or traits.
 4. **Sexualization.** Behaving in a way that would generally be considered inappropriately intimate in the context or purpose of the community.
-5. **Violating confidentiality**. Sharing or acting on someone's personal or private information without their permission.
+5. **Violating confidentiality**. Sharing or acting on someone’s personal or private information without their permission.
 6. **Endangerment.** Causing, encouraging, or threatening violence or other harm toward any person or group.
 7. Behaving in other ways that **threaten the well-being** of our community.
 
@@ -51,7 +51,7 @@ Community Moderators take reports of violations seriously and will make every ef
 
 ---
 
-If an investigation by the Community Moderators finds that this Code of Conduct has been violated, the following enforcement ladder may be used to determine how best to repair harm, based on the incident's impact on the individuals involved and the community as a whole. Depending on the severity of a violation, lower rungs on the ladder may be skipped.
+If an investigation by the Community Moderators finds that this Code of Conduct has been violated, the following enforcement ladder may be used to determine how best to repair harm, based on the incident’s impact on the individuals involved and the community as a whole. Depending on the severity of a violation, lower rungs on the ladder may be skipped.
 
 1. Warning
     1. Event: A violation involving a single incident or series of incidents.

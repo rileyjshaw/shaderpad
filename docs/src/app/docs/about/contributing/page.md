@@ -3,7 +3,7 @@ title: Contributing
 nextjs:
     metadata:
         title: Contributing
-        description: ShaderPad's philosophy, plugin guidance, and the bar for contributions to core.
+        description: ShaderPad’s philosophy, plugin guidance, and the bar for contributions to core.
 ---
 
 ShaderPad is built around a small idea: make working with fragment shaders feel direct and simple, without turning the library into a giant framework.

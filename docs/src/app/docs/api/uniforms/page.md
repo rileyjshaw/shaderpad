@@ -3,7 +3,7 @@ title: Uniforms
 nextjs:
     metadata:
         title: Uniforms
-        description: Complete reference for ShaderPad's built-in uniforms.
+        description: Complete reference for ShaderPad’s built-in uniforms.
 ---
 
 ShaderPad initializes the following built-in uniforms for every instance. Declare only the ones your GLSL actually uses; the rest will be ignored, so performance is unaffected.

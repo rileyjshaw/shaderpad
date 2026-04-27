@@ -10,7 +10,7 @@ ShaderPad exposes its underlying WebGL2 texture format controls for advanced use
 
 ## Option Defaults
 
-Constructor options configure ShaderPad's internal render target and output history. Below are the available options, along with their default values:
+Constructor options configure ShaderPad’s internal render target and output history. Below are the available options, along with their default values:
 
 - `internalFormat`: `RGBA8`
 - `format`: `RGBA`
@@ -82,7 +82,7 @@ In your GLSL code, the sampler type must match the texture’s format family:
 The same rules apply to history textures, which are stored as `sampler2DArray`, `usampler2DArray`, or `isampler2DArray`.
 
 {% callout title="Sampler Type Mismatch" type="warning" %}
-If the sampler family does not match the texture's format family, the shader will either fail to compile/link or return incorrect values.
+If the sampler family does not match the texture’s format family, the shader will either fail to compile/link or return incorrect values.
 {% /callout %}
 
 ## Defaults And Inference

@@ -145,7 +145,7 @@ initializeTexture(
 ): void
 ```
 
-`initializeTexture()` registers a named texture input. If `source` is another `ShaderPad` instance and you omit texture options, the destination texture inherits the source instance's internal render-texture settings.
+`initializeTexture()` registers a named texture input. If `source` is another `ShaderPad` instance and you omit texture options, the destination texture inherits the source instance’s internal render-texture settings.
 
 ### Texture Options Reference
 

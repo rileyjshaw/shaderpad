@@ -52,7 +52,7 @@ History increases texture bandwidth, so use it mindfully.
 - Disable history entirely when the effect or texture does not sample prior frames
 - Use `skipHistory: true` on steps that should not become a new history frame
 
-For instance, let's say you want to store one sample per second for the previous 10 seconds. Instead of storing every rendered frame, you can do something like this:
+For instance, let’s say you want to store one sample per second for the previous 10 seconds. Instead of storing every rendered frame, you can do something like this:
 
 ```javascript
 const shader = new ShaderPad(fragmentShaderSrc, {
@@ -115,7 +115,7 @@ If a texture encodes values rather than pixels, `NEAREST` is usually the right a
 
 ## Batched MediaPipe Detection
 
-ShaderPad's MediaPipe plugins are designed to avoid redundant model work in chained renders.
+ShaderPad’s MediaPipe plugins are designed to avoid redundant model work in chained renders.
 
 If you attach a MediaPipe plugin to multiple `ShaderPad` instances, ShaderPad shares a detector as long as these match:
 

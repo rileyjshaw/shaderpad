@@ -15,7 +15,7 @@ npm install @mediapipe/tasks-vision
 
 {% /callout %}
 
-The `segmenter` plugin uses MediaPipe's [Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) and exposes ShaderPad mask textures and GLSL helper functions.
+The `segmenter` plugin uses MediaPipe’s [Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter) and exposes ShaderPad mask textures and GLSL helper functions.
 
 ```javascript
 import segmenter from 'shaderpad/plugins/segmenter';
@@ -37,7 +37,7 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 | Field                  | Meaning                                                              |
 | ---------------------- | -------------------------------------------------------------------- |
 | `textureName`          | The live texture name the plugin reads from.                         |
-| `wasmBaseUrl?: string` | Base URL for MediaPipe's vision WASM runtime files. Defaults to CDN. |
+| `wasmBaseUrl?: string` | Base URL for MediaPipe’s vision WASM runtime files. Defaults to CDN. |
 | `options?`             | MediaPipe and history options listed below.                          |
 
 ## MediaPipe Options
