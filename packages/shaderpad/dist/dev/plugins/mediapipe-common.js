@@ -30,6 +30,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/plugins/mediapipe-common.ts
 var mediapipe_common_exports = {};
 __export(mediapipe_common_exports, {
+  DEFAULT_WASM_BASE_URL: () => DEFAULT_WASM_BASE_URL,
   calculateBoundingBoxCenter: () => calculateBoundingBoxCenter,
   dummyTexture: () => dummyTexture,
   generateGLSLFn: () => generateGLSLFn,
@@ -85,14 +86,17 @@ function calculateBoundingBoxCenter(data, entityIdx, landmarkIndices, landmarkCo
     avgVisibility / landmarkIndices.length
   ];
 }
-var filesetPromise = null;
-function getSharedFileset() {
-  if (!filesetPromise) {
-    filesetPromise = import("@mediapipe/tasks-vision").then(
-      ({ FilesetResolver }) => FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm")
-    );
-  }
-  return filesetPromise;
+var DEFAULT_WASM_BASE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
+var filesetPromises = /* @__PURE__ */ new Map();
+function getSharedFileset(wasmBaseUrl = DEFAULT_WASM_BASE_URL) {
+  const existing = filesetPromises.get(wasmBaseUrl);
+  if (existing) return existing;
+  const promise = import("@mediapipe/tasks-vision").then(({ FilesetResolver }) => FilesetResolver.forVisionTasks(wasmBaseUrl)).catch((error) => {
+    filesetPromises.delete(wasmBaseUrl);
+    throw error;
+  });
+  filesetPromises.set(wasmBaseUrl, promise);
+  return promise;
 }
 function generateGLSLFn(history) {
   const historyParams = history ? ", framesAgo" : "";
@@ -111,6 +115,7 @@ ${body}
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  DEFAULT_WASM_BASE_URL,
   calculateBoundingBoxCenter,
   dummyTexture,
   generateGLSLFn,

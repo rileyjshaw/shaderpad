@@ -45,14 +45,17 @@ function calculateBoundingBoxCenter(data, entityIdx, landmarkIndices, landmarkCo
     avgVisibility / landmarkIndices.length
   ];
 }
-var filesetPromise = null;
-function getSharedFileset() {
-  if (!filesetPromise) {
-    filesetPromise = import("@mediapipe/tasks-vision").then(
-      ({ FilesetResolver }) => FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm")
-    );
-  }
-  return filesetPromise;
+var DEFAULT_WASM_BASE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
+var filesetPromises = /* @__PURE__ */ new Map();
+function getSharedFileset(wasmBaseUrl = DEFAULT_WASM_BASE_URL) {
+  const existing = filesetPromises.get(wasmBaseUrl);
+  if (existing) return existing;
+  const promise = import("@mediapipe/tasks-vision").then(({ FilesetResolver }) => FilesetResolver.forVisionTasks(wasmBaseUrl)).catch((error) => {
+    filesetPromises.delete(wasmBaseUrl);
+    throw error;
+  });
+  filesetPromises.set(wasmBaseUrl, promise);
+  return promise;
 }
 function generateGLSLFn(history) {
   const historyParams = history ? ", framesAgo" : "";
@@ -76,7 +79,8 @@ export {
   hashOptions,
   getOrCreateSharedResource,
   calculateBoundingBoxCenter,
+  DEFAULT_WASM_BASE_URL,
   getSharedFileset,
   generateGLSLFn
 };
-//# sourceMappingURL=chunk-ZVPQU2RM.mjs.map
+//# sourceMappingURL=chunk-W5VOJOKO.mjs.map

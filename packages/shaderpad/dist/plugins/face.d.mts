@@ -12,6 +12,7 @@ interface FacePluginOptions {
 }
 interface FacePluginConfig {
     textureName: string;
+    wasmBaseUrl?: string;
     options?: FacePluginOptions;
 }
 declare function face(config: FacePluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;

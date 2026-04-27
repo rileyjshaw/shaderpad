@@ -1251,14 +1251,17 @@ function calculateBoundingBoxCenter(data, entityIdx, landmarkIndices, landmarkCo
     avgVisibility / landmarkIndices.length
   ];
 }
-var filesetPromise = null;
-function getSharedFileset() {
-  if (!filesetPromise) {
-    filesetPromise = import("@mediapipe/tasks-vision").then(
-      ({ FilesetResolver }) => FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm")
-    );
-  }
-  return filesetPromise;
+var DEFAULT_WASM_BASE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
+var filesetPromises = /* @__PURE__ */ new Map();
+function getSharedFileset(wasmBaseUrl = DEFAULT_WASM_BASE_URL) {
+  const existing = filesetPromises.get(wasmBaseUrl);
+  if (existing) return existing;
+  const promise = import("@mediapipe/tasks-vision").then(({ FilesetResolver }) => FilesetResolver.forVisionTasks(wasmBaseUrl)).catch((error) => {
+    filesetPromises.delete(wasmBaseUrl);
+    throw error;
+  });
+  filesetPromises.set(wasmBaseUrl, promise);
+  return promise;
 }
 function generateGLSLFn(history) {
   const historyParams = history ? ", framesAgo" : "";
@@ -1465,9 +1468,9 @@ function updateMask(detector, segmentationMasks) {
   }
 }
 function pose(config) {
-  const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+  const { textureName, wasmBaseUrl = DEFAULT_WASM_BASE_URL, options: { history, ...mediapipeOptions } = {} } = config;
   const options = { ...DEFAULT_POSE_OPTIONS, ...mediapipeOptions };
-  const optionsKey = hashOptions({ ...options, textureName });
+  const optionsKey = hashOptions({ ...options, textureName, wasmBaseUrl });
   const nLandmarksMax = options.maxPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
   const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
   return function(shaderPad, context) {
@@ -1522,7 +1525,7 @@ function pose(config) {
         sharedDetectorPromises,
         async () => {
           const [mediaPipe, { PoseLandmarker }] = await Promise.all([
-            getSharedFileset(),
+            getSharedFileset(wasmBaseUrl),
             import("@mediapipe/tasks-vision")
           ]);
           if (destroyed) return;

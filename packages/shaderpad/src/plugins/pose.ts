@@ -1,6 +1,7 @@
 import ShaderPad, { PluginContext, TextureSource } from '..';
 import {
 	calculateBoundingBoxCenter,
+	DEFAULT_WASM_BASE_URL,
 	generateGLSLFn,
 	dummyTexture,
 	getOrCreateSharedResource,
@@ -22,6 +23,7 @@ export interface PosePluginOptions {
 
 export interface PosePluginConfig {
 	textureName: string;
+	wasmBaseUrl?: string;
 	options?: PosePluginOptions;
 }
 
@@ -258,9 +260,9 @@ function updateMask(detector: Detector, segmentationMasks?: MPMask[]) {
 }
 
 function pose(config: PosePluginConfig) {
-	const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+	const { textureName, wasmBaseUrl = DEFAULT_WASM_BASE_URL, options: { history, ...mediapipeOptions } = {} } = config;
 	const options = { ...DEFAULT_POSE_OPTIONS, ...mediapipeOptions };
-	const optionsKey = hashOptions({ ...options, textureName });
+	const optionsKey = hashOptions({ ...options, textureName, wasmBaseUrl });
 
 	const nLandmarksMax = options.maxPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
@@ -325,7 +327,7 @@ function pose(config: PosePluginConfig) {
 				sharedDetectorPromises,
 				async () => {
 					const [mediaPipe, { PoseLandmarker }] = await Promise.all([
-						getSharedFileset(),
+						getSharedFileset(wasmBaseUrl),
 						import('@mediapipe/tasks-vision'),
 					]);
 					if (destroyed) return;

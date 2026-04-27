@@ -1,11 +1,12 @@
 import {
+  DEFAULT_WASM_BASE_URL,
   calculateBoundingBoxCenter,
   generateGLSLFn,
   getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-ZVPQU2RM.mjs";
+} from "../chunk-W5VOJOKO.mjs";
 
 // src/plugins/hands.ts
 var STANDARD_LANDMARK_COUNT = 21;
@@ -54,9 +55,9 @@ function updateLandmarksData(detector, hands2, handedness) {
   detector.state.nHands = nHands;
 }
 function hands(config) {
-  const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+  const { textureName, wasmBaseUrl = DEFAULT_WASM_BASE_URL, options: { history, ...mediapipeOptions } = {} } = config;
   const options = { ...DEFAULT_HANDS_OPTIONS, ...mediapipeOptions };
-  const optionsKey = hashOptions({ ...options, textureName });
+  const optionsKey = hashOptions({ ...options, textureName, wasmBaseUrl });
   const nLandmarksMax = options.maxHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
   const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
   return function(shaderPad, context) {
@@ -100,7 +101,7 @@ function hands(config) {
         sharedDetectorPromises,
         async () => {
           const [mediaPipe, { HandLandmarker }] = await Promise.all([
-            getSharedFileset(),
+            getSharedFileset(wasmBaseUrl),
             import("@mediapipe/tasks-vision")
           ]);
           if (destroyed) return;

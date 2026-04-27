@@ -1,0 +1,7 @@
+var M={data:new Uint8Array(4),width:1,height:1};function h(n){return n instanceof HTMLVideoElement||n instanceof HTMLImageElement||n instanceof HTMLCanvasElement||n instanceof OffscreenCanvas}function T(n){return JSON.stringify(n,Object.keys(n).sort())}function $(n,f,e,i){let o=f.get(n);if(o)return Promise.resolve(o);let t=e.get(n);if(t)return t;let r;return r=i().then(s=>(s&&f.set(n,s),s)).finally(()=>{e.get(n)===r&&e.delete(n)}),e.set(n,r),r}function b(n,f,e,i,o=0){let t=1/0,r=-1/0,s=1/0,m=-1/0,a=0,c=0;for(let x of e){let g=(o+f*i+x)*4,p=n[g],l=n[g+1];t=Math.min(t,p),r=Math.max(r,p),s=Math.min(s,l),m=Math.max(m,l),a+=n[g+2],c+=n[g+3]}return[(t+r)/2,(s+m)/2,a/e.length,c/e.length]}var d="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm",u=new Map;function y(n=d){let f=u.get(n);if(f)return f;let e=import("@mediapipe/tasks-vision").then(({FilesetResolver:i})=>i.forVisionTasks(n)).catch(i=>{throw u.delete(n),i});return u.set(n,e),e}function S(n){return{historyParams:n?", framesAgo":"",fn:n?(i,o,t,r)=>{let s=t.replace(/\w+ /g,""),m=t?`${t}, int framesAgo`:"int framesAgo",a=s?`${s}, 0`:"0";return`${i} ${o}(${m}) {
+${r}
+}
+${i} ${o}(${t}) { return ${o}(${a}); }`}:(i,o,t,r)=>`${i} ${o}(${t}) {
+${r}
+}`}}export{M as a,h as b,T as c,$ as d,b as e,d as f,y as g,S as h};
+//# sourceMappingURL=chunk-BUZPU5IY.mjs.map

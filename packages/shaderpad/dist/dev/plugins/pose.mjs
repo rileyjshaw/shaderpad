@@ -3,6 +3,7 @@ import {
 } from "../chunk-QYD24S7K.mjs";
 import "../chunk-OTFRVDNV.mjs";
 import {
+  DEFAULT_WASM_BASE_URL,
   calculateBoundingBoxCenter,
   dummyTexture,
   generateGLSLFn,
@@ -10,7 +11,7 @@ import {
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-ZVPQU2RM.mjs";
+} from "../chunk-W5VOJOKO.mjs";
 
 // src/plugins/pose.ts
 var STANDARD_LANDMARK_COUNT = 33;
@@ -201,9 +202,9 @@ function updateMask(detector, segmentationMasks) {
   }
 }
 function pose(config) {
-  const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+  const { textureName, wasmBaseUrl = DEFAULT_WASM_BASE_URL, options: { history, ...mediapipeOptions } = {} } = config;
   const options = { ...DEFAULT_POSE_OPTIONS, ...mediapipeOptions };
-  const optionsKey = hashOptions({ ...options, textureName });
+  const optionsKey = hashOptions({ ...options, textureName, wasmBaseUrl });
   const nLandmarksMax = options.maxPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
   const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
   return function(shaderPad, context) {
@@ -258,7 +259,7 @@ function pose(config) {
         sharedDetectorPromises,
         async () => {
           const [mediaPipe, { PoseLandmarker }] = await Promise.all([
-            getSharedFileset(),
+            getSharedFileset(wasmBaseUrl),
             import("@mediapipe/tasks-vision")
           ]);
           if (destroyed) return;

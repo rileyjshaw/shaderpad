@@ -1,5 +1,6 @@
 import ShaderPad, { PluginContext, TextureSource } from '..';
 import {
+	DEFAULT_WASM_BASE_URL,
 	generateGLSLFn,
 	dummyTexture,
 	getOrCreateSharedResource,
@@ -18,6 +19,7 @@ export interface SegmenterPluginOptions {
 
 export interface SegmenterPluginConfig {
 	textureName: string;
+	wasmBaseUrl?: string;
 	options?: SegmenterPluginOptions;
 }
 
@@ -108,9 +110,9 @@ function updateMask(detector: SharedDetector, categoryMask: MPMask, confidenceMa
 }
 
 function segmenter(config: SegmenterPluginConfig) {
-	const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+	const { textureName, wasmBaseUrl = DEFAULT_WASM_BASE_URL, options: { history, ...mediapipeOptions } = {} } = config;
 	const options = { ...DEFAULT_SEGMENTER_OPTIONS, ...mediapipeOptions };
-	const optionsKey = hashOptions({ ...options, textureName });
+	const optionsKey = hashOptions({ ...options, textureName, wasmBaseUrl });
 
 	return function (shaderPad: ShaderPad, context: PluginContext) {
 		const { injectGLSL, emit, updateTexture } = context;
@@ -144,7 +146,7 @@ function segmenter(config: SegmenterPluginConfig) {
 				sharedDetectorPromises,
 				async () => {
 					const [mediaPipe, { ImageSegmenter }] = await Promise.all([
-						getSharedFileset(),
+						getSharedFileset(wasmBaseUrl),
 						import('@mediapipe/tasks-vision'),
 					]);
 					if (destroyed) return;

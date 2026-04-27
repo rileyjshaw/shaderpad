@@ -10,6 +10,7 @@ interface HandsPluginOptions {
 }
 interface HandsPluginConfig {
     textureName: string;
+    wasmBaseUrl?: string;
     options?: HandsPluginOptions;
 }
 declare function hands(config: HandsPluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;

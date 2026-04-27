@@ -80,14 +80,22 @@ export function calculateBoundingBoxCenter(
 	];
 }
 
-let filesetPromise: Promise<any> | null = null;
-export function getSharedFileset(): Promise<any> {
-	if (!filesetPromise) {
-		filesetPromise = import('@mediapipe/tasks-vision').then(({ FilesetResolver }) =>
-			FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm'),
-		);
-	}
-	return filesetPromise;
+export const DEFAULT_WASM_BASE_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm';
+
+const filesetPromises = new Map<string, Promise<any>>();
+
+export function getSharedFileset(wasmBaseUrl: string = DEFAULT_WASM_BASE_URL): Promise<any> {
+	const existing = filesetPromises.get(wasmBaseUrl);
+	if (existing) return existing;
+
+	const promise = import('@mediapipe/tasks-vision')
+		.then(({ FilesetResolver }) => FilesetResolver.forVisionTasks(wasmBaseUrl))
+		.catch(error => {
+			filesetPromises.delete(wasmBaseUrl);
+			throw error;
+		});
+	filesetPromises.set(wasmBaseUrl, promise);
+	return promise;
 }
 
 export function generateGLSLFn(history: number | undefined) {

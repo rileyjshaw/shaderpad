@@ -10,6 +10,7 @@ interface PosePluginOptions {
 }
 interface PosePluginConfig {
     textureName: string;
+    wasmBaseUrl?: string;
     options?: PosePluginOptions;
 }
 declare function pose(config: PosePluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;

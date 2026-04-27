@@ -1,4 +1,5 @@
 import {
+  DEFAULT_WASM_BASE_URL,
   calculateBoundingBoxCenter,
   dummyTexture,
   generateGLSLFn,
@@ -6,8 +7,9 @@ import {
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-ZVPQU2RM.mjs";
+} from "../chunk-W5VOJOKO.mjs";
 export {
+  DEFAULT_WASM_BASE_URL,
   calculateBoundingBoxCenter,
   dummyTexture,
   generateGLSLFn,

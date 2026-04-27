@@ -7,6 +7,7 @@ interface SegmenterPluginOptions {
 }
 interface SegmenterPluginConfig {
     textureName: string;
+    wasmBaseUrl?: string;
     options?: SegmenterPluginOptions;
 }
 declare function segmenter(config: SegmenterPluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;

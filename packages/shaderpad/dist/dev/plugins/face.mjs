@@ -2,13 +2,14 @@ import {
   spError
 } from "../chunk-OTFRVDNV.mjs";
 import {
+  DEFAULT_WASM_BASE_URL,
   calculateBoundingBoxCenter,
   generateGLSLFn,
   getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-ZVPQU2RM.mjs";
+} from "../chunk-W5VOJOKO.mjs";
 
 // src/plugins/face.ts
 var MASK_VERTEX_SHADER = `#version 300 es
@@ -401,9 +402,9 @@ function updateMask(detector, width, height) {
   }
 }
 function face(config) {
-  const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+  const { textureName, wasmBaseUrl = DEFAULT_WASM_BASE_URL, options: { history, ...mediapipeOptions } = {} } = config;
   const options = { ...DEFAULT_FACE_OPTIONS, ...mediapipeOptions };
-  const optionsKey = hashOptions({ ...options, textureName });
+  const optionsKey = hashOptions({ ...options, textureName, wasmBaseUrl });
   const nLandmarksMax = options.maxFaces * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
   const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
   return function(shaderPad, context) {
@@ -451,7 +452,7 @@ function face(config) {
         sharedDetectorPromises,
         async () => {
           const [mediaPipe, { FaceLandmarker }] = await Promise.all([
-            getSharedFileset(),
+            getSharedFileset(wasmBaseUrl),
             import("@mediapipe/tasks-vision")
           ]);
           if (destroyed) return;

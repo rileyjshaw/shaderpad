@@ -3,13 +3,14 @@ import {
 } from "../chunk-QYD24S7K.mjs";
 import "../chunk-OTFRVDNV.mjs";
 import {
+  DEFAULT_WASM_BASE_URL,
   dummyTexture,
   generateGLSLFn,
   getOrCreateSharedResource,
   getSharedFileset,
   hashOptions,
   isMediaPipeSource
-} from "../chunk-ZVPQU2RM.mjs";
+} from "../chunk-W5VOJOKO.mjs";
 
 // src/plugins/segmenter.ts
 var dummyTextureFloat32 = {
@@ -66,9 +67,9 @@ function updateMask(detector, categoryMask, confidenceMasks) {
   confidenceMasks?.forEach((m) => m.close());
 }
 function segmenter(config) {
-  const { textureName, options: { history, ...mediapipeOptions } = {} } = config;
+  const { textureName, wasmBaseUrl = DEFAULT_WASM_BASE_URL, options: { history, ...mediapipeOptions } = {} } = config;
   const options = { ...DEFAULT_SEGMENTER_OPTIONS, ...mediapipeOptions };
-  const optionsKey = hashOptions({ ...options, textureName });
+  const optionsKey = hashOptions({ ...options, textureName, wasmBaseUrl });
   return function(shaderPad, context) {
     const { injectGLSL, emit, updateTexture } = context;
     const existingDetector = sharedDetectors.get(optionsKey);
@@ -97,7 +98,7 @@ function segmenter(config) {
         sharedDetectorPromises,
         async () => {
           const [mediaPipe, { ImageSegmenter }] = await Promise.all([
-            getSharedFileset(),
+            getSharedFileset(wasmBaseUrl),
             import("@mediapipe/tasks-vision")
           ]);
           if (destroyed) return;
