@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"lygia": "^1.4.1",
-		"shaderpad": "1.0.0-beta.79"
+		"shaderpad": "1.0.0-beta.80"
 	},
 	"devDependencies": {
 		"vite": "^8.0.10",

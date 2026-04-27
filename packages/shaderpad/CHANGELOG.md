@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.80
+
+### Minor Changes
+
+- Add configurable `wasmBaseUrl` option for MediaPipe plugins
+
 ## 1.0.0-beta.79
 
 ### Patch Changes
