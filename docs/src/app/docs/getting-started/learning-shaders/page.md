@@ -31,6 +31,7 @@ Some examples worth exploring:
 - [FrostKiwi](https://blog.frost.kiwi/dual-kawase/)
 - [Liam Egan](https://codepen.io/shubniggurath)
 - [kishimisu](https://www.instagram.com/kishimisu/)
+- [Xor](https://www.xordev.com/arsenal)
 - [The Art of Code](https://www.youtube.com/@TheArtofCodeIsCool)
 
 These are only starting points. Find more people whose work speaks to you, and build your own list over time. Having a strong personal reference library is one of the best ways to keep improving.
