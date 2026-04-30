@@ -17,6 +17,7 @@ node_modules
 !.yarn/releases
 !.yarn/versions
 coverage
+test-results/
 build
 out
 docs/dist

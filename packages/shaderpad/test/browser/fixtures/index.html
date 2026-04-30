@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>ShaderPad Browser Test Harness</title>
+		<style>
+			html,
+			body {
+				margin: 0;
+				background: #111;
+			}
+
+			#mount {
+				display: grid;
+				place-items: center;
+				min-height: 100vh;
+			}
+
+			canvas {
+				background: #000;
+				image-rendering: pixelated;
+				border: 1px solid #333;
+			}
+		</style>
+		<script type="importmap">
+			{
+				"imports": {
+					"shaderpad": "/packages/shaderpad/dist/dev/index.mjs",
+					"shaderpad/plugins/hands": "/packages/shaderpad/dist/dev/plugins/hands.mjs",
+					"shaderpad/plugins/helpers": "/packages/shaderpad/dist/dev/plugins/helpers.mjs",
+					"@mediapipe/tasks-vision": "/packages/shaderpad/test/browser/fixtures/mediapipe-browser-mock.mjs"
+				}
+			}
+		</script>
+	</head>
+	<body>
+		<div id="mount"></div>
+		<script type="module">
+			import { installBrowserHarness } from '/packages/shaderpad/test/browser/fixtures/shaderpad-browser-harness.mjs';
+
+			await installBrowserHarness(document.getElementById('mount'));
+		</script>
+	</body>
+</html>

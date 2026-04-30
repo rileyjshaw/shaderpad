@@ -1,0 +1,35 @@
+name: ShaderPad Tests
+
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+
+jobs:
+    shaderpad:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Install Playwright browsers
+              run: npx playwright install --with-deps chromium firefox
+
+            - name: Build shaderpad
+              run: npm run build --workspace shaderpad
+
+            - name: Run headless shaderpad tests
+              run: npm test
+
+            - name: Run browser shaderpad tests
+              run: npm run test:browser
