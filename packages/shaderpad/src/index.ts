@@ -1,12 +1,7 @@
 import { safeMod, spError } from './internal/util';
 
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
-in vec2 a_position;
-out vec2 v_uv;
-void main() {
-    gl_Position = vec4(a_position, 0.0, 1.0);
-    v_uv = a_position * 0.5 + 0.5;
-}`;
+in vec2 a_position;out vec2 v_uv;void main(){gl_Position=vec4(a_position,0.,1.);v_uv=a_position*.5+.5;}`;
 
 interface Uniform {
 	type: 'float' | 'int' | 'uint';
@@ -224,19 +219,17 @@ function stringFrom(name: string | symbol) {
 class ShaderPad {
 	private isHeadless = false;
 	private isTouch = false;
-	public readonly gl: WebGL2RenderingContext;
-	private glHelpers!: {
-		typeToArray: Map<number, new (length: number) => ArrayBufferView>;
-		typeToInternalFormatString: Map<number, GLInternalFormatString>;
-		unsignedIntTypes: Set<number>;
-	};
+	declare public readonly gl: WebGL2RenderingContext;
+	declare private typeArrays: Map<number, new (length: number) => ArrayBufferView>;
+	declare private typeFormats: Map<number, GLInternalFormatString>;
+	declare private uintTypes: Set<number>;
 	private uniforms: Map<string, Uniform> = new Map();
 	private textures: Map<string | symbol, Texture> = new Map();
-	private texPool: TextureUnitPool;
+	declare private texPool: TextureUnitPool;
 	private buffer: WebGLBuffer | null = null;
 	private vao: WebGLVertexArrayObject | null = null;
 	private program: WebGLProgram | null = null;
-	private frameId: number | null;
+	declare private frameId: number | null;
 	private listeners: Map<string, EventListener> = new Map();
 	private frame = 0;
 	private tElapsed = 0;
@@ -244,12 +237,12 @@ class ShaderPad {
 	private cursorPos = [0.5, 0.5];
 	private clickPos = [0.5, 0.5];
 	private isClicked = false;
-	public canvas: HTMLCanvasElement | OffscreenCanvas;
+	declare public canvas: HTMLCanvasElement | OffscreenCanvas;
 	private resObserver: MutationObserver | null = null;
 	private hooks: Map<ShaderPadEventName, Function[]> = new Map();
 	private historyDepth = 0;
-	private texOptions: TextureOptions;
-	private cursorTgt: Window | Element | undefined;
+	declare private texOptions: TextureOptions;
+	declare private cursorTgt: Window | Element | undefined;
 	// WebGL can’t read from and write to the history texture at the same time.
 	// We write to an intermediate texture then blit to the history texture.
 	private intermediateFbo: WebGLFramebuffer | null = null;
@@ -267,38 +260,35 @@ class ShaderPad {
 			antialias: false,
 		}) as WebGL2RenderingContext;
 		if (!gl) {
-			throw spError(
-				0,
-				__SHADERPAD_DEV__ && {
-					canvasType: this.canvas.constructor.name,
-					isHeadless: this.isHeadless,
-					canvasWidth: this.canvas.width,
-					canvasHeight: this.canvas.height,
-				},
-			);
+			throw __SHADERPAD_DEV__
+				? spError(0, {
+						canvasType: this.canvas.constructor.name,
+						isHeadless: this.isHeadless,
+						canvasWidth: this.canvas.width,
+						canvasHeight: this.canvas.height,
+					})
+				: spError(0);
 		}
 		this.gl = gl;
-		this.glHelpers = {
-			typeToArray: new Map<number, new (length: number) => ArrayBufferView>([
-				[gl.FLOAT, Float32Array],
-				[gl.HALF_FLOAT, Uint16Array],
-				[gl.UNSIGNED_SHORT, Uint16Array],
-				[gl.SHORT, Int16Array],
-				[gl.BYTE, Int8Array],
-				[gl.UNSIGNED_INT, Uint32Array],
-				[gl.INT, Int32Array],
-			]),
-			typeToInternalFormatString: new Map<number, GLInternalFormatString>([
-				[gl.FLOAT, 'RGBA32F'],
-				[gl.HALF_FLOAT, 'RGBA16F'],
-				[gl.UNSIGNED_SHORT, 'RGBA32UI'],
-				[gl.SHORT, 'RGBA32I'],
-				[gl.BYTE, 'RGBA32I'],
-				[gl.UNSIGNED_INT, 'RGBA32UI'],
-				[gl.INT, 'RGBA32I'],
-			]),
-			unsignedIntTypes: new Set([gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT, gl.UNSIGNED_INT]),
-		};
+		this.typeArrays = new Map<number, new (length: number) => ArrayBufferView>([
+			[gl.FLOAT, Float32Array],
+			[gl.HALF_FLOAT, Uint16Array],
+			[gl.UNSIGNED_SHORT, Uint16Array],
+			[gl.SHORT, Int16Array],
+			[gl.BYTE, Int8Array],
+			[gl.UNSIGNED_INT, Uint32Array],
+			[gl.INT, Int32Array],
+		]);
+		this.typeFormats = new Map<number, GLInternalFormatString>([
+			[gl.FLOAT, 'RGBA32F'],
+			[gl.HALF_FLOAT, 'RGBA16F'],
+			[gl.UNSIGNED_SHORT, 'RGBA32UI'],
+			[gl.SHORT, 'RGBA32I'],
+			[gl.BYTE, 'RGBA32I'],
+			[gl.UNSIGNED_INT, 'RGBA32UI'],
+			[gl.INT, 'RGBA32I'],
+		]);
+		this.uintTypes = new Set([gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT, gl.UNSIGNED_INT]);
 
 		let registryEntry = canvasRegistry.get(this.canvas);
 		if (!registryEntry) {
@@ -334,13 +324,13 @@ class ShaderPad {
 			);
 		}
 
-		const program = this.gl.createProgram();
+		const program = gl.createProgram();
 		if (!program) {
 			throw spError(1);
 		}
 		this.program = program;
 
-		const vertexShader = this.createShader(this.gl.VERTEX_SHADER, DEFAULT_VERTEX_SHADER_SRC);
+		const vertexShader = this.createShader(gl.VERTEX_SHADER, DEFAULT_VERTEX_SHADER_SRC);
 		const fragmentShader = this.createShader(
 			gl.FRAGMENT_SHADER,
 			combineShaderCode(fragmentShaderSrc, glslInjections),
@@ -353,14 +343,13 @@ class ShaderPad {
 		gl.deleteShader(fragmentShader);
 
 		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-			const linkError = spError(
-				2,
-				__SHADERPAD_DEV__ && {
-					programInfoLog: gl.getProgramInfoLog(program),
-					fragmentShaderLength: fragmentShaderSrc.length,
-					glslInjectionCount: glslInjections.length,
-				},
-			);
+			const linkError = __SHADERPAD_DEV__
+				? spError(2, {
+						programInfoLog: gl.getProgramInfoLog(program),
+						fragmentShaderLength: fragmentShaderSrc.length,
+						glslInjectionCount: glslInjections.length,
+					})
+				: spError(2);
 			gl.deleteProgram(program);
 			throw linkError;
 		}
@@ -432,9 +421,10 @@ class ShaderPad {
 	}
 
 	private resolveGLConst(value: GLConstantString): number {
-		const resolved = this.gl[value];
+		const gl = this.gl;
+		const resolved = gl[value];
 		if (resolved === undefined) {
-			throw spError(3, __SHADERPAD_DEV__ && { value });
+			throw __SHADERPAD_DEV__ ? spError(3, { value }) : spError(3);
 		}
 		return resolved;
 	}
@@ -461,19 +451,19 @@ class ShaderPad {
 	}
 
 	private createShader(type: number, source: string): WebGLShader {
-		const shader = this.gl.createShader(type)!;
-		this.gl.shaderSource(shader, source);
-		this.gl.compileShader(shader);
-		if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-			console.error(this.gl.getShaderInfoLog(shader));
-			const compilationError = spError(
-				4,
-				__SHADERPAD_DEV__ && {
-					shaderType: type === this.gl.VERTEX_SHADER ? 'vertex' : 'fragment',
-					source,
-				},
-			);
-			this.gl.deleteShader(shader);
+		const gl = this.gl;
+		const shader = gl.createShader(type)!;
+		gl.shaderSource(shader, source);
+		gl.compileShader(shader);
+		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+			console.error(gl.getShaderInfoLog(shader));
+			const compilationError = __SHADERPAD_DEV__
+				? spError(4, {
+						shaderType: type === gl.VERTEX_SHADER ? 'vertex' : 'fragment',
+						source,
+					})
+				: spError(4);
+			gl.deleteShader(shader);
 			throw compilationError;
 		}
 		return shader;
@@ -579,8 +569,9 @@ class ShaderPad {
 	}
 
 	private syncRes() {
-		const resolution: [number, number] = [this.gl.drawingBufferWidth, this.gl.drawingBufferHeight];
-		this.gl.viewport(0, 0, ...resolution);
+		const gl = this.gl;
+		const resolution: [number, number] = [gl.drawingBufferWidth, gl.drawingBufferHeight];
+		gl.viewport(0, 0, ...resolution);
 		if (this.uniforms.has('u_resolution')) {
 			this.updateUniforms({ u_resolution: resolution });
 		} else {
@@ -597,7 +588,8 @@ class ShaderPad {
 		const info = this.textures.get(name);
 		if (!info || (info.width === width && info.height === height)) return;
 
-		this.gl.deleteTexture(info.texture);
+		const gl = this.gl;
+		gl.deleteTexture(info.texture);
 		info.width = width;
 		info.height = height;
 		const { texture } = this.createTex(name, info);
@@ -610,15 +602,14 @@ class ShaderPad {
 		if (existing) return existing.unitIndex;
 		if (this.texPool.free.length > 0) return this.texPool.free.pop()!;
 		if (this.texPool.next >= this.texPool.max) {
-			throw spError(
-				5,
-				__SHADERPAD_DEV__ && {
-					name: stringFrom(name),
-					nextTextureUnit: this.texPool.next,
-					maxTextureUnits: this.texPool.max,
-					freeTextureUnits: this.texPool.free.length,
-				},
-			);
+			throw __SHADERPAD_DEV__
+				? spError(5, {
+						name: stringFrom(name),
+						nextTextureUnit: this.texPool.next,
+						maxTextureUnits: this.texPool.max,
+						freeTextureUnits: this.texPool.free.length,
+					})
+				: spError(5);
 		}
 		return this.texPool.next++;
 	}
@@ -628,8 +619,7 @@ class ShaderPad {
 		const internalFormatOption = options?.internalFormat;
 		const typeString = options?.type ?? typeFromInternalFormatString(internalFormatOption) ?? 'UNSIGNED_BYTE';
 		const type = this.resolveGLConst(typeString);
-		const internalFormatString =
-			internalFormatOption ?? this.glHelpers.typeToInternalFormatString.get(type) ?? 'RGBA8';
+		const internalFormatString = internalFormatOption ?? this.typeFormats.get(type) ?? 'RGBA8';
 		const isIntegerColorFormat = /^(R|RG|RGB|RGBA)(8|16|32)(UI|I)$/.test(internalFormatString);
 		const formatString = options?.format ?? (isIntegerColorFormat ? 'RGBA_INTEGER' : 'RGBA');
 		const result: ResolvedTextureOptions = {
@@ -646,24 +636,24 @@ class ShaderPad {
 		const isFloatColorFormat = result.internalFormat === gl.RGBA16F || result.internalFormat === gl.RGBA32F;
 		// gl.getExtension isn’t just a check, it’s a required side-effect to enable floats.
 		if (isFloatColorFormat && !gl.getExtension('EXT_color_buffer_float')) {
-			throw spError(
-				6,
-				__SHADERPAD_DEV__ && {
-					internalFormat: internalFormatString,
-					type: typeString,
-				},
-			);
+			throw __SHADERPAD_DEV__
+				? spError(6, {
+						internalFormat: internalFormatString,
+						type: typeString,
+					})
+				: spError(6);
 		}
 		return result;
 	}
 
 	private getPxArray(type: number, size: number): ArrayBufferView {
-		const ArrayType = this.glHelpers.typeToArray.get(type) ?? Uint8Array;
+		const ArrayType = this.typeArrays.get(type) ?? Uint8Array;
 		return new ArrayType(size);
 	}
 
 	private isNotRgba(format: number): boolean {
-		return format !== this.gl.RGBA && format !== this.gl.RGBA_INTEGER;
+		const gl = this.gl;
+		return format !== gl.RGBA && format !== gl.RGBA_INTEGER;
 	}
 
 	private clearHistTexLayers(textureInfo: Texture): void {
@@ -729,36 +719,35 @@ class ShaderPad {
 		const arrayLength = options?.arrayLength;
 		const allowMissing = options?.allowMissing ?? false;
 		if (this.uniforms.has(name)) {
-			throw spError(7, __SHADERPAD_DEV__ && { name, arrayLength: arrayLength ?? null });
+			throw __SHADERPAD_DEV__ ? spError(7, { name, arrayLength: arrayLength ?? null }) : spError(7);
 		}
 		if (!UNIFORM_TYPE_SUFFIXES[type]) {
-			throw spError(
-				8,
-				__SHADERPAD_DEV__ && {
-					name,
-					type,
-					supportedTypes: Object.keys(UNIFORM_TYPE_SUFFIXES),
-				},
-			);
+			throw __SHADERPAD_DEV__
+				? spError(8, {
+						name,
+						type,
+						supportedTypes: Object.keys(UNIFORM_TYPE_SUFFIXES),
+					})
+				: spError(8);
 		}
 		if (arrayLength && !(Array.isArray(value) && value.length === arrayLength)) {
-			throw spError(
-				9,
-				__SHADERPAD_DEV__ && {
-					name,
-					expectedLength: arrayLength,
-					receivedLength: Array.isArray(value) ? value.length : 1,
-				},
-			);
+			throw __SHADERPAD_DEV__
+				? spError(9, {
+						name,
+						expectedLength: arrayLength,
+						receivedLength: Array.isArray(value) ? value.length : 1,
+					})
+				: spError(9);
 		}
 
-		let location = this.gl.getUniformLocation(this.program!, name);
+		const gl = this.gl;
+		let location = gl.getUniformLocation(this.program!, name);
 		if (!location && arrayLength) {
-			location = this.gl.getUniformLocation(this.program!, `${name}[0]`);
+			location = gl.getUniformLocation(this.program!, `${name}[0]`);
 		}
 		if (!location) {
 			if (allowMissing) return;
-			throw spError(19, __SHADERPAD_DEV__ && { name, arrayLength: arrayLength ?? null });
+			throw __SHADERPAD_DEV__ ? spError(19, { name, arrayLength: arrayLength ?? null }) : spError(19);
 		}
 
 		const probeValue = arrayLength ? (value as number[] | number[][])[0] : value;
@@ -778,50 +767,47 @@ class ShaderPad {
 		updates: Record<string, number | number[] | (number | number[])[]>,
 		options?: { startIndex?: number; allowMissing?: boolean },
 	) {
-		this.gl.useProgram(this.program);
+		const gl = this.gl;
+		gl.useProgram(this.program);
 		Object.entries(updates).forEach(([name, newValue]) => {
 			const uniform = this.uniforms.get(name);
 			if (!uniform) {
 				if (options?.allowMissing) return;
-				throw spError(
-					20,
-					__SHADERPAD_DEV__ && {
-						name,
-						startIndex: options?.startIndex ?? null,
-					},
-				);
+				throw __SHADERPAD_DEV__
+					? spError(20, {
+							name,
+							startIndex: options?.startIndex ?? null,
+						})
+					: spError(20);
 			}
 			let glFunctionName = `uniform${uniform.length}${UNIFORM_TYPE_SUFFIXES[uniform.type]}`;
 			if (uniform.arrayLength) {
 				if (!Array.isArray(newValue)) {
-					throw spError(
-						10,
-						__SHADERPAD_DEV__ && {
-							name,
-							receivedType: typeof newValue,
-						},
-					);
+					throw __SHADERPAD_DEV__
+						? spError(10, {
+								name,
+								receivedType: typeof newValue,
+							})
+						: spError(10);
 				}
 				const nValues = newValue.length;
 				if (!nValues) return;
 				if (nValues > uniform.arrayLength) {
-					throw spError(
-						11,
-						__SHADERPAD_DEV__ && {
-							name,
-							receivedLength: nValues,
-							maxLength: uniform.arrayLength,
-						},
-					);
+					throw __SHADERPAD_DEV__
+						? spError(11, {
+								name,
+								receivedLength: nValues,
+								maxLength: uniform.arrayLength,
+							})
+						: spError(11);
 				}
 				if (newValue.some(item => (Array.isArray(item) ? item.length : 1) !== uniform.length)) {
-					throw spError(
-						12,
-						__SHADERPAD_DEV__ && {
-							name,
-							expectedElementLength: uniform.length,
-						},
-					);
+					throw __SHADERPAD_DEV__
+						? spError(12, {
+								name,
+								expectedElementLength: uniform.length,
+							})
+						: spError(12);
 				}
 				const flat = newValue.flat();
 				const typedArray =
@@ -832,34 +818,32 @@ class ShaderPad {
 							: new Int32Array(flat);
 				let location = uniform.location;
 				if (options?.startIndex) {
-					const newLocation = this.gl.getUniformLocation(this.program!, `${name}[${options.startIndex}]`);
+					const newLocation = gl.getUniformLocation(this.program!, `${name}[${options.startIndex}]`);
 					if (!newLocation) {
-						throw spError(
-							13,
-							__SHADERPAD_DEV__ && {
-								name,
-								startIndex: options.startIndex,
-								arrayLength: uniform.arrayLength,
-							},
-						);
+						throw __SHADERPAD_DEV__
+							? spError(13, {
+									name,
+									startIndex: options.startIndex,
+									arrayLength: uniform.arrayLength,
+								})
+							: spError(13);
 					}
 					location = newLocation;
 				}
-				(this.gl as any)[glFunctionName + 'v'](location, typedArray);
+				(gl as any)[glFunctionName + 'v'](location, typedArray);
 			} else {
 				if (!Array.isArray(newValue)) newValue = [newValue];
 				const scalarValue = newValue as number[];
 				if (scalarValue.length !== uniform.length) {
-					throw spError(
-						14,
-						__SHADERPAD_DEV__ && {
-							name,
-							receivedLength: scalarValue.length,
-							expectedLength: uniform.length,
-						},
-					);
+					throw __SHADERPAD_DEV__
+						? spError(14, {
+								name,
+								receivedLength: scalarValue.length,
+								expectedLength: uniform.length,
+							})
+						: spError(14);
 				}
-				(this.gl as any)[glFunctionName](uniform.location, ...scalarValue);
+				(gl as any)[glFunctionName](uniform.location, ...scalarValue);
 			}
 		});
 		this.emit('updateUniforms', ...arguments);
@@ -869,20 +853,20 @@ class ShaderPad {
 		name: string | symbol,
 		textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> & { unitIndex?: number },
 	) {
+		const gl = this.gl;
 		const { width, height } = textureInfo;
 		const historyDepth = textureInfo.history?.depth ?? 0;
 
-		const texture = this.gl.createTexture();
+		const texture = gl.createTexture();
 		if (!texture) {
-			throw spError(
-				15,
-				__SHADERPAD_DEV__ && {
-					name: stringFrom(name),
-					width,
-					height,
-					historyDepth,
-				},
-			);
+			throw __SHADERPAD_DEV__
+				? spError(15, {
+						name: stringFrom(name),
+						width,
+						height,
+						historyDepth,
+					})
+				: spError(15);
 		}
 
 		let unitIndex = textureInfo.unitIndex;
@@ -890,25 +874,25 @@ class ShaderPad {
 			try {
 				unitIndex = this.reserveTex(name);
 			} catch (error) {
-				this.gl.deleteTexture(texture);
+				gl.deleteTexture(texture);
 				throw error;
 			}
 		}
 
 		const hasHistory = historyDepth > 0;
-		const textureTarget = hasHistory ? this.gl.TEXTURE_2D_ARRAY : this.gl.TEXTURE_2D;
+		const textureTarget = hasHistory ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D;
 		const { options } = textureInfo;
-		this.gl.activeTexture(this.gl.TEXTURE0 + unitIndex);
-		this.gl.bindTexture(textureTarget, texture);
-		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_WRAP_S, options.wrapS);
-		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_WRAP_T, options.wrapT);
-		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_MIN_FILTER, options.minFilter);
-		this.gl.texParameteri(textureTarget, this.gl.TEXTURE_MAG_FILTER, options.magFilter);
+		gl.activeTexture(gl.TEXTURE0 + unitIndex);
+		gl.bindTexture(textureTarget, texture);
+		gl.texParameteri(textureTarget, gl.TEXTURE_WRAP_S, options.wrapS);
+		gl.texParameteri(textureTarget, gl.TEXTURE_WRAP_T, options.wrapT);
+		gl.texParameteri(textureTarget, gl.TEXTURE_MIN_FILTER, options.minFilter);
+		gl.texParameteri(textureTarget, gl.TEXTURE_MAG_FILTER, options.magFilter);
 		if (hasHistory) {
-			this.gl.texStorage3D(textureTarget, 1, options.internalFormat, width, height, historyDepth);
+			gl.texStorage3D(textureTarget, 1, options.internalFormat, width, height, historyDepth);
 		} else if (name === INTERMEDIATE_TEXTURE_KEY) {
-			this.gl.texImage2D(
-				this.gl.TEXTURE_2D,
+			gl.texImage2D(
+				gl.TEXTURE_2D,
 				0,
 				options.internalFormat,
 				width,
@@ -923,22 +907,22 @@ class ShaderPad {
 	}
 
 	private initTex(name: string | symbol, source: TextureSource, options?: InitializeTextureOptions) {
+		const gl = this.gl;
 		if (this.textures.has(name)) {
-			throw spError(16, __SHADERPAD_DEV__ && { name: stringFrom(name) });
+			throw __SHADERPAD_DEV__ ? spError(16, { name: stringFrom(name) }) : spError(16);
 		}
 
 		const { history: historyDepth = 0, ...texOptions } = options ?? {};
 		const { width, height } = getSourceDimensions(source);
 		if (!width || !height) {
-			throw spError(
-				17,
-				__SHADERPAD_DEV__ && {
-					name: stringFrom(name),
-					width,
-					height,
-					sourceType: source.constructor.name,
-				},
-			);
+			throw __SHADERPAD_DEV__
+				? spError(17, {
+						name: stringFrom(name),
+						width,
+						height,
+						sourceType: source.constructor.name,
+					})
+				: spError(17);
 		}
 		const textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> = {
 			width,
@@ -969,10 +953,10 @@ class ShaderPad {
 		}
 
 		// Set a uniform to access the texture in the fragment shader.
-		this.gl.useProgram(this.program!);
-		const uSampler = this.gl.getUniformLocation(this.program!, stringFrom(name));
+		gl.useProgram(this.program!);
+		const uSampler = gl.getUniformLocation(this.program!, stringFrom(name));
 		if (uSampler) {
-			this.gl.uniform1i(uSampler, unitIndex);
+			gl.uniform1i(uSampler, unitIndex);
 		}
 	}
 
@@ -992,14 +976,15 @@ class ShaderPad {
 	}
 
 	private updateTex(name: string | symbol, source: UpdateTextureSource, historySlots?: HistorySlots) {
+		const gl = this.gl;
 		const info = this.textures.get(name);
 		if (!info) {
-			throw spError(18, __SHADERPAD_DEV__ && { name: stringFrom(name) });
+			throw __SHADERPAD_DEV__ ? spError(18, { name: stringFrom(name) }) : spError(18);
 		}
 
 		if (source instanceof WebGLTexture) {
-			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
-			this.gl.bindTexture(this.gl.TEXTURE_2D, source);
+			gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
+			gl.bindTexture(gl.TEXTURE_2D, source);
 			return;
 		}
 
@@ -1009,10 +994,10 @@ class ShaderPad {
 			const srcW = sourceIntermediateInfo.width;
 			const srcH = sourceIntermediateInfo.height;
 
-			if (source.gl === this.gl) {
+			if (source.gl === gl) {
 				if (!info.history) {
-					this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
-					this.gl.bindTexture(this.gl.TEXTURE_2D, sourceIntermediateInfo.texture);
+					gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
+					gl.bindTexture(gl.TEXTURE_2D, sourceIntermediateInfo.texture);
 					return;
 				}
 				const { depth } = info.history;
@@ -1022,13 +1007,13 @@ class ShaderPad {
 						: Array.isArray(historySlots)
 							? historySlots.map(i => safeMod(i, depth))
 							: [safeMod(historySlots, depth)];
-				this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
-				this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
-				this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, source.intermediateFbo);
+				gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
+				gl.bindTexture(gl.TEXTURE_2D_ARRAY, info.texture);
+				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, source.intermediateFbo);
 				for (const slot of targetSlots) {
-					this.gl.copyTexSubImage3D(this.gl.TEXTURE_2D_ARRAY, 0, 0, 0, slot, 0, 0, srcW, srcH);
+					gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, slot, 0, 0, srcW, srcH);
 				}
-				this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, null);
+				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
 				this.updateFrameOffset(name, targetSlots[targetSlots.length - 1], { allowMissing: true });
 				if (historySlots === undefined) {
 					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
@@ -1061,17 +1046,17 @@ class ShaderPad {
 		// UNPACK_FLIP_Y_WEBGL only works for DOM element sources, not typed arrays.
 		const isTypedArray = 'data' in nonShaderPadSource && nonShaderPadSource.data;
 		const shouldFlipY = !isTypedArray && !info.options?.preserveY;
-		const previousFlipY = this.gl.getParameter(this.gl.UNPACK_FLIP_Y_WEBGL);
+		const previousFlipY = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL);
 		const needsAlignmentFix = isTypedArray && this.isNotRgba(info.options.format);
 		let previousAlignment;
 		if (needsAlignmentFix) {
-			previousAlignment = this.gl.getParameter(this.gl.UNPACK_ALIGNMENT);
-			this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
+			previousAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
+			gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 		}
 
 		if (info.history) {
-			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
-			this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, info.texture);
+			gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
+			gl.bindTexture(gl.TEXTURE_2D_ARRAY, info.texture);
 			const { depth } = info.history;
 			const targetSlots =
 				historySlots === undefined
@@ -1080,7 +1065,7 @@ class ShaderPad {
 						? historySlots.map(i => safeMod(i, depth))
 						: [safeMod(historySlots, depth)];
 
-			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 			const partialSource = nonShaderPadSource as PartialCustomTexture;
 			const sourceData =
 				partialSource.data ?? (nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>);
@@ -1088,8 +1073,8 @@ class ShaderPad {
 			const yOffset = isPartial ? (partialSource.y ?? 0) : 0;
 
 			for (const slot of targetSlots) {
-				this.gl.texSubImage3D(
-					this.gl.TEXTURE_2D_ARRAY,
+				gl.texSubImage3D(
+					gl.TEXTURE_2D_ARRAY,
 					0,
 					xOffset,
 					yOffset,
@@ -1102,20 +1087,20 @@ class ShaderPad {
 					sourceData as any,
 				);
 			}
-			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
 			this.updateFrameOffset(name, targetSlots[targetSlots.length - 1]);
 			if (historySlots === undefined) {
 				info.history.writeIndex = (info.history.writeIndex + 1) % depth;
 			}
 		} else {
-			this.gl.activeTexture(this.gl.TEXTURE0 + info.unitIndex);
-			this.gl.bindTexture(this.gl.TEXTURE_2D, info.texture);
-			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
+			gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
+			gl.bindTexture(gl.TEXTURE_2D, info.texture);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 
 			if (isPartial) {
 				const partialSource = nonShaderPadSource as PartialCustomTexture;
-				this.gl.texSubImage2D(
-					this.gl.TEXTURE_2D,
+				gl.texSubImage2D(
+					gl.TEXTURE_2D,
 					0,
 					partialSource.x ?? 0,
 					partialSource.y ?? 0,
@@ -1126,8 +1111,8 @@ class ShaderPad {
 					partialSource.data,
 				);
 			} else {
-				this.gl.texImage2D(
-					this.gl.TEXTURE_2D,
+				gl.texImage2D(
+					gl.TEXTURE_2D,
 					0,
 					info.options.internalFormat,
 					width,
@@ -1139,9 +1124,9 @@ class ShaderPad {
 						(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>)) as any,
 				);
 			}
-			this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
 		}
-		if (needsAlignmentFix) this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, previousAlignment);
+		if (needsAlignmentFix) gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousAlignment);
 	}
 
 	private bindIntermediate() {
@@ -1157,7 +1142,7 @@ class ShaderPad {
 		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
 		if (intermediateInfo.options.isIntegerColorFormat) {
 			const t = intermediateInfo.options.type;
-			if (this.glHelpers.unsignedIntTypes.has(t)) {
+			if (this.uintTypes.has(t)) {
 				gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array(4));
 			} else {
 				gl.clearBufferiv(gl.COLOR, 0, new Int32Array(4));
@@ -1291,6 +1276,7 @@ class ShaderPad {
 		this.emit('destroy');
 
 		this._pause();
+		const gl = this.gl;
 
 		if (this.cursorTgt) {
 			this.listeners.forEach((listener, event) => {
@@ -1305,18 +1291,18 @@ class ShaderPad {
 		}
 
 		if (this.program) {
-			this.gl.deleteProgram(this.program);
+			gl.deleteProgram(this.program);
 			this.program = null;
 		}
 
 		if (this.intermediateFbo) {
-			this.gl.deleteFramebuffer(this.intermediateFbo);
+			gl.deleteFramebuffer(this.intermediateFbo);
 			this.intermediateFbo = null;
 		}
 
 		this.textures.forEach(texture => {
 			this.texPool.free.push(texture.unitIndex);
-			this.gl.deleteTexture(texture.texture);
+			gl.deleteTexture(texture.texture);
 		});
 		this.textures.clear();
 		const entry = canvasRegistry.get(this.canvas);
@@ -1328,12 +1314,12 @@ class ShaderPad {
 		}
 
 		if (this.vao) {
-			this.gl.deleteVertexArray(this.vao);
+			gl.deleteVertexArray(this.vao);
 			this.vao = null;
 		}
 
 		if (this.buffer) {
-			this.gl.deleteBuffer(this.buffer);
+			gl.deleteBuffer(this.buffer);
 			this.buffer = null;
 		}
 

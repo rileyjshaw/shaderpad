@@ -1,6 +1,6 @@
 import {
   index_default
-} from "../chunk-OHG35H62.mjs";
+} from "../chunk-TTKZ43JC.mjs";
 import "../chunk-OTFRVDNV.mjs";
 import {
   DEFAULT_WASM_BASE_URL,

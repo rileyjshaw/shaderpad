@@ -62,7 +62,9 @@ declare class ShaderPad {
     private isHeadless;
     private isTouch;
     readonly gl: WebGL2RenderingContext;
-    private glHelpers;
+    private typeArrays;
+    private typeFormats;
+    private uintTypes;
     private uniforms;
     private textures;
     private texPool;
