@@ -54,7 +54,7 @@ export type ShaderPadElementVisibilityChangeEventDetail = {
 	isVisible: boolean;
 };
 
-export type ShaderPadElementBeforeStepEventDetail = {
+export type ShaderPadElementPreStepEventDetail = {
 	shader: CoreShaderPad;
 	canvas: HTMLCanvasElement | null;
 	time: number;
@@ -374,18 +374,18 @@ export class ShaderPadElement extends ShaderPadElementBase {
 		const handlePause = () => {
 			this.isPlaying = false;
 		};
-		const handleBeforeStep = (time: number, frame: number, options?: StepOptions) => {
+		const handlePreStep = (time: number, frame: number, options?: StepOptions) => {
 			this.updateLiveTextures('step');
-			this.dispatchMutableBeforeStep(instance, time, frame, options);
+			this.dispatchMutablePreStep(instance, time, frame, options);
 		};
 
 		instance.on('play', handlePlay);
 		instance.on('pause', handlePause);
-		instance.on('beforeStep', handleBeforeStep);
+		instance.on('preStep', handlePreStep);
 		this.cleanupCallbacks.push(() => {
 			instance.off('play', handlePlay);
 			instance.off('pause', handlePause);
-			instance.off('beforeStep', handleBeforeStep);
+			instance.off('preStep', handlePreStep);
 		});
 	}
 
@@ -622,8 +622,8 @@ export class ShaderPadElement extends ShaderPadElementBase {
 		instance.play(() => ({}));
 	}
 
-	private dispatchMutableBeforeStep(instance: CoreShaderPad, time: number, frame: number, options?: StepOptions) {
-		const detail: ShaderPadElementBeforeStepEventDetail = {
+	private dispatchMutablePreStep(instance: CoreShaderPad, time: number, frame: number, options?: StepOptions) {
+		const detail: ShaderPadElementPreStepEventDetail = {
 			shader: instance,
 			canvas: this.renderCanvas,
 			time,
@@ -631,7 +631,7 @@ export class ShaderPadElement extends ShaderPadElementBase {
 			stepOptions: options ? { ...options } : undefined,
 		};
 
-		this.emit<ShaderPadElementBeforeStepEventDetail>('beforeStep', detail);
+		this.emit<ShaderPadElementPreStepEventDetail>('preStep', detail);
 
 		if (options && detail.stepOptions) {
 			Object.assign(options, detail.stepOptions);

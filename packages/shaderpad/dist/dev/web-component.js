@@ -1045,7 +1045,7 @@ var ShaderPad = class _ShaderPad {
     }
   }
   draw(options) {
-    this.emit("beforeDraw", ...arguments);
+    this.emit("preDraw", ...arguments);
     const gl = this.gl;
     const w = gl.drawingBufferWidth;
     const h = gl.drawingBufferHeight;
@@ -1067,7 +1067,7 @@ var ShaderPad = class _ShaderPad {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       }
     }
-    this.emit("afterDraw", ...arguments);
+    this.emit("postDraw", ...arguments);
   }
   step(options) {
     this._step(performance.now(), options);
@@ -1083,7 +1083,7 @@ var ShaderPad = class _ShaderPad {
     this.tElapsed = t;
     this.tStart = now;
     const options = typeof opts === "function" ? opts(t, this.frame) : opts;
-    this.emit("beforeStep", t, this.frame, options);
+    this.emit("preStep", t, this.frame, options);
     this.tick();
     this.draw(options);
     const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
@@ -1109,12 +1109,12 @@ var ShaderPad = class _ShaderPad {
       historyInfo.history.writeIndex = nextWriteIndex;
     }
     ++this.frame;
-    this.emit("afterStep", t, this.frame, options);
+    this.emit("postStep", t, this.frame, options);
   }
-  play(onBeforeStep) {
+  play(onPreStep) {
     this._pause();
     const loop = (now) => {
-      this._step(now, onBeforeStep);
+      this._step(now, onPreStep);
       if (this.frameId != null) this.frameId = requestAnimationFrame(loop);
     };
     this.frameId = requestAnimationFrame(loop);
@@ -1692,17 +1692,17 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
     const handlePause = () => {
       this.isPlaying = false;
     };
-    const handleBeforeStep = (time, frame, options) => {
+    const handlePreStep = (time, frame, options) => {
       this.updateLiveTextures("step");
-      this.dispatchMutableBeforeStep(instance, time, frame, options);
+      this.dispatchMutablePreStep(instance, time, frame, options);
     };
     instance.on("play", handlePlay);
     instance.on("pause", handlePause);
-    instance.on("beforeStep", handleBeforeStep);
+    instance.on("preStep", handlePreStep);
     this.cleanupCallbacks.push(() => {
       instance.off("play", handlePlay);
       instance.off("pause", handlePause);
-      instance.off("beforeStep", handleBeforeStep);
+      instance.off("preStep", handlePreStep);
     });
   }
   setupPlayback(instance, canvas) {
@@ -1902,7 +1902,7 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
   playInstance(instance) {
     instance.play(() => ({}));
   }
-  dispatchMutableBeforeStep(instance, time, frame, options) {
+  dispatchMutablePreStep(instance, time, frame, options) {
     const detail = {
       shader: instance,
       canvas: this.renderCanvas,
@@ -1910,7 +1910,7 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
       frame,
       stepOptions: options ? { ...options } : void 0
     };
-    this.emit("beforeStep", detail);
+    this.emit("preStep", detail);
     if (options && detail.stepOptions) {
       Object.assign(options, detail.stepOptions);
     }

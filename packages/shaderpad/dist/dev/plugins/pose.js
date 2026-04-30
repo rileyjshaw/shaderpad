@@ -1054,7 +1054,7 @@ var ShaderPad = class _ShaderPad {
     }
   }
   draw(options) {
-    this.emit("beforeDraw", ...arguments);
+    this.emit("preDraw", ...arguments);
     const gl = this.gl;
     const w = gl.drawingBufferWidth;
     const h = gl.drawingBufferHeight;
@@ -1076,7 +1076,7 @@ var ShaderPad = class _ShaderPad {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       }
     }
-    this.emit("afterDraw", ...arguments);
+    this.emit("postDraw", ...arguments);
   }
   step(options) {
     this._step(performance.now(), options);
@@ -1092,7 +1092,7 @@ var ShaderPad = class _ShaderPad {
     this.tElapsed = t;
     this.tStart = now;
     const options = typeof opts === "function" ? opts(t, this.frame) : opts;
-    this.emit("beforeStep", t, this.frame, options);
+    this.emit("preStep", t, this.frame, options);
     this.tick();
     this.draw(options);
     const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
@@ -1118,12 +1118,12 @@ var ShaderPad = class _ShaderPad {
       historyInfo.history.writeIndex = nextWriteIndex;
     }
     ++this.frame;
-    this.emit("afterStep", t, this.frame, options);
+    this.emit("postStep", t, this.frame, options);
   }
-  play(onBeforeStep) {
+  play(onPreStep) {
     this._pause();
     const loop = (now) => {
-      this._step(now, onBeforeStep);
+      this._step(now, onPreStep);
       if (this.frameId != null) this.frameId = requestAnimationFrame(loop);
     };
     this.frameId = requestAnimationFrame(loop);

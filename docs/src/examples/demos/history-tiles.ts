@@ -59,7 +59,7 @@ void main() {
 		magFilter: 'NEAREST',
 	});
 
-	shader.on('afterStep', (_time: number, frame: number) => {
+	shader.on('postStep', (_time: number, frame: number) => {
 		if (frame > HISTORY_LENGTH) shader.pause();
 	});
 	shader.play();

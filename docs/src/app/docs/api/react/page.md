@@ -48,11 +48,11 @@ If you want the usage patterns first, start with [Components / React](/docs/comp
 
 ### Callbacks
 
-| Prop           | Type                                           | Meaning                                                                                                                         |
-| -------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `onInit`       | `(shader, canvas) => void`                     | Runs after setup, before autoplay starts.                                                                                       |
-| `onBeforeStep` | `(shader, time, frame) => StepOptions \| void` | Runs whenever the underlying ShaderPad emits `beforeStep`. Returned step options apply to frames started through the component. |
-| `onError`      | `(error) => void`                              | Receives constructor/setup errors instead of letting them surface as uncaught runtime errors.                                   |
+| Prop        | Type                                           | Meaning                                                                                                                      |
+| ----------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `onInit`    | `(shader, canvas) => void`                     | Runs after setup, before autoplay starts.                                                                                    |
+| `onPreStep` | `(shader, time, frame) => StepOptions \| void` | Runs whenever the underlying ShaderPad emits `preStep`. Returned step options apply to frames started through the component. |
+| `onError`   | `(error) => void`                              | Receives constructor/setup errors instead of letting them surface as uncaught runtime errors.                                |
 
 ### Texture Children
 
@@ -140,4 +140,4 @@ Behavior by prop combination:
 
 - Use this component only from client components in frameworks such as Next.js.
 - Do not pass your own `autosize()` plugin in `plugins` unless you also set `autosize={false}`.
-- Use `onInit`, `onBeforeStep`, or the ref for dynamic uniform and texture work.
+- Use `onInit`, `onPreStep`, or the ref for dynamic uniform and texture work.

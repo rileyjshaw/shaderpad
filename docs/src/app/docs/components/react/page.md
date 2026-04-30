@@ -73,9 +73,9 @@ export default function HistoryExample() {
 If you want the wrapper to own resizing, leave `autosize` alone and pass your other plugins through `plugins`. If you need to install your own `autosize()` instance, disable wrapper autosize first with `autosize={false}`.
 {% /callout %}
 
-### `onInit` and `onBeforeStep`
+### `onInit` and `onPreStep`
 
-Use `onInit` for setup such as custom uniforms or textures. Use `onBeforeStep` for per-frame updates and to return optional `StepOptions`.
+Use `onInit` for setup such as custom uniforms or textures. Use `onPreStep` for per-frame updates and to return optional `StepOptions`.
 
 ```tsx
 <ShaderPad
@@ -83,7 +83,7 @@ Use `onInit` for setup such as custom uniforms or textures. Use `onBeforeStep` f
   onInit={shader => {
     shader.initializeUniform('u_accent', 'float', [0.0, 1.0, 0.5]);
   }}
-  onBeforeStep={(shader, time) => {
+  onPreStep={(shader, time) => {
     shader.updateUniforms({
       u_accent: [0.4 + 0.4 * Math.sin(time), 1.0, 0.6],
     });

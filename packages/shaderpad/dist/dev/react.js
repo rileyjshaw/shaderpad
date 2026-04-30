@@ -1047,7 +1047,7 @@ var ShaderPad = class _ShaderPad {
     }
   }
   draw(options) {
-    this.emit("beforeDraw", ...arguments);
+    this.emit("preDraw", ...arguments);
     const gl = this.gl;
     const w = gl.drawingBufferWidth;
     const h = gl.drawingBufferHeight;
@@ -1069,7 +1069,7 @@ var ShaderPad = class _ShaderPad {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       }
     }
-    this.emit("afterDraw", ...arguments);
+    this.emit("postDraw", ...arguments);
   }
   step(options) {
     this._step(performance.now(), options);
@@ -1085,7 +1085,7 @@ var ShaderPad = class _ShaderPad {
     this.tElapsed = t;
     this.tStart = now;
     const options = typeof opts === "function" ? opts(t, this.frame) : opts;
-    this.emit("beforeStep", t, this.frame, options);
+    this.emit("preStep", t, this.frame, options);
     this.tick();
     this.draw(options);
     const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
@@ -1111,12 +1111,12 @@ var ShaderPad = class _ShaderPad {
       historyInfo.history.writeIndex = nextWriteIndex;
     }
     ++this.frame;
-    this.emit("afterStep", t, this.frame, options);
+    this.emit("postStep", t, this.frame, options);
   }
-  play(onBeforeStep) {
+  play(onPreStep) {
     this._pause();
     const loop = (now) => {
-      this._step(now, onBeforeStep);
+      this._step(now, onPreStep);
       if (this.frameId != null) this.frameId = requestAnimationFrame(loop);
     };
     this.frameId = requestAnimationFrame(loop);
@@ -1471,7 +1471,7 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
   autoplay = true,
   autopause = true,
   onInit,
-  onBeforeStep,
+  onPreStep,
   onError,
   style,
   "data-texture": textureNameValue,
@@ -1501,7 +1501,7 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
   const nestedTextureRegistrationRef = (0, import_react.useRef)(null);
   const textureRegistryRef = (0, import_react.useRef)(null);
   const onInitRef = (0, import_react.useRef)(onInit);
-  const onBeforeStepRef = (0, import_react.useRef)(onBeforeStep);
+  const onPreStepRef = (0, import_react.useRef)(onPreStep);
   const onErrorRef = (0, import_react.useRef)(onError);
   const autoplayRef = (0, import_react.useRef)(autoplay);
   const autopauseRef = (0, import_react.useRef)(autopause);
@@ -1525,7 +1525,7 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
     "data-texture-"
   );
   onInitRef.current = onInit;
-  onBeforeStepRef.current = onBeforeStep;
+  onPreStepRef.current = onPreStep;
   onErrorRef.current = onError;
   autoplayRef.current = autoplay;
   autopauseRef.current = autopause;
@@ -1630,17 +1630,17 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
     }
   }
   function playShader(shaderInstance) {
-    shaderInstance.play(() => onBeforeStepRef.current ? {} : void 0);
+    shaderInstance.play(() => onPreStepRef.current ? {} : void 0);
   }
   function pauseShader(shaderInstance) {
     shaderInstance.pause();
     pauseManagedTextures();
   }
   function managedStepShader(shaderInstance) {
-    shaderInstance.step(onBeforeStepRef.current ? {} : void 0);
+    shaderInstance.step(onPreStepRef.current ? {} : void 0);
   }
   function stepShader(shaderInstance, stepOptions) {
-    shaderInstance.step(stepOptions ? { ...stepOptions } : onBeforeStepRef.current ? {} : void 0);
+    shaderInstance.step(stepOptions ? { ...stepOptions } : onPreStepRef.current ? {} : void 0);
   }
   function drawShader(shaderInstance, stepOptions) {
     updateLiveTextures(shaderInstance, "draw");
@@ -1738,10 +1738,10 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
     const handlePause = () => {
       isPlaying = false;
     };
-    const handleBeforeStep = (time, frame, stepOptions) => {
+    const handlePreStep = (time, frame, stepOptions) => {
       if (!instance) return;
       updateLiveTextures(instance, "step");
-      const nextOptions = onBeforeStepRef.current?.(instance, time, frame);
+      const nextOptions = onPreStepRef.current?.(instance, time, frame);
       if (nextOptions && stepOptions) {
         Object.assign(stepOptions, nextOptions);
       }
@@ -1756,7 +1756,7 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
       if (instance) {
         instance.off("play", handlePlay);
         instance.off("pause", handlePause);
-        instance.off("beforeStep", handleBeforeStep);
+        instance.off("preStep", handlePreStep);
       }
       destroyShader(instance);
     };
@@ -1779,7 +1779,7 @@ var ShaderPad2 = (0, import_react.forwardRef)(function ShaderPad3({
         });
         instance.on("play", handlePlay);
         instance.on("pause", handlePause);
-        instance.on("beforeStep", handleBeforeStep);
+        instance.on("preStep", handlePreStep);
         const domTextureBindings = [];
         for (const child of Array.from(textureHostRef.current?.children ?? [])) {
           const name = child.getAttribute("data-texture");

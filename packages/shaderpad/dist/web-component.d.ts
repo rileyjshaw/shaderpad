@@ -32,7 +32,7 @@ type ShaderPadElementVisibilityChangeEventDetail = {
     canvas: HTMLCanvasElement | null;
     isVisible: boolean;
 };
-type ShaderPadElementBeforeStepEventDetail = {
+type ShaderPadElementPreStepEventDetail = {
     shader: ShaderPad;
     canvas: HTMLCanvasElement | null;
     time: number;
@@ -108,7 +108,7 @@ declare class ShaderPadElement extends ShaderPadElementBase {
     private updateLiveTextures;
     private pauseManagedTextures;
     private playInstance;
-    private dispatchMutableBeforeStep;
+    private dispatchMutablePreStep;
 }
 declare function createShaderPadElement(config?: ShaderPadElementConfig): typeof ShaderPadElement;
 declare global {
@@ -117,4 +117,4 @@ declare global {
     }
 }
 
-export { ShaderPadElement, type ShaderPadElementBeforeStepEventDetail, type ShaderPadElementConfig, type ShaderPadElementErrorEventDetail, type ShaderPadElementLoadEventDetail, type ShaderPadElementVisibilityChangeEventDetail, createShaderPadElement };
+export { ShaderPadElement, type ShaderPadElementConfig, type ShaderPadElementErrorEventDetail, type ShaderPadElementLoadEventDetail, type ShaderPadElementPreStepEventDetail, type ShaderPadElementVisibilityChangeEventDetail, createShaderPadElement };

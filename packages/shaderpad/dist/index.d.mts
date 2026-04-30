@@ -42,7 +42,7 @@ interface PluginContext {
     updateTexture: (name: string, source: UpdateTextureSource, historySlots?: HistorySlots) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
-type ShaderPadEventName = '_init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'beforeStep' | 'afterStep' | 'beforeDraw' | 'afterDraw' | 'updateResolution' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
+type ShaderPadEventName = '_init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'preStep' | 'postStep' | 'preDraw' | 'postDraw' | 'updateResolution' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
 type RenderTextureOptions = Omit<TextureOptions, 'preserveY'>;
 interface Options extends RenderTextureOptions {
     canvas?: HTMLCanvasElement | OffscreenCanvas | {
@@ -120,7 +120,7 @@ declare class ShaderPad {
     step(options?: StepOptions): void;
     private tick;
     private _step;
-    play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void;
+    play(onPreStep?: (time: number, frame: number) => StepOptions | void): void;
     private getElapsed;
     private _pause;
     pause(): void;

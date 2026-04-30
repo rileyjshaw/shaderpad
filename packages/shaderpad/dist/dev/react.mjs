@@ -11,7 +11,7 @@ import {
 } from "./chunk-YN3AO6HP.mjs";
 import {
   index_default
-} from "./chunk-NU4F5HNP.mjs";
+} from "./chunk-OHG35H62.mjs";
 import {
   autosize_default
 } from "./chunk-DQT5EXJJ.mjs";
@@ -55,7 +55,7 @@ var ShaderPad = forwardRef(function ShaderPad2({
   autoplay = true,
   autopause = true,
   onInit,
-  onBeforeStep,
+  onPreStep,
   onError,
   style,
   "data-texture": textureNameValue,
@@ -85,7 +85,7 @@ var ShaderPad = forwardRef(function ShaderPad2({
   const nestedTextureRegistrationRef = useRef(null);
   const textureRegistryRef = useRef(null);
   const onInitRef = useRef(onInit);
-  const onBeforeStepRef = useRef(onBeforeStep);
+  const onPreStepRef = useRef(onPreStep);
   const onErrorRef = useRef(onError);
   const autoplayRef = useRef(autoplay);
   const autopauseRef = useRef(autopause);
@@ -109,7 +109,7 @@ var ShaderPad = forwardRef(function ShaderPad2({
     "data-texture-"
   );
   onInitRef.current = onInit;
-  onBeforeStepRef.current = onBeforeStep;
+  onPreStepRef.current = onPreStep;
   onErrorRef.current = onError;
   autoplayRef.current = autoplay;
   autopauseRef.current = autopause;
@@ -214,17 +214,17 @@ var ShaderPad = forwardRef(function ShaderPad2({
     }
   }
   function playShader(shaderInstance) {
-    shaderInstance.play(() => onBeforeStepRef.current ? {} : void 0);
+    shaderInstance.play(() => onPreStepRef.current ? {} : void 0);
   }
   function pauseShader(shaderInstance) {
     shaderInstance.pause();
     pauseManagedTextures();
   }
   function managedStepShader(shaderInstance) {
-    shaderInstance.step(onBeforeStepRef.current ? {} : void 0);
+    shaderInstance.step(onPreStepRef.current ? {} : void 0);
   }
   function stepShader(shaderInstance, stepOptions) {
-    shaderInstance.step(stepOptions ? { ...stepOptions } : onBeforeStepRef.current ? {} : void 0);
+    shaderInstance.step(stepOptions ? { ...stepOptions } : onPreStepRef.current ? {} : void 0);
   }
   function drawShader(shaderInstance, stepOptions) {
     updateLiveTextures(shaderInstance, "draw");
@@ -322,10 +322,10 @@ var ShaderPad = forwardRef(function ShaderPad2({
     const handlePause = () => {
       isPlaying = false;
     };
-    const handleBeforeStep = (time, frame, stepOptions) => {
+    const handlePreStep = (time, frame, stepOptions) => {
       if (!instance) return;
       updateLiveTextures(instance, "step");
-      const nextOptions = onBeforeStepRef.current?.(instance, time, frame);
+      const nextOptions = onPreStepRef.current?.(instance, time, frame);
       if (nextOptions && stepOptions) {
         Object.assign(stepOptions, nextOptions);
       }
@@ -340,7 +340,7 @@ var ShaderPad = forwardRef(function ShaderPad2({
       if (instance) {
         instance.off("play", handlePlay);
         instance.off("pause", handlePause);
-        instance.off("beforeStep", handleBeforeStep);
+        instance.off("preStep", handlePreStep);
       }
       destroyShader(instance);
     };
@@ -363,7 +363,7 @@ var ShaderPad = forwardRef(function ShaderPad2({
         });
         instance.on("play", handlePlay);
         instance.on("pause", handlePause);
-        instance.on("beforeStep", handleBeforeStep);
+        instance.on("preStep", handlePreStep);
         const domTextureBindings = [];
         for (const child of Array.from(textureHostRef.current?.children ?? [])) {
           const name = child.getAttribute("data-texture");

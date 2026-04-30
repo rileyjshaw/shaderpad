@@ -39,7 +39,7 @@ interface ShaderPadProps extends Omit<ComponentPropsWithoutRef<'canvas'>, 'child
     autoplay?: boolean;
     autopause?: boolean;
     onInit?: (shader: ShaderPad$1, canvas: HTMLCanvasElement) => void;
-    onBeforeStep?: (shader: ShaderPad$1, time: number, frame: number) => StepOptions | void;
+    onPreStep?: (shader: ShaderPad$1, time: number, frame: number) => StepOptions | void;
     onError?: (error: unknown) => void;
 }
 declare const ShaderPad: react.ForwardRefExoticComponent<ShaderPadProps & react.RefAttributes<ShaderPadHandle>>;

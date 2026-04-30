@@ -150,9 +150,9 @@ The element dispatches bubbling, composed `CustomEvent`s from the host.
 | `error`            | `{ error }` when setup fails.                            |
 | `visibilityChange` | `{ shader, canvas, isVisible }` when visibility changes. |
 
-### Mutable `beforeStep`
+### Mutable `preStep`
 
-`beforeStep` fires whenever the underlying ShaderPad emits `beforeStep`:
+`preStep` fires whenever the underlying ShaderPad emits `preStep`:
 
 ```ts
 event.detail = {

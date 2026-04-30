@@ -68,7 +68,7 @@ export interface ShaderPadProps
 	autoplay?: boolean;
 	autopause?: boolean;
 	onInit?: (shader: CoreShaderPad, canvas: HTMLCanvasElement) => void;
-	onBeforeStep?: (shader: CoreShaderPad, time: number, frame: number) => StepOptions | void;
+	onPreStep?: (shader: CoreShaderPad, time: number, frame: number) => StepOptions | void;
 	onError?: (error: unknown) => void;
 }
 
@@ -144,7 +144,7 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 		autoplay = true,
 		autopause = true,
 		onInit,
-		onBeforeStep,
+		onPreStep,
 		onError,
 		style,
 		'data-texture': textureNameValue,
@@ -176,7 +176,7 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 	const nestedTextureRegistrationRef = useRef<NestedTextureRegistration | null>(null);
 	const textureRegistryRef = useRef<NestedTextureRegistry | null>(null);
 	const onInitRef = useRef(onInit);
-	const onBeforeStepRef = useRef(onBeforeStep);
+	const onPreStepRef = useRef(onPreStep);
 	const onErrorRef = useRef(onError);
 	const autoplayRef = useRef(autoplay);
 	const autopauseRef = useRef(autopause);
@@ -202,7 +202,7 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 		'data-texture-',
 	);
 	onInitRef.current = onInit;
-	onBeforeStepRef.current = onBeforeStep;
+	onPreStepRef.current = onPreStep;
 	onErrorRef.current = onError;
 	autoplayRef.current = autoplay;
 	autopauseRef.current = autopause;
@@ -320,7 +320,7 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 	}
 
 	function playShader(shaderInstance: CoreShaderPad) {
-		shaderInstance.play(() => (onBeforeStepRef.current ? {} : undefined));
+		shaderInstance.play(() => (onPreStepRef.current ? {} : undefined));
 	}
 
 	function pauseShader(shaderInstance: CoreShaderPad) {
@@ -329,11 +329,11 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 	}
 
 	function managedStepShader(shaderInstance: CoreShaderPad) {
-		shaderInstance.step(onBeforeStepRef.current ? {} : undefined);
+		shaderInstance.step(onPreStepRef.current ? {} : undefined);
 	}
 
 	function stepShader(shaderInstance: CoreShaderPad, stepOptions?: StepOptions) {
-		shaderInstance.step(stepOptions ? { ...stepOptions } : onBeforeStepRef.current ? {} : undefined);
+		shaderInstance.step(stepOptions ? { ...stepOptions } : onPreStepRef.current ? {} : undefined);
 	}
 
 	function drawShader(shaderInstance: CoreShaderPad, stepOptions?: StepOptions) {
@@ -448,11 +448,11 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 		const handlePause = () => {
 			isPlaying = false;
 		};
-		const handleBeforeStep = (time: number, frame: number, stepOptions?: StepOptions) => {
+		const handlePreStep = (time: number, frame: number, stepOptions?: StepOptions) => {
 			if (!instance) return;
 
 			updateLiveTextures(instance, 'step');
-			const nextOptions = onBeforeStepRef.current?.(instance, time, frame);
+			const nextOptions = onPreStepRef.current?.(instance, time, frame);
 			if (nextOptions && stepOptions) {
 				Object.assign(stepOptions, nextOptions);
 			}
@@ -467,7 +467,7 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 			if (instance) {
 				instance.off('play', handlePlay);
 				instance.off('pause', handlePause);
-				instance.off('beforeStep', handleBeforeStep);
+				instance.off('preStep', handlePreStep);
 			}
 			destroyShader(instance);
 		};
@@ -491,7 +491,7 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 				});
 				instance.on('play', handlePlay);
 				instance.on('pause', handlePause);
-				instance.on('beforeStep', handleBeforeStep);
+				instance.on('preStep', handlePreStep);
 
 				const domTextureBindings: DomTextureBinding[] = [];
 				for (const child of Array.from(textureHostRef.current?.children ?? [])) {

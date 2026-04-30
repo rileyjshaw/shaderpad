@@ -10,7 +10,7 @@ import {
 } from "./chunk-YN3AO6HP.mjs";
 import {
   index_default
-} from "./chunk-NU4F5HNP.mjs";
+} from "./chunk-OHG35H62.mjs";
 import {
   autosize_default
 } from "./chunk-DQT5EXJJ.mjs";
@@ -267,17 +267,17 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
     const handlePause = () => {
       this.isPlaying = false;
     };
-    const handleBeforeStep = (time, frame, options) => {
+    const handlePreStep = (time, frame, options) => {
       this.updateLiveTextures("step");
-      this.dispatchMutableBeforeStep(instance, time, frame, options);
+      this.dispatchMutablePreStep(instance, time, frame, options);
     };
     instance.on("play", handlePlay);
     instance.on("pause", handlePause);
-    instance.on("beforeStep", handleBeforeStep);
+    instance.on("preStep", handlePreStep);
     this.cleanupCallbacks.push(() => {
       instance.off("play", handlePlay);
       instance.off("pause", handlePause);
-      instance.off("beforeStep", handleBeforeStep);
+      instance.off("preStep", handlePreStep);
     });
   }
   setupPlayback(instance, canvas) {
@@ -477,7 +477,7 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
   playInstance(instance) {
     instance.play(() => ({}));
   }
-  dispatchMutableBeforeStep(instance, time, frame, options) {
+  dispatchMutablePreStep(instance, time, frame, options) {
     const detail = {
       shader: instance,
       canvas: this.renderCanvas,
@@ -485,7 +485,7 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
       frame,
       stepOptions: options ? { ...options } : void 0
     };
-    this.emit("beforeStep", detail);
+    this.emit("preStep", detail);
     if (options && detail.stepOptions) {
       Object.assign(options, detail.stepOptions);
     }

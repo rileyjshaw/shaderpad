@@ -8,7 +8,7 @@ nextjs:
 
 ## Core Render Methods
 
-- `play(onBeforeStep?)`
+- `play(onPreStep?)`
 - `step(options?)`
 - `draw(options?)`
 - `clear()`
@@ -34,19 +34,19 @@ nextjs:
 
 ## Method Details
 
-### `play(onBeforeStep?)`
+### `play(onPreStep?)`
 
 ```typescript
-play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void
+play(onPreStep?: (time: number, frame: number) => StepOptions | void): void
 ```
 
 `play()` starts or resumes the animation loop and updates `u_time`, `u_frame`, and output history on each frame.
 
 ### `play()` Parameters
 
-| Parameter      | Type                                                   | Default     | Notes                                                                                                                                                                                                                                      |
-| -------------- | ------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `onBeforeStep` | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every frame before the animation step runs. `time` is measured in seconds of ShaderPad playback time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
+| Parameter   | Type                                                   | Default     | Notes                                                                                                                                                                                                                                      |
+| ----------- | ------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `onPreStep` | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every frame before the animation step runs. `time` is measured in seconds of ShaderPad playback time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
 
 ```javascript
 shader.play((time, frame) => {
@@ -57,11 +57,11 @@ shader.play((time, frame) => {
 });
 ```
 
-This overlaps with the `beforeStep` event, but they are not identical:
+This overlaps with the `preStep` event, but they are not identical:
 
 - Use the `play()` callback for simplicity if your app only calls `play()` once.
 - Use the `play()` callback if the logic only belongs to this specific `play()` call.
-- Use `beforeStep` when you want a reusable listener that fires for any `play()` or `step()` calls.
+- Use `preStep` when you want a reusable listener that fires for any `play()` or `step()` calls.
 - Only the `play()` callback can return `StepOptions` to affect the current frame.
 
 ### `step(options?)`
@@ -122,7 +122,7 @@ destroy(): void
 
 ### Render Step Options Reference
 
-`step(options?)`, `draw(options?)`, and the return value from `play(onBeforeStep)` all accept the same object shape:
+`step(options?)`, `draw(options?)`, and the return value from `play(onPreStep)` all accept the same object shape:
 
 | Option        | Type      | Default | Applies to                                   | Notes                                                                                                                                                              |
 | ------------- | --------- | ------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

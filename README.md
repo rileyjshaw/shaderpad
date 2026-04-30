@@ -240,7 +240,7 @@ shader.updateTextures({
 
 ### Lifecycle methods
 
-#### `play(onBeforeStep?)`
+#### `play(onPreStep?)`
 
 Start the render loop.
 
@@ -257,7 +257,7 @@ shader.play((_time, frame) => {
 
 **Parameters:**
 
-- `onBeforeStep?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
+- `onPreStep?`: `(time: number, frame: number) => StepOptions | void` - Called before each frame
 
 #### `step(options?)`
 
@@ -352,10 +352,10 @@ Remove a previously registered callback.
 | `pause`             | none                                                   | Fired when the render loop is paused             |
 | `reset`             | none                                                   | Fired when the shader is reset                   |
 | `destroy`           | none                                                   | Fired when the shader is destroyed               |
-| `beforeStep`        | `(time: number, frame: number, options?: StepOptions)` | Fired before each render step                    |
-| `afterStep`         | `(time: number, frame: number, options?: StepOptions)` | Fired after each render step                     |
-| `beforeDraw`        | `(options?: StepOptions)`                              | Fired before each draw call                      |
-| `afterDraw`         | `(options?: StepOptions)`                              | Fired after each draw call                       |
+| `preStep`           | `(time: number, frame: number, options?: StepOptions)` | Fired before each render step                    |
+| `postStep`          | `(time: number, frame: number, options?: StepOptions)` | Fired after each render step                     |
+| `preDraw`           | `(options?: StepOptions)`                              | Fired before each draw call                      |
+| `postDraw`          | `(options?: StepOptions)`                              | Fired after each draw call                       |
 | `initializeTexture` | `(name, source, options?)`                             | Fired after a texture is initialized             |
 | `initializeUniform` | `(name, type, value, options?)`                        | Fired after a uniform is initialized             |
 | `updateTextures`    | `(updates)`                                            | Fired after textures are updated                 |
@@ -371,7 +371,7 @@ inject GLSL, listen to lifecycle events with `shader.on(...)`, emit its own name
 textures with `updateTexture(...)`. If a plugin needs the backing canvas or raw WebGL access, use `shader.canvas` and
 `shader.gl`.
 
-The most useful lifecycle hooks are usually `_init` for setup, `beforeStep` / `beforeDraw` for per-frame work, and
+The most useful lifecycle hooks are usually `_init` for setup, `preStep` / `preDraw` for per-frame work, and
 `destroy` for cleanup. Plugin order is stable: plugins install in `plugins[]` order, handlers run in registration
 order, and GLSL injections preserve plugin order. If a plugin touches shared GL state directly, it should restore that
 state before returning.

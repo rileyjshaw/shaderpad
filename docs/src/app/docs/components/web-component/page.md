@@ -132,7 +132,7 @@ scene.addEventListener('load', event => {
 	});
 });
 
-scene.addEventListener('beforeStep', event => {
+scene.addEventListener('preStep', event => {
 	event.detail.stepOptions = { skipHistory: false };
 });
 ```
@@ -141,7 +141,7 @@ The component emits the following events:
 
 - `load`
 - `error`
-- `beforeStep`
+- `preStep`
 - `visibilityChange`
 
 For the remaining [ShaderPad events](/docs/api/events), wait for `load`, then use `event.detail.shader.on(...)`.

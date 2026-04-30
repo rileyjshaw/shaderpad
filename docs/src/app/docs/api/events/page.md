@@ -17,10 +17,10 @@ Subscribe to an event with `shader.on(eventName, callback)` and remove an event 
 | `pause`             | none                            | Render loop paused.                |
 | `reset`             | none                            | Frame/time and history were reset. |
 | `destroy`           | none                            | Resources were released.           |
-| `beforeStep`        | `(time, frame, options?)`       | Before a render step.              |
-| `afterStep`         | `(time, frame, options?)`       | After a render step.               |
-| `beforeDraw`        | `(options?)`                    | Before a draw.                     |
-| `afterDraw`         | `(options?)`                    | After a draw.                      |
+| `preStep`           | `(time, frame, options?)`       | Before a render step.              |
+| `postStep`          | `(time, frame, options?)`       | After a render step.               |
+| `preDraw`           | `(options?)`                    | Before a draw.                     |
+| `postDraw`          | `(options?)`                    | After a draw.                      |
 | `initializeTexture` | `(name, source, options?)`      | Texture initialized.               |
 | `initializeUniform` | `(name, type, value, options?)` | Uniform initialized.               |
 | `updateTextures`    | `(updates)`                     | Public texture update finished.    |

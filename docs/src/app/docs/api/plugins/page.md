@@ -25,7 +25,7 @@ function pulse(): Plugin {
 			shader.initializeUniform('u_pulse', 'float', 0);
 		});
 
-		shader.on('beforeStep', (time: number) => {
+		shader.on('preStep', (time: number) => {
 			shader.updateUniforms({ u_pulse: 0.5 + 0.5 * Math.sin(time) });
 			emit('pulse:update', time);
 		});
@@ -64,10 +64,10 @@ These are the supported hook names for `shader.on(...)`:
 - `updateTextures`
 - `initializeUniform`
 - `updateUniforms`
-- `beforeStep`
-- `afterStep`
-- `beforeDraw`
-- `afterDraw`
+- `preStep`
+- `postStep`
+- `preDraw`
+- `postDraw`
 - `updateResolution`
 - `play`
 - `pause`
@@ -77,7 +77,7 @@ These are the supported hook names for `shader.on(...)`:
 The hooks most plugins actually need are:
 
 - `_init` for setup after ShaderPad has initialized its internals.
-- `beforeStep` or `beforeDraw` for ongoing work.
+- `preStep` or `preDraw` for ongoing work.
 - `destroy` for cleanup.
 
 ## Conventions

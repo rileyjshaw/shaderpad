@@ -30,7 +30,7 @@ const shader = new ShaderPad(fragmentShaderSrc, { canvas });
 - Use `draw()` when time, frame, and history should remain unchanged
   {% /callout %}
 
-### `play(onBeforeStep?)`
+### `play(onPreStep?)`
 
 `play()` starts the animation loop. `u_time` and `u_frame` uniforms are updated automatically, and history is kept up to date.
 
