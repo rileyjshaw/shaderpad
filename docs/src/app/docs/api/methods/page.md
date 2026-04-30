@@ -13,7 +13,7 @@ nextjs:
 - `draw(options?)`
 - `clear()`
 - `pause()`
-- `resetFrame()`
+- `rewind()`
 - `reset()`
 - `destroy()`
 
@@ -40,13 +40,13 @@ nextjs:
 play(onBeforeStep?: (time: number, frame: number) => StepOptions | void): void
 ```
 
-`play()` starts the animation loop and updates `u_time`, `u_frame`, and output history on each frame.
+`play()` starts or resumes the animation loop and updates `u_time`, `u_frame`, and output history on each frame.
 
 ### `play()` Parameters
 
-| Parameter      | Type                                                   | Default     | Notes                                                                                                                                                                                                                                       |
-| -------------- | ------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `onBeforeStep` | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every frame before the animation step runs. `time` is measured in seconds from the current start time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
+| Parameter      | Type                                                   | Default     | Notes                                                                                                                                                                                                                                      |
+| -------------- | ------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `onBeforeStep` | `(time: number, frame: number) => StepOptions \| void` | `undefined` | Called on every frame before the animation step runs. `time` is measured in seconds of ShaderPad playback time, and `frame` is the current frame index before it is incremented. Returning a `StepOptions` object affects that frame only. |
 
 ```javascript
 shader.play((time, frame) => {
@@ -87,6 +87,38 @@ clear(): void
 ```
 
 `clear()` clears ShaderPad’s current render target immediately. Use it for advanced manual render flows; it does not advance time, frame, or history.
+
+### `pause()`
+
+```typescript
+pause(): void
+```
+
+`pause()` stops the animation loop started by `play()`. Calling `play()` again resumes from the same ShaderPad time and frame.
+
+### `rewind()`
+
+```typescript
+rewind(): void
+```
+
+`rewind()` resets ShaderPad time and frame state to `0` without clearing the current output or history buffers.
+
+### `reset()`
+
+```typescript
+reset(): void
+```
+
+`reset()` rewinds ShaderPad time and frame state, clears the current output, and resets history buffers.
+
+### `destroy()`
+
+```typescript
+destroy(): void
+```
+
+`destroy()` stops playback and releases WebGL resources and event listeners.
 
 ### Render Step Options Reference
 

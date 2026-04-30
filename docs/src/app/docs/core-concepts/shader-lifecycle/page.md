@@ -76,7 +76,7 @@ Use it when:
 
 ## Pause, Reset, Destroy
 
-- `pause()` stops the animation loop started by `play()`
-- `resetFrame()` resets the clock and frame counter
-- `reset()` resets the clock and frame counter, and also clears history buffers
+- `pause()` stops the animation loop started by `play()` and preserves ShaderPad time/frame state
+- `rewind()` resets the clock and frame counter
+- `reset()` rewinds the clock and frame counter, and also clears history buffers
 - `destroy()` stops everything and releases WebGL resources and event listeners

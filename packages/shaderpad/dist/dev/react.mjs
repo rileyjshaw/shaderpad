@@ -11,7 +11,7 @@ import {
 } from "./chunk-YN3AO6HP.mjs";
 import {
   index_default
-} from "./chunk-QYD24S7K.mjs";
+} from "./chunk-NU4F5HNP.mjs";
 import {
   autosize_default
 } from "./chunk-DQT5EXJJ.mjs";
@@ -139,6 +139,10 @@ var ShaderPad = forwardRef(function ShaderPad2({
         const shaderInstance = shaderRef.current;
         if (shaderInstance) drawShader(shaderInstance);
       },
+      pause() {
+        const shaderInstance = shaderRef.current;
+        if (shaderInstance) pauseShader(shaderInstance);
+      },
       subscribe(listener) {
         nestedTextureListenersRef.current.add(listener);
         return () => nestedTextureListenersRef.current.delete(listener);
@@ -204,8 +208,17 @@ var ShaderPad = forwardRef(function ShaderPad2({
     }
     if (Object.keys(updates).length > 0) shaderInstance.updateTextures(updates);
   }
+  function pauseManagedTextures() {
+    for (const binding of liveTexturesRef.current) {
+      if (binding.kind === "nested") binding.registration.pause();
+    }
+  }
   function playShader(shaderInstance) {
     shaderInstance.play(() => onBeforeStepRef.current ? {} : void 0);
+  }
+  function pauseShader(shaderInstance) {
+    shaderInstance.pause();
+    pauseManagedTextures();
   }
   function managedStepShader(shaderInstance) {
     shaderInstance.step(onBeforeStepRef.current ? {} : void 0);
@@ -233,7 +246,8 @@ var ShaderPad = forwardRef(function ShaderPad2({
         }
       },
       pause() {
-        shaderRef.current?.pause();
+        const shaderInstance = shaderRef.current;
+        if (shaderInstance) pauseShader(shaderInstance);
       },
       step(stepOptions) {
         const shaderInstance = shaderRef.current;
@@ -246,8 +260,8 @@ var ShaderPad = forwardRef(function ShaderPad2({
       clear() {
         shaderRef.current?.clear();
       },
-      resetFrame() {
-        shaderRef.current?.resetFrame();
+      rewind() {
+        shaderRef.current?.rewind();
       },
       reset() {
         shaderRef.current?.reset();
@@ -406,7 +420,9 @@ var ShaderPad = forwardRef(function ShaderPad2({
               playShader(instance);
             }
           },
-          pause: () => instance?.pause()
+          pause: () => {
+            if (instance) pauseShader(instance);
+          }
         });
         playbackControllerRef.current = playbackController;
         playbackController.sync();

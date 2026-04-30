@@ -249,6 +249,7 @@ export class ShaderPadElement extends ShaderPadElementBase {
 
 	pause() {
 		this.shaderInstance?.pause();
+		this.pauseManagedTextures();
 	}
 
 	step(options?: StepOptions) {
@@ -267,8 +268,8 @@ export class ShaderPadElement extends ShaderPadElementBase {
 		this.shaderInstance?.clear();
 	}
 
-	resetFrame() {
-		this.shaderInstance?.resetFrame();
+	rewind() {
+		this.shaderInstance?.rewind();
 	}
 
 	reset() {
@@ -396,7 +397,7 @@ export class ShaderPadElement extends ShaderPadElementBase {
 			autopause: this.autopauseValue,
 			isPlaying: () => this.isPlaying,
 			play: () => this.playInstance(instance),
-			pause: () => instance.pause(),
+			pause: () => this.pause(),
 			onVisibilityChange: isVisible => {
 				this.emit<ShaderPadElementVisibilityChangeEventDetail>('visibilityChange', {
 					shader: instance,
@@ -609,6 +610,12 @@ export class ShaderPadElement extends ShaderPadElementBase {
 		}
 
 		if (Object.keys(updates).length > 0) instance.updateTextures(updates);
+	}
+
+	private pauseManagedTextures() {
+		for (const binding of this.liveTextures) {
+			if (binding.element instanceof ShaderPadElement) binding.element.pause();
+		}
 	}
 
 	private playInstance(instance: CoreShaderPad) {

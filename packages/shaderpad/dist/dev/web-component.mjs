@@ -10,7 +10,7 @@ import {
 } from "./chunk-YN3AO6HP.mjs";
 import {
   index_default
-} from "./chunk-QYD24S7K.mjs";
+} from "./chunk-NU4F5HNP.mjs";
 import {
   autosize_default
 } from "./chunk-DQT5EXJJ.mjs";
@@ -166,6 +166,7 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
   }
   pause() {
     this.shaderInstance?.pause();
+    this.pauseManagedTextures();
   }
   step(options) {
     const instance = this.shaderInstance;
@@ -179,8 +180,8 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
   clear() {
     this.shaderInstance?.clear();
   }
-  resetFrame() {
-    this.shaderInstance?.resetFrame();
+  rewind() {
+    this.shaderInstance?.rewind();
   }
   reset() {
     this.shaderInstance?.reset();
@@ -287,7 +288,7 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
       autopause: this.autopauseValue,
       isPlaying: () => this.isPlaying,
       play: () => this.playInstance(instance),
-      pause: () => instance.pause(),
+      pause: () => this.pause(),
       onVisibilityChange: (isVisible) => {
         this.emit("visibilityChange", {
           shader: instance,
@@ -467,6 +468,11 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
       }
     }
     if (Object.keys(updates).length > 0) instance.updateTextures(updates);
+  }
+  pauseManagedTextures() {
+    for (const binding of this.liveTextures) {
+      if (binding.element instanceof _ShaderPadElement) binding.element.pause();
+    }
   }
   playInstance(instance) {
     instance.play(() => ({}));

@@ -52,7 +52,7 @@ type ShaderPadHandle = {
 	step(options?: StepOptions): void;
 	draw(options?: StepOptions): void;
 	clear(): void;
-	resetFrame(): void;
+	rewind(): void;
 	reset(): void;
 	destroy(): void;
 };
@@ -85,6 +85,7 @@ type NestedTextureRegistration = {
 	getShader(): CoreShaderPad | null;
 	step(): void;
 	draw(): void;
+	pause(): void;
 	subscribe(listener: (shader: CoreShaderPad) => void): () => void;
 };
 
@@ -232,6 +233,10 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 				const shaderInstance = shaderRef.current;
 				if (shaderInstance) drawShader(shaderInstance);
 			},
+			pause() {
+				const shaderInstance = shaderRef.current;
+				if (shaderInstance) pauseShader(shaderInstance);
+			},
 			subscribe(listener) {
 				nestedTextureListenersRef.current.add(listener);
 				return () => nestedTextureListenersRef.current.delete(listener);
@@ -308,8 +313,19 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 		if (Object.keys(updates).length > 0) shaderInstance.updateTextures(updates);
 	}
 
+	function pauseManagedTextures() {
+		for (const binding of liveTexturesRef.current) {
+			if (binding.kind === 'nested') binding.registration.pause();
+		}
+	}
+
 	function playShader(shaderInstance: CoreShaderPad) {
 		shaderInstance.play(() => (onBeforeStepRef.current ? {} : undefined));
+	}
+
+	function pauseShader(shaderInstance: CoreShaderPad) {
+		shaderInstance.pause();
+		pauseManagedTextures();
 	}
 
 	function managedStepShader(shaderInstance: CoreShaderPad) {
@@ -341,7 +357,8 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 				}
 			},
 			pause() {
-				shaderRef.current?.pause();
+				const shaderInstance = shaderRef.current;
+				if (shaderInstance) pauseShader(shaderInstance);
 			},
 			step(stepOptions) {
 				const shaderInstance = shaderRef.current;
@@ -354,8 +371,8 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 			clear() {
 				shaderRef.current?.clear();
 			},
-			resetFrame() {
-				shaderRef.current?.resetFrame();
+			rewind() {
+				shaderRef.current?.rewind();
 			},
 			reset() {
 				shaderRef.current?.reset();
@@ -542,7 +559,9 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 							playShader(instance);
 						}
 					},
-					pause: () => instance?.pause(),
+					pause: () => {
+						if (instance) pauseShader(instance);
+					},
 				});
 				playbackControllerRef.current = playbackController;
 				playbackController.sync();

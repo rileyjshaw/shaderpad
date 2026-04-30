@@ -134,8 +134,8 @@ Texture children use `data-texture="u_name"` to choose the shader uniform.
 | `step(options?)` | Advances one frame manually.                              |
 | `draw(options?)` | Draws without advancing time or frame.                    |
 | `clear()`        | Clears the current output.                                |
-| `resetFrame()`   | Resets frame counting and start time.                     |
-| `reset()`        | Resets time, frame state, and history.                    |
+| `rewind()`       | Resets time and frame state.                              |
+| `reset()`        | Rewinds time/frame state and clears output/history.       |
 | `destroy()`      | Destroys the underlying ShaderPad instance.               |
 
 ## Events

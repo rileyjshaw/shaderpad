@@ -297,12 +297,12 @@ interface StepOptions {
 - `skipClear?: boolean` - If `true`, the canvas is not cleared before rendering. Useful for accumulating effects or multi-pass rendering.
 - `skipHistory?: boolean` - If `true`, history buffers are not updated. Useful when you want to render without affecting the history state.
 
-#### `pause()`, `reset()`, `destroy()`
+#### `pause()`, `rewind()`, `reset()`, `destroy()`
 
 ```typescript
-shader.pause(); // Pause the render loop.
-shader.reset(); // Reset frame counter, clock, and clear history buffers.
-shader.resetFrame(); // Reset frame counter and clock only.
+shader.pause(); // Pause the render loop and preserve playback time/frame.
+shader.rewind(); // Reset frame counter and clock.
+shader.reset(); // Rewind and clear output/history buffers.
 shader.destroy(); // Clean up resources.
 ```
 

@@ -102,7 +102,7 @@ Add `helpers()` only when you actually need helper GLSL like `fitCover()` or `hi
 | Advance exactly one frame                                                 | `step(options?)`                                                           | Use this for manual pass ordering.                              |
 | Render current state without advancing time, frame, or history            | `draw(options?)`                                                           | Good for pure display passes.                                   |
 | Skip writing the current frame into history                               | `skipHistory: true`                                                        | Works for output history.                                       |
-| Reset frame/time counters                                                 | `resetFrame()`                                                             | Useful when replay cadence changes.                             |
+| Reset frame/time counters                                                 | `rewind()`                                                                 | Useful when replay cadence changes.                             |
 | Reset frame/time counters and clear history                               | `reset()`                                                                  | Useful after size or topology changes.                          |
 | Update only part of a typed-array texture                                 | `updateTextures({ name: { data, width, height, x, y, isPartial: true } })` | Avoid full reuploads when a small region changes.               |
 
@@ -434,7 +434,7 @@ Use this structure when the effect is fundamentally “update a data structure, 
 - Use integer or single-channel formats for non-color data.
 - Use `NEAREST` for data maps.
 - Keep a fixed iteration budget per frame.
-- If resolution, pixel size, or topology changes invalidate the state, call `resetFrame()` or `reset()`.
+- If resolution, pixel size, or topology changes invalidate the state, call `rewind()` or `reset()`.
 - When possible, run the solver at a smaller resolution than the final composite.
 
 ### Turn Plugin Results Into A CPU-Drawn Overlay Texture

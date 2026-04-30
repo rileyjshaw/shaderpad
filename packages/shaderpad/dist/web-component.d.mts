@@ -80,7 +80,7 @@ declare class ShaderPadElement extends ShaderPadElementBase {
     step(options?: StepOptions): void;
     draw(options?: StepOptions): void;
     clear(): void;
-    resetFrame(): void;
+    rewind(): void;
     reset(): void;
     destroy(): void;
     private emit;
@@ -106,6 +106,7 @@ declare class ShaderPadElement extends ShaderPadElementBase {
     private hideControlChildren;
     private showControlChildren;
     private updateLiveTextures;
+    private pauseManagedTextures;
     private playInstance;
     private dispatchMutableBeforeStep;
 }
