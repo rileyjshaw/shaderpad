@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.82
+
+### Patch Changes
+
+- Reduce size
+
 ## 1.0.0-beta.81
 
 ### Minor Changes

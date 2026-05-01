@@ -1,0 +1,5 @@
+---
+'shaderpad': patch
+---
+
+Reduce size
