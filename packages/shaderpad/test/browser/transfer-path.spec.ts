@@ -1,13 +1,9 @@
 import { expect, test } from '@playwright/test';
-
-async function createHarness(page: any) {
-	await page.goto('/');
-	await page.waitForFunction(() => Boolean((window as any).__shaderpadBrowserHarness));
-}
+import { createHarness } from './support';
 
 test.describe('browser transfer paths', () => {
-	test('same-canvas chaining stays on GPU in a real browser', async ({ page }) => {
-		await createHarness(page);
+	test('same-canvas chaining stays on GPU in a real browser', async ({ page }, testInfo) => {
+		await createHarness(page, testInfo);
 		const ops = await page.evaluate(async () => {
 			const harness = await (window as any).__shaderpadBrowserHarness.createTransferHarness({
 				sharedCanvas: true,
@@ -21,8 +17,8 @@ test.describe('browser transfer paths', () => {
 		expect(ops.filter((op: any) => op.method === 'copyTexSubImage3D')).toHaveLength(1);
 	});
 
-	test('separate canvases fall back to CPU readback in a real browser', async ({ page }) => {
-		await createHarness(page);
+	test('separate canvases fall back to CPU readback in a real browser', async ({ page }, testInfo) => {
+		await createHarness(page, testInfo);
 		const ops = await page.evaluate(async () => {
 			const harness = await (window as any).__shaderpadBrowserHarness.createTransferHarness({
 				sharedCanvas: false,

@@ -1,17 +1,15 @@
 import { expect, test } from '@playwright/test';
-
-async function createHarness(page: any) {
-	await page.goto('/');
-	await page.waitForFunction(() => Boolean((window as any).__shaderpadBrowserHarness));
-}
+import { createHarness } from './support';
 
 function dedupeConsecutive(values: number[]) {
 	return values.filter((value, index) => index === 0 || value !== values[index - 1]);
 }
 
 test.describe('finger-pens browser harness', () => {
-	test('advances history on every explicit trails update even when video time is unchanged', async ({ page }) => {
-		await createHarness(page);
+	test('advances history on every explicit trails update even when video time is unchanged', async ({
+		page,
+	}, testInfo) => {
+		await createHarness(page, testInfo);
 		const result = await page.evaluate(async () => {
 			const harness = await (window as any).__shaderpadBrowserHarness.createFingerPensHarness();
 			await harness.runScenario({ outputFrames: 8, trailEvery: 1, videoEvery: 4 });
@@ -27,8 +25,8 @@ test.describe('finger-pens browser harness', () => {
 		expect(result.state.detectCalls.map((call: any) => call.time)).toEqual([0, 1 / 30, 2 / 30]);
 	});
 
-	test('non-history sibling updates do not advance the trails history ring', async ({ page }) => {
-		await createHarness(page);
+	test('non-history sibling updates do not advance the trails history ring', async ({ page }, testInfo) => {
+		await createHarness(page, testInfo);
 		const result = await page.evaluate(async () => {
 			const harness = await (window as any).__shaderpadBrowserHarness.createFingerPensHarness();
 			await harness.runScenario({ outputFrames: 8, trailEvery: 4, videoEvery: 1 });
@@ -43,8 +41,10 @@ test.describe('finger-pens browser harness', () => {
 		expect(result.state.outputResults.length).toBeGreaterThan(result.state.trailsResults.length);
 	});
 
-	test('decimating updates changes trail length by request cadence, not camera cadence', async ({ page }) => {
-		await createHarness(page);
+	test('decimating updates changes trail length by request cadence, not camera cadence', async ({
+		page,
+	}, testInfo) => {
+		await createHarness(page, testInfo);
 		const result = await page.evaluate(async () => {
 			const fastHarness = await (window as any).__shaderpadBrowserHarness.createFingerPensHarness();
 			await fastHarness.runScenario({ outputFrames: 16, trailEvery: 1, videoEvery: 100 });
