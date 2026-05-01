@@ -65,11 +65,6 @@ export const exampleRegistry = [
 		description: 'A procedural animation ported from Shadertoy.',
 	},
 	{
-		slug: 'webcam',
-		title: 'Webcam',
-		description: 'Webcam compositing with a picture-frame overlay.',
-	},
-	{
 		slug: 'face-detection',
 		title: 'Face detection',
 		description: 'Face landmarks, masks, and regions on webcam input.',

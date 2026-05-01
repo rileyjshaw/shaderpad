@@ -111,23 +111,6 @@ const exampleDetails: Record<string, ExampleDetails> = {
 			</>
 		),
 	},
-	webcam: {
-		fullDescription: (
-			<>
-				<p>
-					This is a simple live-texture composite: it loads the webcam, uploads it with{' '}
-					<CodeDocLink href={docs.textures}>initializeTexture</CodeDocLink> and{' '}
-					<CodeDocLink href={docs.textures}>updateTextures</CodeDocLink>, then blends it with a transparent
-					picture-frame image. It follows the same pattern shown in the{' '}
-					<DocLink href={docs.webcamInput}>webcam input guide</DocLink>.
-				</p>
-				<p>
-					There is no history, no extra pass, and no plugin state here - just one shader combining a static
-					texture with a live one. It is useful for stickers, overlays, or simple camera compositing.
-				</p>
-			</>
-		),
-	},
 	'single-channel-textures': {
 		fullDescription: (
 			<>

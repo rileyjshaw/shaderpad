@@ -11,18 +11,28 @@ import { getWebcamVideo, stopVideoStream } from '@/examples/demo-utils';
 import type { ExampleContext } from '@/examples/runtime';
 import './save.css';
 
-export async function init({ mount, overlay }: ExampleContext) {
+export async function init({ mount, overlay, assetPath }: ExampleContext) {
 	const fragmentShaderSrc = `#version 300 es
 precision mediump float;
 
 in vec2 v_uv;
 out vec4 outColor;
+uniform sampler2D u_pictureFrame;
 uniform sampler2D u_webcam;
 
 void main() {
 	vec2 uv = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
-	outColor = texture(u_webcam, uv);
+	vec4 webcamColor = texture(u_webcam, uv);
+	vec4 frameColor = texture(u_pictureFrame, v_uv);
+	outColor = vec4(mix(webcamColor, frameColor, frameColor.a).rgb, 1.0);
 }`;
+
+	const pictureFrame = new Image();
+	pictureFrame.src = assetPath('/examples/picture-frame.png');
+	await new Promise((resolve, reject) => {
+		pictureFrame.onload = resolve;
+		pictureFrame.onerror = reject;
+	});
 
 	const video = await getWebcamVideo();
 	const canvas = createFullscreenCanvas(mount);
@@ -39,6 +49,7 @@ void main() {
 	});
 	overlay.appendChild(saveButton);
 
+	shader.initializeTexture('u_pictureFrame', pictureFrame);
 	shader.initializeTexture('u_webcam', video);
 	shader.play(() => {
 		shader.updateTextures({ u_webcam: video });

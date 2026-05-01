@@ -6,11 +6,62 @@ export async function getWebcamVideo(videoConstraints: MediaTrackConstraints | t
 
 	const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
 	video.srcObject = stream;
-	await new Promise<void>(resolve => {
-		video.onloadedmetadata = () => resolve();
-	});
+	try {
+		await waitForVideoMetadata(video);
+		await video.play();
+		await waitForVideoFrame(video);
+	} catch (error) {
+		stopVideoStream(video);
+		throw error;
+	}
 
 	return video;
+}
+
+function waitForVideoMetadata(video: HTMLVideoElement) {
+	if (video.videoWidth > 0 && video.videoHeight > 0) return Promise.resolve();
+
+	return new Promise<void>((resolve, reject) => {
+		const cleanup = () => {
+			video.removeEventListener('loadedmetadata', onMetadata);
+			video.removeEventListener('error', onError);
+		};
+		const onMetadata = () => {
+			cleanup();
+			resolve();
+		};
+		const onError = () => {
+			cleanup();
+			reject(video.error ?? new Error('Unable to load webcam metadata.'));
+		};
+
+		video.addEventListener('loadedmetadata', onMetadata);
+		video.addEventListener('error', onError);
+	});
+}
+
+function waitForVideoFrame(video: HTMLVideoElement) {
+	if (video.readyState >= video.HAVE_CURRENT_DATA) return Promise.resolve();
+
+	return new Promise<void>((resolve, reject) => {
+		const cleanup = () => {
+			video.removeEventListener('loadeddata', onFrame);
+			video.removeEventListener('canplay', onFrame);
+			video.removeEventListener('error', onError);
+		};
+		const onFrame = () => {
+			cleanup();
+			resolve();
+		};
+		const onError = () => {
+			cleanup();
+			reject(video.error ?? new Error('Unable to load a webcam frame.'));
+		};
+
+		video.addEventListener('loadeddata', onFrame);
+		video.addEventListener('canplay', onFrame);
+		video.addEventListener('error', onError);
+	});
 }
 
 export function stopVideoStream(video: HTMLVideoElement | null) {

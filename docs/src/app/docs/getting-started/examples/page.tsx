@@ -17,15 +17,15 @@ type ExampleSection = {
 const tagStyles: Record<string, ExampleTag> = {
 	ANIMATION: {
 		className:
-			'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300',
+			'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
 	},
 	FACE: {
 		className:
-			'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300',
+			'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300',
 	},
 	HANDS: {
 		className:
-			'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-300',
+			'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300',
 	},
 	HISTORY: {
 		className:
@@ -33,15 +33,15 @@ const tagStyles: Record<string, ExampleTag> = {
 	},
 	REACT: {
 		className:
-			'border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300',
+			'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-500/30 dark:bg-gray-500/10 dark:text-gray-300',
 	},
 	'WEB COMPONENT': {
 		className:
-			'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300',
+			'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-500/30 dark:bg-gray-500/10 dark:text-gray-300',
 	},
 	MIDI: {
 		className:
-			'border-lime-200 bg-lime-50 text-lime-700 dark:border-lime-500/30 dark:bg-lime-500/10 dark:text-lime-300',
+			'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300',
 	},
 	POSE: {
 		className:
@@ -49,11 +49,15 @@ const tagStyles: Record<string, ExampleTag> = {
 	},
 	SAVE: {
 		className:
-			'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
+			'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300',
 	},
 	SEGMENTER: {
 		className:
-			'border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300',
+			'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300',
+	},
+	TEXTURES: {
+		className:
+			'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300',
 	},
 	UNIFORMS: {
 		className:
@@ -80,9 +84,9 @@ const exampleTags: Record<string, string[]> = {
 	'webcam-trails': ['HISTORY', 'WEBCAM'],
 	'webcam-channel-trails': ['HISTORY', 'WEBCAM'],
 	'webcam-grid': ['HISTORY', 'WEBCAM'],
-	'single-channel-textures': ['HISTORY', 'WEBCAM'],
+	'single-channel-textures': ['TEXTURES'],
+	'wide-gamut-color': ['TEXTURES'],
 	fragmentum: ['ANIMATION'],
-	webcam: ['WEBCAM'],
 	'face-detection': ['FACE', 'WEBCAM'],
 	'pose-detection': ['POSE', 'WEBCAM'],
 	'hand-detection': ['HANDS', 'WEBCAM'],
@@ -95,7 +99,7 @@ const exampleTags: Record<string, string[]> = {
 	'midi-fingers': ['HANDS', 'MIDI', 'WEBCAM'],
 	'god-rays': ['FACE', 'HANDS', 'WEBCAM'],
 	'web-component': ['WEB COMPONENT'],
-	react: ['REACT', 'ANIMATION'],
+	react: ['REACT'],
 };
 
 const sections: ExampleSection[] = [
