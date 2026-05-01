@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.83
+
+### Minor Changes
+
+- Add support for wide-gamut color
+
 ## 1.0.0-beta.82
 
 ### Patch Changes
