@@ -99,4 +99,4 @@ You can feed one ShaderPad instance into another:
 passB.initializeTexture('u_firstPass', passA);
 ```
 
-This is the basis for chaining and multi-pass workflows, which are covered in detail [here](/docs/guides/chaining-shaders).
+If you do not pass texture options, the destination texture inherits the source ShaderPad’s texture settings. This is the basis for chaining and multi-pass workflows, which are covered in detail [here](/docs/guides/chaining-shaders).

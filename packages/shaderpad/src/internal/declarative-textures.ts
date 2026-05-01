@@ -12,6 +12,7 @@ const TEXTURE_OPTION_ATTRIBUTES = [
 	['mag-filter', 'magFilter'],
 	['wrap-s', 'wrapS'],
 	['wrap-t', 'wrapT'],
+	['color-space', 'colorSpace'],
 ] as const;
 
 type AttributeValue = string | number | boolean | null | undefined;

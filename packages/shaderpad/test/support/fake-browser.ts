@@ -22,7 +22,9 @@ export type FakeGlOperation = {
 		| 'clear'
 		| 'clearBufferiv'
 		| 'clearBufferuiv'
-		| 'blitFramebuffer';
+		| 'blitFramebuffer'
+		| 'setDrawingBufferColorSpace'
+		| 'setUnpackColorSpace';
 	target?: number;
 	textureId?: number;
 	slot?: number;
@@ -31,9 +33,12 @@ export type FakeGlOperation = {
 	xOffset?: number;
 	yOffset?: number;
 	sourceData?: unknown;
+	colorSpace?: string;
 };
 
 type EventMap = Map<string, Set<EventListener>>;
+type FakeColorSpace = 'srgb' | 'display-p3';
+let fakeColorSpaceSupport = true;
 
 function cloneSourceData(data: unknown) {
 	if (!ArrayBuffer.isView(data)) return data;
@@ -137,11 +142,17 @@ export class FakeWebGL2RenderingContext {
 	private boundTextures = new Map<number, FakeWebGLTexture | null>();
 	private unpackAlignment = 4;
 	private unpackFlipY = 0;
+	private drawingBufferColorSpaceValue: FakeColorSpace = 'srgb';
+	private unpackColorSpaceValue: FakeColorSpace = 'srgb';
 	uniformValues = new Map<string, number | number[]>();
 
 	constructor(canvas: { width: number; height: number }) {
 		this.drawingBufferWidth = canvas.width;
 		this.drawingBufferHeight = canvas.height;
+		if (fakeColorSpaceSupport) {
+			this.defineColorSpaceProperty('drawingBufferColorSpace', 'setDrawingBufferColorSpace');
+			this.defineColorSpaceProperty('unpackColorSpace', 'setUnpackColorSpace');
+		}
 	}
 
 	private writeUniform(name: string, value: number | number[]) {
@@ -154,6 +165,23 @@ export class FakeWebGL2RenderingContext {
 
 	private log(operation: FakeGlOperation) {
 		this.operations.push(operation);
+	}
+
+	private defineColorSpaceProperty(
+		property: 'drawingBufferColorSpace' | 'unpackColorSpace',
+		kind: Extract<FakeGlOperation['kind'], 'setDrawingBufferColorSpace' | 'setUnpackColorSpace'>,
+	) {
+		const field = property === 'drawingBufferColorSpace' ? 'drawingBufferColorSpaceValue' : 'unpackColorSpaceValue';
+		Object.defineProperty(this, property, {
+			get: () => this[field],
+			set: (value: string) => {
+				if (value !== 'srgb' && value !== 'display-p3') return;
+				this[field] = value;
+				this.log({ kind, colorSpace: value });
+			},
+			configurable: true,
+			enumerable: true,
+		});
 	}
 
 	readonly MAX_COMBINED_TEXTURE_IMAGE_UNITS = 1;
@@ -763,7 +791,9 @@ export function installFakeBrowserGlobals(options?: {
 	innerWidth?: number;
 	innerHeight?: number;
 	devicePixelRatio?: number;
+	colorSpaceSupport?: boolean;
 }) {
+	fakeColorSpaceSupport = options?.colorSpaceSupport ?? true;
 	const originals = {
 		OffscreenCanvas: globalThis.OffscreenCanvas,
 		HTMLCanvasElement: globalThis.HTMLCanvasElement,
@@ -813,6 +843,7 @@ export function installFakeBrowserGlobals(options?: {
 	setGlobal('cancelAnimationFrame', cancelAnimationFrame);
 
 	return () => {
+		fakeColorSpaceSupport = true;
 		(Object.entries(originals) as Array<[keyof typeof originals, unknown]>).forEach(([name, value]) => {
 			setGlobal(name, value);
 		});

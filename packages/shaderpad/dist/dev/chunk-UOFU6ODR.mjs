@@ -78,7 +78,8 @@ var TEXTURE_OPTION_ATTRIBUTES = [
   ["min-filter", "minFilter"],
   ["mag-filter", "magFilter"],
   ["wrap-s", "wrapS"],
-  ["wrap-t", "wrapT"]
+  ["wrap-t", "wrapT"],
+  ["color-space", "colorSpace"]
 ];
 function stringFromAttribute(value) {
   if (value == null || value === false) return void 0;
@@ -192,4 +193,4 @@ export {
   getLiveDomTextureSource,
   addDomTextureRefreshListener
 };
-//# sourceMappingURL=chunk-YN3AO6HP.mjs.map
+//# sourceMappingURL=chunk-UOFU6ODR.mjs.map

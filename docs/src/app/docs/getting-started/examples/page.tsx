@@ -115,6 +115,7 @@ const sections: ExampleSection[] = [
 			'webcam-channel-trails',
 			'webcam-grid',
 			'single-channel-textures',
+			'wide-gamut-color',
 			'fragmentum',
 			'web-component',
 			'react',

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { P3SupportNotice } from '@/examples/P3SupportNotice';
+
 type ExampleDetails = {
 	credit?: ReactNode;
 	fullDescription: ReactNode;
@@ -139,6 +141,27 @@ const exampleDetails: Record<string, ExampleDetails> = {
 				<p>
 					A brief history delay is added between the left and right halves to show that they are reading from
 					different parts of the chain.
+				</p>
+			</>
+		),
+	},
+	'wide-gamut-color': {
+		credit: (
+			<>
+				Credit: test image from <ExtLink href="https://www.wide-gamut.com/test">wide-gamut.com</ExtLink>
+			</>
+		),
+		fullDescription: (
+			<>
+				<P3SupportNotice />
+				<p>
+					Setting <code>colorSpace: &apos;display-p3&apos;</code> on both the ShaderPad instance and the
+					texture upload tells the browser to keep wide-gamut colors intact end-to-end. On sRGB displays, it
+					falls back gracefully.
+				</p>
+				<p>
+					If your browser and display support Display P3, you should see a subtle W in the center of the
+					image.
 				</p>
 			</>
 		),

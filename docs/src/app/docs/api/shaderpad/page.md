@@ -35,6 +35,7 @@ new ShaderPad(fragmentShaderSrc: string, options?: Options)
 | `magFilter`      | `GLFilterString`                                                                    | `'LINEAR'`                                                 | Magnification filter.                                                                                                                                                 |
 | `wrapS`          | `GLWrapString`                                                                      | `'CLAMP_TO_EDGE'`                                          | Horizontal wrap mode.                                                                                                                                                 |
 | `wrapT`          | `GLWrapString`                                                                      | `'CLAMP_TO_EDGE'`                                          | Vertical wrap mode.                                                                                                                                                   |
+| `colorSpace`     | `ColorSpace`                                                                        | Browser default (`'srgb'`)                                 | Sets the WebGL drawing buffer color space when supported. Use `'display-p3'` for opt-in wide-gamut output.                                                            |
 
 Constructor-level texture settings control:
 
@@ -44,7 +45,7 @@ Constructor-level texture settings control:
 
 ## Exported Types
 
-Root `shaderpad` exports `Options`, `StepOptions`, `TextureOptions`, `InitializeTextureOptions`, `TextureSource`, `UpdateTextureSource`, `CustomTexture`, `PartialCustomTexture`, `Plugin`, `PluginContext`, `ShaderPadEventName`, and the GL literal string types. `shaderpad/util` exports `ToBlobOptions` and `SaveOptions`.
+Root `shaderpad` exports `Options`, `StepOptions`, `TextureOptions`, `InitializeTextureOptions`, `TextureSource`, `UpdateTextureSource`, `CustomTexture`, `PartialCustomTexture`, `Plugin`, `PluginContext`, `ShaderPadEventName`, `ColorSpace`, and the GL literal string types. `shaderpad/util` exports `ToBlobOptions` and `SaveOptions`.
 
 ### GL Literal Types
 
@@ -55,6 +56,7 @@ The render-texture options above use these literal unions:
 - `GLTypeString`: `'UNSIGNED_BYTE'`, `'BYTE'`, `'FLOAT'`, `'HALF_FLOAT'`, `'UNSIGNED_SHORT'`, `'SHORT'`, `'UNSIGNED_INT'`, `'INT'`
 - `GLFilterString`: `'LINEAR'`, `'NEAREST'`
 - `GLWrapString`: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
+- `ColorSpace`: browser `PredefinedColorSpace`, currently `'srgb'` or `'display-p3'`
 
 ## API Sections
 

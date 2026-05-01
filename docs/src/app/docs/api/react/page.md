@@ -80,6 +80,7 @@ Texture option props map onto `initializeTexture()`:
 | `data-texture-mag-filter`      | WebGL magnification filter.    |
 | `data-texture-wrap-s`          | WebGL horizontal wrap mode.    |
 | `data-texture-wrap-t`          | WebGL vertical wrap mode.      |
+| `data-texture-color-space`     | Texture color space.           |
 
 ### Canvas Props
 

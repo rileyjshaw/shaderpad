@@ -222,6 +222,7 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 - `magFilter?: string` - Magnification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
 - `wrapS?: string` - Wrap mode for S coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
 - `wrapT?: string` - Wrap mode for T coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
+- `colorSpace?: 'srgb' | 'display-p3'` - Color space for DOM texture upload conversion where supported
 
 **Note:** For typed array sources (`CustomTexture`), you must provide data in bottom-up orientation (WebGL convention). The `preserveY` option is ignored for typed arrays.
 
@@ -314,7 +315,7 @@ shader.destroy(); // Clean up resources.
 ### Type exports
 
 `shaderpad` exports `Options`, `StepOptions`, `TextureOptions`, `InitializeTextureOptions`, `TextureSource`,
-`UpdateTextureSource`, `CustomTexture`, `PartialCustomTexture`, `Plugin`, `PluginContext`, `ShaderPadEventName`, and
+`UpdateTextureSource`, `CustomTexture`, `PartialCustomTexture`, `Plugin`, `PluginContext`, `ShaderPadEventName`, `ColorSpace`, and
 the GL literal string types. `shaderpad/util` exports `ToBlobOptions` and `SaveOptions`.
 
 ### Event Listeners
@@ -388,7 +389,7 @@ examples, browse the
 ShaderPad’s constructor accepts an optional `options` object.
 
 In addition to the fields below, constructor options also accept texture storage/filter/wrap settings such as
-`internalFormat`, `format`, `type`, `minFilter`, `magFilter`, `wrapS`, and `wrapT`. These configure ShaderPad’s
+`internalFormat`, `format`, `type`, `minFilter`, `magFilter`, `wrapS`, `wrapT`, and `colorSpace`. These configure ShaderPad’s
 internal render targets and history buffers, which is mainly useful for float/integer pipelines and chained shaders.
 
 ### canvas
@@ -463,6 +464,22 @@ int nFramesAgo = 2; // Get the color 2 frames ago.
 float zIndex = historyZ(u_webcam, u_webcamFrameOffset, nFramesAgo);
 vec4 historyColor = texture(u_webcam, vec3(v_uv, zIndex));
 ```
+
+### colorSpace
+
+Opt into browser color management for wide-gamut work.
+
+```typescript
+const shader = new ShaderPad(fragmentShaderSrc, {
+	colorSpace: 'display-p3',
+});
+
+shader.initializeTexture('u_image', imageElement, {
+	colorSpace: 'display-p3',
+});
+```
+
+On the constructor, `colorSpace` applies to the WebGL drawing buffer and ShaderPad’s internal render texture. On `initializeTexture()`, it applies while uploading DOM image-like sources such as images, videos, canvases, and `ImageBitmap`. Typed-array textures are not color-converted.
 
 ### plugins
 

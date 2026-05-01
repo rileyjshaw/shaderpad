@@ -34,6 +34,7 @@ export type GLTypeString =
 	| 'INT';
 export type GLFilterString = 'LINEAR' | 'NEAREST';
 export type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
+export type ColorSpace = PredefinedColorSpace;
 
 const FORMAT_TYPE_SUFFIXES: [string, GLTypeString][] = [
 	['8UI', 'UNSIGNED_BYTE'],
@@ -67,6 +68,7 @@ export interface TextureOptions {
 	magFilter?: GLFilterString;
 	wrapS?: GLWrapString;
 	wrapT?: GLWrapString;
+	colorSpace?: ColorSpace;
 	preserveY?: boolean;
 }
 type ResolvedTextureOptions = {
@@ -77,6 +79,7 @@ type ResolvedTextureOptions = {
 	magFilter: number;
 	wrapS: number;
 	wrapT: number;
+	colorSpace?: ColorSpace;
 	preserveY?: boolean;
 	isIntegerColorFormat: boolean;
 };
@@ -268,6 +271,9 @@ class ShaderPad {
 						canvasHeight: this.canvas.height,
 					})
 				: spError(0);
+		}
+		if (texOptions.colorSpace && 'drawingBufferColorSpace' in gl) {
+			gl.drawingBufferColorSpace = texOptions.colorSpace;
 		}
 		this.gl = gl;
 		this.typeArrays = new Map<number, new (length: number) => ArrayBufferView>([
@@ -630,6 +636,7 @@ class ShaderPad {
 			magFilter: this.resolveGLConst(options?.magFilter ?? 'LINEAR'),
 			wrapS: this.resolveGLConst(options?.wrapS ?? 'CLAMP_TO_EDGE'),
 			wrapT: this.resolveGLConst(options?.wrapT ?? 'CLAMP_TO_EDGE'),
+			colorSpace: options?.colorSpace,
 			preserveY: options?.preserveY,
 			isIntegerColorFormat,
 		};
@@ -651,9 +658,9 @@ class ShaderPad {
 		return new ArrayType(size);
 	}
 
-	private isNotRgba(format: number): boolean {
+	private isRgba(format: number): boolean {
 		const gl = this.gl;
-		return format !== gl.RGBA && format !== gl.RGBA_INTEGER;
+		return format === gl.RGBA || format === gl.RGBA_INTEGER;
 	}
 
 	private clearHistTexLayers(textureInfo: Texture): void {
@@ -664,7 +671,7 @@ class ShaderPad {
 		const transparent = this.getPxArray(type, textureInfo.width * textureInfo.height * 4);
 		gl.activeTexture(gl.TEXTURE0 + textureInfo.unitIndex);
 		gl.bindTexture(gl.TEXTURE_2D_ARRAY, textureInfo.texture);
-		const needsAlignmentFix = this.isNotRgba(format);
+		const needsAlignmentFix = !this.isRgba(format);
 		let previousAlignment;
 		if (needsAlignmentFix) {
 			previousAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
@@ -1044,15 +1051,18 @@ class ShaderPad {
 		}
 
 		// UNPACK_FLIP_Y_WEBGL only works for DOM element sources, not typed arrays.
-		const isTypedArray = 'data' in nonShaderPadSource && nonShaderPadSource.data;
-		const shouldFlipY = !isTypedArray && !info.options?.preserveY;
+		const isCustomTexture = 'data' in nonShaderPadSource && nonShaderPadSource.data;
+		const shouldFlipY = !isCustomTexture && !info.options?.preserveY;
 		const previousFlipY = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL);
-		const needsAlignmentFix = isTypedArray && this.isNotRgba(info.options.format);
+		const needsAlignmentFix = isCustomTexture && !this.isRgba(info.options.format);
+		const shouldConvertColorSpace = !isCustomTexture && info.options.colorSpace && 'unpackColorSpace' in gl;
+		const previousColorSpace = gl.unpackColorSpace;
 		let previousAlignment;
 		if (needsAlignmentFix) {
 			previousAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
 			gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 		}
+		if (shouldConvertColorSpace) gl.unpackColorSpace = info.options.colorSpace!;
 
 		if (info.history) {
 			gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
@@ -1126,6 +1136,8 @@ class ShaderPad {
 			}
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
 		}
+
+		if (shouldConvertColorSpace) gl.unpackColorSpace = previousColorSpace;
 		if (needsAlignmentFix) gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousAlignment);
 	}
 

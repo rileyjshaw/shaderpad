@@ -17,6 +17,7 @@ const loaders: Record<string, ExampleLoader> = {
 	basic: () => import('@/examples/demos/basic'),
 	webcam: () => import('@/examples/demos/webcam'),
 	'single-channel-textures': () => import('@/examples/demos/single-channel-textures'),
+	'wide-gamut-color': () => import('@/examples/demos/wide-gamut-color'),
 	'uniform-presets': () => import('@/examples/demos/uniform-presets'),
 	lygia: () => import('@/examples/demos/lygia'),
 	selfie: () => import('@/examples/demos/selfie'),

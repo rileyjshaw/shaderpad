@@ -55,6 +55,11 @@ export const exampleRegistry = [
 		description: 'An R8 webcam pass chained into history to show single-channel textures in action.',
 	},
 	{
+		slug: 'wide-gamut-color',
+		title: 'Wide-gamut color',
+		description: 'A Display P3 test image rendered through a Display P3 ShaderPad.',
+	},
+	{
 		slug: 'fragmentum',
 		title: 'Fragmentum',
 		description: 'A procedural animation ported from Shadertoy.',

@@ -76,6 +76,7 @@ Texture option attributes map onto `initializeTexture()`:
 - `data-texture-mag-filter`
 - `data-texture-wrap-s`
 - `data-texture-wrap-t`
+- `data-texture-color-space`
 
 ### Canvas
 

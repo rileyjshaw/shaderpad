@@ -260,6 +260,9 @@ var ShaderPad = class _ShaderPad {
         canvasHeight: this.canvas.height
       }) : spError(0);
     }
+    if (texOptions.colorSpace && "drawingBufferColorSpace" in gl) {
+      gl.drawingBufferColorSpace = texOptions.colorSpace;
+    }
     this.gl = gl;
     this.typeArrays = /* @__PURE__ */ new Map([
       [gl.FLOAT, Float32Array],
@@ -576,6 +579,7 @@ var ShaderPad = class _ShaderPad {
       magFilter: this.resolveGLConst(options?.magFilter ?? "LINEAR"),
       wrapS: this.resolveGLConst(options?.wrapS ?? "CLAMP_TO_EDGE"),
       wrapT: this.resolveGLConst(options?.wrapT ?? "CLAMP_TO_EDGE"),
+      colorSpace: options?.colorSpace,
       preserveY: options?.preserveY,
       isIntegerColorFormat
     };
@@ -592,9 +596,9 @@ var ShaderPad = class _ShaderPad {
     const ArrayType = this.typeArrays.get(type) ?? Uint8Array;
     return new ArrayType(size);
   }
-  isNotRgba(format) {
+  isRgba(format) {
     const gl = this.gl;
-    return format !== gl.RGBA && format !== gl.RGBA_INTEGER;
+    return format === gl.RGBA || format === gl.RGBA_INTEGER;
   }
   clearHistTexLayers(textureInfo) {
     if (!textureInfo.history) return;
@@ -603,7 +607,7 @@ var ShaderPad = class _ShaderPad {
     const transparent = this.getPxArray(type, textureInfo.width * textureInfo.height * 4);
     gl.activeTexture(gl.TEXTURE0 + textureInfo.unitIndex);
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, textureInfo.texture);
-    const needsAlignmentFix = this.isNotRgba(format);
+    const needsAlignmentFix = !this.isRgba(format);
     let previousAlignment;
     if (needsAlignmentFix) {
       previousAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
@@ -901,15 +905,18 @@ var ShaderPad = class _ShaderPad {
     if (!isPartial) {
       this.resizeTex(name, width, height);
     }
-    const isTypedArray = "data" in nonShaderPadSource && nonShaderPadSource.data;
-    const shouldFlipY = !isTypedArray && !info.options?.preserveY;
+    const isCustomTexture = "data" in nonShaderPadSource && nonShaderPadSource.data;
+    const shouldFlipY = !isCustomTexture && !info.options?.preserveY;
     const previousFlipY = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL);
-    const needsAlignmentFix = isTypedArray && this.isNotRgba(info.options.format);
+    const needsAlignmentFix = isCustomTexture && !this.isRgba(info.options.format);
+    const shouldConvertColorSpace = !isCustomTexture && info.options.colorSpace && "unpackColorSpace" in gl;
+    const previousColorSpace = gl.unpackColorSpace;
     let previousAlignment;
     if (needsAlignmentFix) {
       previousAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     }
+    if (shouldConvertColorSpace) gl.unpackColorSpace = info.options.colorSpace;
     if (info.history) {
       gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
       gl.bindTexture(gl.TEXTURE_2D_ARRAY, info.texture);
@@ -972,6 +979,7 @@ var ShaderPad = class _ShaderPad {
       }
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
     }
+    if (shouldConvertColorSpace) gl.unpackColorSpace = previousColorSpace;
     if (needsAlignmentFix) gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousAlignment);
   }
   bindIntermediate() {
@@ -1230,7 +1238,8 @@ var TEXTURE_OPTION_ATTRIBUTES = [
   ["min-filter", "minFilter"],
   ["mag-filter", "magFilter"],
   ["wrap-s", "wrapS"],
-  ["wrap-t", "wrapT"]
+  ["wrap-t", "wrapT"],
+  ["color-space", "colorSpace"]
 ];
 function stringFromAttribute(value) {
   if (value == null || value === false) return void 0;

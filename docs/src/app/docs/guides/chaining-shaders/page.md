@@ -47,6 +47,25 @@ passB.initializeTexture('u_firstPass', passA);
 
 If two passes live on different WebGL contexts, ShaderPad has to read pixels back to the CPU and upload them back to the GPU for the next pass. That is far more expensive than just reusing a canvas.
 
+## Texture Options In Chains
+
+When you initialize a texture from another `ShaderPad` without passing texture options, ShaderPad reuses the source pass’s render-texture settings for the destination texture. That includes `internalFormat`, `format`, `type`, filters, wrapping, and `colorSpace`.
+
+```javascript
+const passA = new ShaderPad(fragmentA, {
+	canvas: sharedCanvas,
+	internalFormat: 'RGBA32F',
+	colorSpace: 'display-p3',
+});
+
+const passB = new ShaderPad(fragmentB, {
+	canvas: sharedCanvas,
+	colorSpace: 'display-p3',
+});
+
+passB.initializeTexture('u_firstPass', passA); // Inherits passA’s internalFormat and colorSpace.
+```
+
 ## Synchronizing Renders
 
 For animated multi-pass work, the simplest pattern is to use a single `play()` call from the final shader pass, and orchestrate the rest from within that callback. For example:

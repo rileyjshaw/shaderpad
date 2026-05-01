@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getGlOperations, getTextureInfo, getUniformValue, installFakeBrowserGlobals } from './support/fake-browser';
+import {
+	getGl,
+	getGlOperations,
+	getTextureInfo,
+	getUniformValue,
+	installFakeBrowserGlobals,
+} from './support/fake-browser';
 
 const FRAGMENT_SHADER = `#version 300 es
 precision mediump float;
@@ -149,5 +155,98 @@ describe('ShaderPad uniform and texture update behavior', () => {
 		});
 
 		shader.destroy();
+	});
+
+	it('applies display-p3 to the drawing buffer when requested', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+			colorSpace: 'display-p3',
+		});
+
+		expect((getGl(shader) as any).drawingBufferColorSpace).toBe('display-p3');
+		expect(getGlOperations(shader, 'setDrawingBufferColorSpace')).toEqual([
+			expect.objectContaining({ colorSpace: 'display-p3' }),
+		]);
+		expect(getTextureInfo(shader as any, '__SHADERPAD_BUFFER')?.options.colorSpace).toBe('display-p3');
+
+		shader.destroy();
+	});
+
+	it('uses texture colorSpace around DOM texture uploads and restores the prior value', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+		});
+
+		shader.initializeTexture('u_data', new HTMLImageElement(), {
+			colorSpace: 'display-p3',
+		});
+
+		expect(getGlOperations(shader, 'setUnpackColorSpace')).toEqual([
+			expect.objectContaining({ colorSpace: 'display-p3' }),
+			expect.objectContaining({ colorSpace: 'srgb' }),
+		]);
+		expect((getGl(shader) as any).unpackColorSpace).toBe('srgb');
+
+		shader.destroy();
+	});
+
+	it('does not use unpackColorSpace for typed-array texture uploads', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+		});
+
+		shader.initializeTexture(
+			'u_data',
+			{
+				data: new Uint8Array([1, 2, 3, 4]),
+				width: 1,
+				height: 1,
+			},
+			{
+				colorSpace: 'display-p3',
+			},
+		);
+
+		expect(getGlOperations(shader, 'setUnpackColorSpace')).toHaveLength(0);
+
+		shader.destroy();
+	});
+
+	it('ignores unsupported and invalid WebGL color-space assignments', async () => {
+		restoreGlobals?.();
+		restoreGlobals = installFakeBrowserGlobals({ colorSpaceSupport: false });
+		vi.resetModules();
+		const ShaderPad = await loadShaderPad();
+
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+			colorSpace: 'display-p3',
+		});
+		shader.initializeTexture('u_data', new HTMLImageElement(), {
+			colorSpace: 'display-p3',
+		});
+
+		expect('drawingBufferColorSpace' in getGl(shader)).toBe(false);
+		expect('unpackColorSpace' in getGl(shader)).toBe(false);
+		expect(getGlOperations(shader, 'setDrawingBufferColorSpace')).toHaveLength(0);
+		expect(getGlOperations(shader, 'setUnpackColorSpace')).toHaveLength(0);
+		shader.destroy();
+
+		restoreGlobals?.();
+		restoreGlobals = installFakeBrowserGlobals();
+		vi.resetModules();
+		const ShaderPadWithSupport = await loadShaderPad();
+		const invalidShader = new ShaderPadWithSupport(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+			colorSpace: 'not-a-color-space' as any,
+		});
+
+		expect((getGl(invalidShader) as any).drawingBufferColorSpace).toBe('srgb');
+		expect(getGlOperations(invalidShader, 'setDrawingBufferColorSpace')).toHaveLength(0);
+
+		invalidShader.destroy();
 	});
 });

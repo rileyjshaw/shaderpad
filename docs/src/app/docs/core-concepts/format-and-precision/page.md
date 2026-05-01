@@ -19,6 +19,7 @@ Constructor options configure ShaderPad’s internal render target and output hi
 - `magFilter`: `LINEAR`
 - `wrapS`: `CLAMP_TO_EDGE`
 - `wrapT`: `CLAMP_TO_EDGE`
+- `colorSpace`: browser default (`srgb`)
 
 Texture options on `initializeTexture()` use the same fields, plus `preserveY: false`.
 
@@ -38,6 +39,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 	type: 'FLOAT',
 	minFilter: 'NEAREST',
 	magFilter: 'NEAREST',
+	colorSpace: 'display-p3',
 });
 ```
 
@@ -71,6 +73,8 @@ This is useful for:
 
 If history is enabled for a texture, it will inherit the texture’s format settings.
 
+`colorSpace` is independent of `internalFormat`, `format`, and `type`. It tells WebGL which color space the values represent for drawing-buffer output and DOM texture uploads. The storage options still control precision and channel layout. For high-precision wide-gamut work, pair `colorSpace: 'display-p3'` with a float render target such as `internalFormat: 'RGBA16F'`.
+
 ## GLSL Sampler Types
 
 In your GLSL code, the sampler type must match the texture’s format family:
@@ -94,9 +98,9 @@ If you provide `type` but not `internalFormat`, ShaderPad infers a matching stor
 
 If you omit `format`, ShaderPad derives one from `internalFormat`. The defaults are practical, but it’s a good idea to set all three options explicitly.
 
-## Chained ShaderPads Preserve Format And Precision
+## Chained ShaderPads Preserve Format, Precision, And Color Space
 
-If you initialize a texture from another `ShaderPad` without overriding its texture options, the destination texture inherits the source format settings. That means high-precision and integer data are transferred correctly by default, even when the two `ShaderPad` instances use different WebGL contexts.
+If you initialize a texture from another `ShaderPad` without overriding its texture options, the destination texture inherits the source format settings and `colorSpace`. That means high-precision, integer, and wide-gamut pipelines transfer correctly by default, even when the two `ShaderPad` instances use different WebGL contexts.
 
 {% callout title="Chain Performance" %}
 Cross-context chains preserve the data format, but they do not share a GPU texture. They are correct, but slower.

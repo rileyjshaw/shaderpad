@@ -11,6 +11,7 @@ type GLFormatString = 'RED' | 'RG' | 'RGB' | 'RGBA' | 'RED_INTEGER' | 'RG_INTEGE
 type GLTypeString = 'UNSIGNED_BYTE' | 'BYTE' | 'FLOAT' | 'HALF_FLOAT' | 'UNSIGNED_SHORT' | 'SHORT' | 'UNSIGNED_INT' | 'INT';
 type GLFilterString = 'LINEAR' | 'NEAREST';
 type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
+type ColorSpace = PredefinedColorSpace;
 interface TextureOptions {
     internalFormat?: GLInternalFormatString;
     format?: GLFormatString;
@@ -19,6 +20,7 @@ interface TextureOptions {
     magFilter?: GLFilterString;
     wrapS?: GLWrapString;
     wrapT?: GLWrapString;
+    colorSpace?: ColorSpace;
     preserveY?: boolean;
 }
 interface CustomTexture {
@@ -99,7 +101,7 @@ declare class ShaderPad {
     private reserveTex;
     private resolveTexOpts;
     private getPxArray;
-    private isNotRgba;
+    private isRgba;
     private clearHistTexLayers;
     private updateFrameOffset;
     private resetHist;
@@ -131,4 +133,4 @@ declare class ShaderPad {
     destroy(): void;
 }
 
-export { type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type InitializeTextureOptions, type Options, type PartialCustomTexture, type Plugin, type PluginContext, type RenderTextureOptions, type ShaderPadEventName, type StepOptions, type TextureOptions, type TextureSource, type UpdateTextureSource, ShaderPad as default };
+export { type ColorSpace, type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type InitializeTextureOptions, type Options, type PartialCustomTexture, type Plugin, type PluginContext, type RenderTextureOptions, type ShaderPadEventName, type StepOptions, type TextureOptions, type TextureSource, type UpdateTextureSource, ShaderPad as default };

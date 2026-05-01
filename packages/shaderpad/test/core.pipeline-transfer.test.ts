@@ -74,6 +74,25 @@ describe('ShaderPad pipeline transfer paths', () => {
 		dest.destroy();
 	});
 
+	it('inherits colorSpace when initializing a texture from another ShaderPad', async () => {
+		const ShaderPad = await loadShaderPad();
+		const sharedCanvas = new OffscreenCanvas(4, 4);
+
+		const source = new ShaderPad(SOURCE_FRAGMENT_SHADER, {
+			canvas: sharedCanvas,
+			colorSpace: 'display-p3',
+		});
+		const dest = new ShaderPad(DEST_FRAGMENT_SHADER, { canvas: sharedCanvas });
+
+		dest.initializeTexture('u_input', source);
+
+		expect(getTextureInfo(source as any, '__SHADERPAD_BUFFER')?.options.colorSpace).toBe('display-p3');
+		expect(getTextureInfo(dest as any, 'u_input')?.options.colorSpace).toBe('display-p3');
+
+		source.destroy();
+		dest.destroy();
+	});
+
 	it('same-context chaining with destination history stays on the GPU via copyTexSubImage3D', async () => {
 		const ShaderPad = await loadShaderPad();
 		const sharedCanvas = new OffscreenCanvas(4, 4);
