@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.84
+
+### Minor Changes
+
+- Sync `u_time` and `u_frame` updates to internal clock
+
 ## 1.0.0-beta.83
 
 ### Minor Changes
