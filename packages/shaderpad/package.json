@@ -173,8 +173,8 @@
 		}
 	},
 	"devDependencies": {
-		"@types/react": "^19.2.2",
-		"react": "^19.2.3"
+		"@types/react": "^19.2.14",
+		"react": "^19.2.5"
 	},
 	"publishConfig": {
 		"access": "public"
