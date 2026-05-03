@@ -99,9 +99,6 @@ var ShaderPad = class _ShaderPad {
         canvasHeight: this.canvas.height
       }) : spError(0);
     }
-    if (texOptions.colorSpace && "drawingBufferColorSpace" in gl) {
-      gl.drawingBufferColorSpace = texOptions.colorSpace;
-    }
     this.gl = gl;
     this.typeArrays = /* @__PURE__ */ new Map([
       [gl.FLOAT, Float32Array],
@@ -867,6 +864,10 @@ var ShaderPad = class _ShaderPad {
     if (!this.isHeadless) {
       const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY);
       if (!intermediateInfo.options.isIntegerColorFormat) {
+        const desiredColorSpace = intermediateInfo.options.colorSpace ?? "srgb";
+        if ("drawingBufferColorSpace" in gl && gl.drawingBufferColorSpace !== desiredColorSpace) {
+          gl.drawingBufferColorSpace = desiredColorSpace;
+        }
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
         gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
@@ -1008,4 +1009,4 @@ var index_default = ShaderPad;
 export {
   index_default
 };
-//# sourceMappingURL=chunk-NPRUI7GB.mjs.map
+//# sourceMappingURL=chunk-D2ESNBZA.mjs.map

@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { clearGlOperations, getGlOperations, getTextureInfo, installFakeBrowserGlobals } from './support/fake-browser';
+import {
+	clearGlOperations,
+	getGl,
+	getGlOperations,
+	getTextureInfo,
+	installFakeBrowserGlobals,
+} from './support/fake-browser';
 
 const SOURCE_FRAGMENT_SHADER = `#version 300 es
 precision mediump float;
@@ -88,6 +94,51 @@ describe('ShaderPad pipeline transfer paths', () => {
 
 		expect(getTextureInfo(source as any, '__SHADERPAD_BUFFER')?.options.colorSpace).toBe('display-p3');
 		expect(getTextureInfo(dest as any, 'u_input')?.options.colorSpace).toBe('display-p3');
+
+		source.destroy();
+		dest.destroy();
+	});
+
+	it('keeps shared-canvas construction free of drawing-buffer colorSpace mutations', async () => {
+		const ShaderPad = await loadShaderPad();
+		const sharedCanvas = new OffscreenCanvas(4, 4);
+
+		const source = new ShaderPad(SOURCE_FRAGMENT_SHADER, {
+			canvas: sharedCanvas,
+			colorSpace: 'display-p3',
+		});
+
+		clearGlOperations(source);
+		const dest = new ShaderPad(DEST_FRAGMENT_SHADER, { canvas: sharedCanvas });
+
+		expect((getGl(dest) as any).drawingBufferColorSpace).toBe('srgb');
+		expect(getGlOperations(dest, 'setDrawingBufferColorSpace')).toHaveLength(0);
+		expect(getTextureInfo(source as any, '__SHADERPAD_BUFFER')?.options.colorSpace).toBe('display-p3');
+		expect(getTextureInfo(dest as any, '__SHADERPAD_BUFFER')?.options.colorSpace).toBeUndefined();
+
+		source.destroy();
+		dest.destroy();
+	});
+
+	it('switches drawingBufferColorSpace per draw on a shared canvas', async () => {
+		const ShaderPad = await loadShaderPad();
+		const sharedCanvas = new OffscreenCanvas(4, 4);
+
+		const source = new ShaderPad(SOURCE_FRAGMENT_SHADER, {
+			canvas: sharedCanvas,
+			colorSpace: 'display-p3',
+		});
+		const dest = new ShaderPad(DEST_FRAGMENT_SHADER, { canvas: sharedCanvas });
+
+		clearGlOperations(source, dest);
+		source.draw();
+		dest.draw();
+
+		expect((getGl(dest) as any).drawingBufferColorSpace).toBe('srgb');
+		expect(getGlOperations(dest, 'setDrawingBufferColorSpace')).toEqual([
+			expect.objectContaining({ colorSpace: 'display-p3' }),
+			expect.objectContaining({ colorSpace: 'srgb' }),
+		]);
 
 		source.destroy();
 		dest.destroy();

@@ -157,12 +157,15 @@ describe('ShaderPad uniform and texture update behavior', () => {
 		shader.destroy();
 	});
 
-	it('applies display-p3 to the drawing buffer when requested', async () => {
+	it('applies display-p3 when presenting to the drawing buffer', async () => {
 		const ShaderPad = await loadShaderPad();
 		const shader = new ShaderPad(FRAGMENT_SHADER, {
 			canvas: new OffscreenCanvas(4, 4),
 			colorSpace: 'display-p3',
 		});
+
+		expect((getGl(shader) as any).drawingBufferColorSpace).toBe('srgb');
+		shader.draw();
 
 		expect((getGl(shader) as any).drawingBufferColorSpace).toBe('display-p3');
 		expect(getGlOperations(shader, 'setDrawingBufferColorSpace')).toEqual([
@@ -228,6 +231,7 @@ describe('ShaderPad uniform and texture update behavior', () => {
 		shader.initializeTexture('u_data', new HTMLImageElement(), {
 			colorSpace: 'display-p3',
 		});
+		shader.draw();
 
 		expect('drawingBufferColorSpace' in getGl(shader)).toBe(false);
 		expect('unpackColorSpace' in getGl(shader)).toBe(false);
@@ -243,6 +247,7 @@ describe('ShaderPad uniform and texture update behavior', () => {
 			canvas: new OffscreenCanvas(4, 4),
 			colorSpace: 'not-a-color-space' as any,
 		});
+		invalidShader.draw();
 
 		expect((getGl(invalidShader) as any).drawingBufferColorSpace).toBe('srgb');
 		expect(getGlOperations(invalidShader, 'setDrawingBufferColorSpace')).toHaveLength(0);
