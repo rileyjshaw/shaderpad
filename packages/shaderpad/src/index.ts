@@ -770,7 +770,7 @@ class ShaderPad {
 		this.emit('initializeUniform', ...arguments);
 	}
 
-	updateUniforms(
+	private _updateUniforms(
 		updates: Record<string, number | number[] | (number | number[])[]>,
 		options?: { startIndex?: number; allowMissing?: boolean },
 	) {
@@ -854,6 +854,19 @@ class ShaderPad {
 			}
 		});
 		this.emit('updateUniforms', ...arguments);
+	}
+
+	updateUniforms(
+		updates: Record<string, number | number[] | (number | number[])[]>,
+		options?: { startIndex?: number; allowMissing?: boolean },
+	) {
+		this._updateUniforms(updates, options);
+
+		if (typeof updates.u_time === 'number') {
+			this.tElapsed = updates.u_time;
+			if (!isNaN(this.tStart)) this.tStart = performance.now();
+		}
+		if (typeof updates.u_frame === 'number') this.frame = updates.u_frame;
 	}
 
 	private createTex(
@@ -1201,7 +1214,7 @@ class ShaderPad {
 		const updates: Record<string, number> = {};
 		if (this.uniforms.has('u_time')) updates.u_time = this.tElapsed;
 		if (this.uniforms.has('u_frame')) updates.u_frame = this.frame;
-		if (Object.keys(updates).length) this.updateUniforms(updates);
+		if (Object.keys(updates).length) this._updateUniforms(updates);
 	}
 
 	private _step(now: number, opts?: StepOptions | ((time: number, frame: number) => StepOptions | void)) {

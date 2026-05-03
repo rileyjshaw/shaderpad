@@ -1,15 +1,15 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-05-01T22:17:12.850Z",
+	"generatedAt": "2026-05-03T04:33:13.462Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
-			"minifiedBytes": 17678,
-			"minified": "17.3 kB",
-			"gzippedBytes": 5968,
-			"gzipped": "5.8 kB",
-			"gzippedLabel": "5.8 kB gzipped"
+			"minifiedBytes": 17881,
+			"minified": "17.5 kB",
+			"gzippedBytes": 6011,
+			"gzipped": "5.9 kB",
+			"gzippedLabel": "5.9 kB gzipped"
 		},
 		"./plugins/autosize": {
 			"specifier": "shaderpad/plugins/autosize",
@@ -45,27 +45,27 @@
 		},
 		"./plugins/pose": {
 			"specifier": "shaderpad/plugins/pose",
-			"minifiedBytes": 27118,
-			"minified": "26.5 kB",
-			"gzippedBytes": 9329,
-			"gzipped": "9.1 kB",
-			"gzippedLabel": "9.1 kB gzipped"
+			"minifiedBytes": 27321,
+			"minified": "26.7 kB",
+			"gzippedBytes": 9373,
+			"gzipped": "9.2 kB",
+			"gzippedLabel": "9.2 kB gzipped"
 		},
 		"./plugins/segmenter": {
 			"specifier": "shaderpad/plugins/segmenter",
-			"minifiedBytes": 23362,
-			"minified": "22.8 kB",
-			"gzippedBytes": 8109,
-			"gzipped": "7.9 kB",
-			"gzippedLabel": "7.9 kB gzipped"
+			"minifiedBytes": 23565,
+			"minified": "23.0 kB",
+			"gzippedBytes": 8154,
+			"gzipped": "8.0 kB",
+			"gzippedLabel": "8.0 kB gzipped"
 		},
 		"./react": {
 			"specifier": "shaderpad/react",
-			"minifiedBytes": 26991,
-			"minified": "26.4 kB",
-			"gzippedBytes": 9355,
-			"gzipped": "9.1 kB",
-			"gzippedLabel": "9.1 kB gzipped"
+			"minifiedBytes": 27194,
+			"minified": "26.6 kB",
+			"gzippedBytes": 9389,
+			"gzipped": "9.2 kB",
+			"gzippedLabel": "9.2 kB gzipped"
 		},
 		"./util": {
 			"specifier": "shaderpad/util",
@@ -77,9 +77,9 @@
 		},
 		"./web-component": {
 			"specifier": "shaderpad/web-component",
-			"minifiedBytes": 30750,
-			"minified": "30.0 kB",
-			"gzippedBytes": 10031,
+			"minifiedBytes": 30953,
+			"minified": "30.2 kB",
+			"gzippedBytes": 10067,
 			"gzipped": "9.8 kB",
 			"gzippedLabel": "9.8 kB gzipped"
 		}

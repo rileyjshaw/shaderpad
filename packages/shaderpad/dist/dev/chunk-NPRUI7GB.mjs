@@ -523,7 +523,7 @@ var ShaderPad = class _ShaderPad {
     }
     this.emit("initializeUniform", ...arguments);
   }
-  updateUniforms(updates, options) {
+  _updateUniforms(updates, options) {
     const gl = this.gl;
     gl.useProgram(this.program);
     Object.entries(updates).forEach(([name, newValue]) => {
@@ -587,6 +587,14 @@ var ShaderPad = class _ShaderPad {
       }
     });
     this.emit("updateUniforms", ...arguments);
+  }
+  updateUniforms(updates, options) {
+    this._updateUniforms(updates, options);
+    if (typeof updates.u_time === "number") {
+      this.tElapsed = updates.u_time;
+      if (!isNaN(this.tStart)) this.tStart = performance.now();
+    }
+    if (typeof updates.u_frame === "number") this.frame = updates.u_frame;
   }
   createTex(name, textureInfo) {
     const gl = this.gl;
@@ -874,7 +882,7 @@ var ShaderPad = class _ShaderPad {
     const updates = {};
     if (this.uniforms.has("u_time")) updates.u_time = this.tElapsed;
     if (this.uniforms.has("u_frame")) updates.u_frame = this.frame;
-    if (Object.keys(updates).length) this.updateUniforms(updates);
+    if (Object.keys(updates).length) this._updateUniforms(updates);
   }
   _step(now, opts) {
     const t = this.getElapsed(now);
@@ -1000,4 +1008,4 @@ var index_default = ShaderPad;
 export {
   index_default
 };
-//# sourceMappingURL=chunk-YB3GMXKV.mjs.map
+//# sourceMappingURL=chunk-NPRUI7GB.mjs.map

@@ -109,6 +109,49 @@ describe('ShaderPad lifecycle and history semantics', () => {
 		shader.destroy();
 	});
 
+	it('public u_time and u_frame updates persist as the next step baseline', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+		});
+
+		const samples: Array<{ time: number; frame: number }> = [];
+		shader.on('preStep', (time: number, frame: number) => {
+			samples.push({ time, frame });
+		});
+
+		shader.step();
+		await flush(1000);
+
+		shader.updateUniforms({
+			u_time: 12.5,
+			u_frame: 42,
+		});
+
+		expect(getUniformValue(shader as any, 'u_time')).toBe(12.5);
+		expect(getUniformValue(shader as any, 'u_frame')).toBe(42);
+
+		shader.step();
+		expect(samples.at(-1)).toEqual({
+			time: expect.closeTo(12.5, 5),
+			frame: 42,
+		});
+		expect(getUniformValue(shader as any, 'u_time')).toBeCloseTo(12.5, 5);
+		expect(getUniformValue(shader as any, 'u_frame')).toBe(42);
+		expect((shader as any).frame).toBe(43);
+
+		await flush(1000);
+		shader.step();
+		expect(samples.at(-1)).toEqual({
+			time: expect.closeTo(13.5, 5),
+			frame: 43,
+		});
+		expect(getUniformValue(shader as any, 'u_time')).toBeCloseTo(13.5, 5);
+		expect(getUniformValue(shader as any, 'u_frame')).toBe(43);
+
+		shader.destroy();
+	});
+
 	it('play advances on RAF boundaries and pause stops further steps', async () => {
 		const ShaderPad = await loadShaderPad();
 		const shader = new ShaderPad(FRAGMENT_SHADER, {

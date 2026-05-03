@@ -37,6 +37,8 @@ shader.updateUniforms({
 });
 ```
 
+Updating the built-in `u_time` or `u_frame` uniforms also updates ShaderPad’s internal playback state. The next `step()` or `play()` frame will continue from those values instead of overwriting them from the previous clock or frame counter.
+
 ## Uniform Arrays
 
 By default, array values represent vectors. You can declare uniform arrays by passing `arrayLength` to `initializeUniform()`. For example, to initialize a `float[24]` array:

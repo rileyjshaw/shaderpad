@@ -109,6 +109,7 @@ declare class ShaderPad {
         arrayLength?: number;
         allowMissing?: boolean;
     }): void;
+    private _updateUniforms;
     updateUniforms(updates: Record<string, number | number[] | (number | number[])[]>, options?: {
         startIndex?: number;
         allowMissing?: boolean;

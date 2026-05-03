@@ -160,6 +160,8 @@ updateUniforms(
 
 Updates one or more initialized uniforms.
 
+When updating built-in `u_time` or `u_frame`, ShaderPad also updates its internal clock or frame counter so the value persists as the baseline for the next `step()` or `play()` frame.
+
 ### `updateUniforms()` Options
 
 | Option         | Type      | Default     | Notes                                                                                                               |
