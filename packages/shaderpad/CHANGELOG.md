@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.85
+
+### Minor Changes
+
+- Add shader.clearHistory() method
+
 ## 1.0.0-beta.84
 
 ### Minor Changes
