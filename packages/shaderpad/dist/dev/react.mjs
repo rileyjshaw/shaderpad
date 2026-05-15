@@ -11,7 +11,7 @@ import {
 } from "./chunk-UOFU6ODR.mjs";
 import {
   index_default
-} from "./chunk-D2ESNBZA.mjs";
+} from "./chunk-6L2ORY3D.mjs";
 import {
   autosize_default
 } from "./chunk-DQT5EXJJ.mjs";
@@ -259,6 +259,9 @@ var ShaderPad = forwardRef(function ShaderPad2({
       },
       clear() {
         shaderRef.current?.clear();
+      },
+      clearHistory() {
+        shaderRef.current?.clearHistory();
       },
       rewind() {
         shaderRef.current?.rewind();

@@ -25,6 +25,7 @@ type ShaderPadHandle = {
     step(options?: StepOptions): void;
     draw(options?: StepOptions): void;
     clear(): void;
+    clearHistory(): void;
     rewind(): void;
     reset(): void;
     destroy(): void;

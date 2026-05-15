@@ -10,7 +10,7 @@ import {
 } from "./chunk-UOFU6ODR.mjs";
 import {
   index_default
-} from "./chunk-D2ESNBZA.mjs";
+} from "./chunk-6L2ORY3D.mjs";
 import {
   autosize_default
 } from "./chunk-DQT5EXJJ.mjs";
@@ -179,6 +179,9 @@ var ShaderPadElement = class _ShaderPadElement extends ShaderPadElementBase {
   }
   clear() {
     this.shaderInstance?.clear();
+  }
+  clearHistory() {
+    this.shaderInstance?.clearHistory();
   }
   rewind() {
     this.shaderInstance?.rewind();

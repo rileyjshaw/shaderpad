@@ -78,5 +78,6 @@ Use it when:
 
 - `pause()` stops the animation loop started by `play()` and preserves ShaderPad time/frame state
 - `rewind()` resets the clock and frame counter
+- `clearHistory()` clears output and texture history buffers without changing time/frame state or the current output
 - `reset()` rewinds the clock and frame counter, and also clears history buffers
 - `destroy()` stops everything and releases WebGL resources and event listeners

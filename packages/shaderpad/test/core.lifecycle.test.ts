@@ -362,4 +362,71 @@ describe('ShaderPad lifecycle and history semantics', () => {
 
 		shader.destroy();
 	});
+
+	it('clearHistory resets output and texture history without rewinding or clearing output', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+			history: 3,
+		});
+
+		shader.initializeTexture(
+			'u_data',
+			{
+				data: new Uint8Array([1, 2, 3, 4]),
+				width: 1,
+				height: 1,
+			},
+			{
+				history: 2,
+				internalFormat: 'RGBA8',
+				type: 'UNSIGNED_BYTE',
+				minFilter: 'NEAREST',
+				magFilter: 'NEAREST',
+			},
+		);
+
+		shader.step();
+		await flush(1000);
+		shader.step();
+		shader.updateTextures({
+			u_data: {
+				data: new Uint8Array([5, 6, 7, 8]),
+				width: 1,
+				height: 1,
+			},
+		});
+
+		expect(getUniformValue(shader as any, 'u_historyFrameOffset')).toBe(2);
+		expect(getUniformValue(shader as any, 'u_dataFrameOffset')).toBe(1);
+		expect((shader as any).frame).toBe(2);
+
+		const elapsedBeforeClear = (shader as any).tElapsed;
+		const outputHistoryBaseline = getTextureWrites(shader as any, 'u_history').length;
+		const textureHistoryBaseline = getTextureWrites(shader as any, 'u_data').length;
+		clearGlOperations(shader);
+
+		shader.clearHistory();
+
+		expect((shader as any).frame).toBe(2);
+		expect((shader as any).tElapsed).toBe(elapsedBeforeClear);
+		expect(getUniformValue(shader as any, 'u_time')).toBeCloseTo(1, 5);
+		expect(getUniformValue(shader as any, 'u_frame')).toBe(1);
+		expect(getUniformValue(shader as any, 'u_historyFrameOffset')).toBe(0);
+		expect(getUniformValue(shader as any, 'u_dataFrameOffset')).toBe(0);
+		expect(getGlOperations(shader, 'clear')).toHaveLength(0);
+
+		expect(getTextureWrites(shader as any, 'u_history').slice(outputHistoryBaseline)).toEqual([
+			expect.objectContaining({ kind: 'sub3d', slot: 0 }),
+			expect.objectContaining({ kind: 'sub3d', slot: 1 }),
+			expect.objectContaining({ kind: 'sub3d', slot: 2 }),
+		]);
+		expect(getTextureWrites(shader as any, 'u_data').slice(textureHistoryBaseline)).toEqual([
+			expect.objectContaining({ kind: 'sub3d', slot: 0 }),
+			expect.objectContaining({ kind: 'sub3d', slot: 1 }),
+			expect.objectContaining({ kind: 'sub3d', slot: 2 }),
+		]);
+
+		shader.destroy();
+	});
 });

@@ -1,13 +1,13 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-05-03T04:56:07.622Z",
+	"generatedAt": "2026-05-15T03:38:48.439Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
-			"minifiedBytes": 17937,
-			"minified": "17.5 kB",
-			"gzippedBytes": 6026,
+			"minifiedBytes": 17972,
+			"minified": "17.6 kB",
+			"gzippedBytes": 6037,
 			"gzipped": "5.9 kB",
 			"gzippedLabel": "5.9 kB gzipped"
 		},
@@ -45,25 +45,25 @@
 		},
 		"./plugins/pose": {
 			"specifier": "shaderpad/plugins/pose",
-			"minifiedBytes": 27377,
-			"minified": "26.7 kB",
-			"gzippedBytes": 9388,
+			"minifiedBytes": 27412,
+			"minified": "26.8 kB",
+			"gzippedBytes": 9399,
 			"gzipped": "9.2 kB",
 			"gzippedLabel": "9.2 kB gzipped"
 		},
 		"./plugins/segmenter": {
 			"specifier": "shaderpad/plugins/segmenter",
-			"minifiedBytes": 23621,
+			"minifiedBytes": 23656,
 			"minified": "23.1 kB",
-			"gzippedBytes": 8166,
+			"gzippedBytes": 8178,
 			"gzipped": "8.0 kB",
 			"gzippedLabel": "8.0 kB gzipped"
 		},
 		"./react": {
 			"specifier": "shaderpad/react",
-			"minifiedBytes": 27250,
-			"minified": "26.6 kB",
-			"gzippedBytes": 9414,
+			"minifiedBytes": 27327,
+			"minified": "26.7 kB",
+			"gzippedBytes": 9434,
 			"gzipped": "9.2 kB",
 			"gzippedLabel": "9.2 kB gzipped"
 		},
@@ -77,11 +77,11 @@
 		},
 		"./web-component": {
 			"specifier": "shaderpad/web-component",
-			"minifiedBytes": 31009,
-			"minified": "30.3 kB",
-			"gzippedBytes": 10085,
-			"gzipped": "9.8 kB",
-			"gzippedLabel": "9.8 kB gzipped"
+			"minifiedBytes": 31095,
+			"minified": "30.4 kB",
+			"gzippedBytes": 10105,
+			"gzipped": "9.9 kB",
+			"gzippedLabel": "9.9 kB gzipped"
 		}
 	}
 }

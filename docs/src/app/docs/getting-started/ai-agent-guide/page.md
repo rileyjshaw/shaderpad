@@ -103,6 +103,7 @@ Add `helpers()` only when you actually need helper GLSL like `fitCover()` or `hi
 | Render current state without advancing time, frame, or history            | `draw(options?)`                                                           | Good for pure display passes.                                   |
 | Skip writing the current frame into history                               | `skipHistory: true`                                                        | Works for output history.                                       |
 | Reset frame/time counters                                                 | `rewind()`                                                                 | Useful when replay cadence changes.                             |
+| Clear stale history without resetting playback                            | `clearHistory()`                                                           | Keeps the current output, time, and frame intact.               |
 | Reset frame/time counters and clear history                               | `reset()`                                                                  | Useful after size or topology changes.                          |
 | Update only part of a typed-array texture                                 | `updateTextures({ name: { data, width, height, x, y, isPartial: true } })` | Avoid full reuploads when a small region changes.               |
 

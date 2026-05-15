@@ -284,6 +284,10 @@ shader.draw({ skipClear: true });
 
 Clear ShaderPad’s current render target without advancing time, frame, or history.
 
+#### `clearHistory()`
+
+Clear all output and texture history buffers without clearing the current render target or changing time/frame state.
+
 #### `StepOptions`
 
 ```typescript
@@ -298,11 +302,12 @@ interface StepOptions {
 - `skipClear?: boolean` - If `true`, the canvas is not cleared before rendering. Useful for accumulating effects or multi-pass rendering.
 - `skipHistory?: boolean` - If `true`, history buffers are not updated. Useful when you want to render without affecting the history state.
 
-#### `pause()`, `rewind()`, `reset()`, `destroy()`
+#### `pause()`, `rewind()`, `clearHistory()`, `reset()`, `destroy()`
 
 ```typescript
 shader.pause(); // Pause the render loop and preserve playback time/frame.
 shader.rewind(); // Reset frame counter and clock.
+shader.clearHistory(); // Clear history buffers without rewinding.
 shader.reset(); // Rewind and clear output/history buffers.
 shader.destroy(); // Clean up resources.
 ```

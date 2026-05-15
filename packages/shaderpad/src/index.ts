@@ -1174,6 +1174,12 @@ class ShaderPad {
 		}
 	}
 
+	clearHistory() {
+		this.textures.forEach((texture, name) => {
+			this.resetHist(name, texture);
+		});
+	}
+
 	draw(options?: StepOptions | void) {
 		this.emit('preDraw', ...arguments);
 		const gl = this.gl;
@@ -1291,9 +1297,7 @@ class ShaderPad {
 
 	reset() {
 		this.rewind();
-		this.textures.forEach((texture, name) => {
-			this.resetHist(name, texture);
-		});
+		this.clearHistory();
 		this.clear();
 		this.emit('reset');
 	}

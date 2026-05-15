@@ -121,6 +121,7 @@ declare class ShaderPad {
     private updateTex;
     private bindIntermediate;
     clear(): void;
+    clearHistory(): void;
     draw(options?: StepOptions | void): void;
     step(options?: StepOptions): void;
     private tick;

@@ -847,6 +847,11 @@ var ShaderPad = class _ShaderPad {
       gl.clear(gl.COLOR_BUFFER_BIT);
     }
   }
+  clearHistory() {
+    this.textures.forEach((texture, name) => {
+      this.resetHist(name, texture);
+    });
+  }
   draw(options) {
     this.emit("preDraw", ...arguments);
     const gl = this.gl;
@@ -952,9 +957,7 @@ var ShaderPad = class _ShaderPad {
   }
   reset() {
     this.rewind();
-    this.textures.forEach((texture, name) => {
-      this.resetHist(name, texture);
-    });
+    this.clearHistory();
     this.clear();
     this.emit("reset");
   }
@@ -1009,4 +1012,4 @@ var index_default = ShaderPad;
 export {
   index_default
 };
-//# sourceMappingURL=chunk-D2ESNBZA.mjs.map
+//# sourceMappingURL=chunk-6L2ORY3D.mjs.map

@@ -12,6 +12,7 @@ nextjs:
 - `step(options?)`
 - `draw(options?)`
 - `clear()`
+- `clearHistory()`
 - `pause()`
 - `rewind()`
 - `reset()`
@@ -88,6 +89,14 @@ clear(): void
 
 `clear()` clears ShaderPad’s current render target immediately. Use it for advanced manual render flows; it does not advance time, frame, or history.
 
+### `clearHistory()`
+
+```typescript
+clearHistory(): void
+```
+
+`clearHistory()` clears all output and texture history buffers without clearing the current output or changing ShaderPad time/frame state. Use it when stale feedback, trails, or delayed texture frames should be discarded while playback continues from the same clock and frame.
+
 ### `pause()`
 
 ```typescript
@@ -110,7 +119,7 @@ rewind(): void
 reset(): void
 ```
 
-`reset()` rewinds ShaderPad time and frame state, clears the current output, and resets history buffers.
+`reset()` rewinds ShaderPad time and frame state, clears the current output, and resets history buffers. Use `clearHistory()` instead when you only need to discard history.
 
 ### `destroy()`
 

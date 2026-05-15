@@ -268,6 +268,10 @@ export class ShaderPadElement extends ShaderPadElementBase {
 		this.shaderInstance?.clear();
 	}
 
+	clearHistory() {
+		this.shaderInstance?.clearHistory();
+	}
+
 	rewind() {
 		this.shaderInstance?.rewind();
 	}

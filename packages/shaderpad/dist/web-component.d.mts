@@ -80,6 +80,7 @@ declare class ShaderPadElement extends ShaderPadElementBase {
     step(options?: StepOptions): void;
     draw(options?: StepOptions): void;
     clear(): void;
+    clearHistory(): void;
     rewind(): void;
     reset(): void;
     destroy(): void;
