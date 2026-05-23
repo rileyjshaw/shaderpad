@@ -11,6 +11,7 @@ import { MobileNavigation } from '@/components/MobileNavigation';
 import { Navigation } from '@/components/Navigation';
 import { Search } from '@/components/Search';
 import { ThemeSelector } from '@/components/ThemeSelector';
+import { sitePath } from '@/lib/site';
 
 const AI_GUIDE_PATH = '/docs/getting-started/ai-agent-guide';
 
@@ -90,9 +91,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 			<main className="flex flex-1 flex-col">
 				<nav aria-label="AI resources" className="sr-only">
 					<Link href="/docs/getting-started/ai-agent-guide">ShaderPad AI agent guide</Link>
-					<Link href="/llms.txt">ShaderPad llms.txt instructions</Link>
-					<Link href="/llms-full.txt">ShaderPad llms-full corpus</Link>
-					<Link href="/llms-index.json">ShaderPad llms index</Link>
+					<a href={sitePath('/llms.txt')}>ShaderPad llms.txt instructions</a>
+					<a href={sitePath('/llms-full.txt')}>ShaderPad llms-full corpus</a>
+					<a href={sitePath('/llms-index.json')}>ShaderPad llms index</a>
 					<Link href="/docs/getting-started/examples">ShaderPad interactive examples</Link>
 					<Link href="/examples/source">ShaderPad example source mirrors</Link>
 				</nav>
