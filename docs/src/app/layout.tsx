@@ -1,4 +1,4 @@
-import { type Metadata } from 'next';
+import { type Metadata, type Viewport } from 'next';
 import localFont from 'next/font/local';
 import Script from 'next/script';
 import clsx from 'clsx';
@@ -6,12 +6,15 @@ import clsx from 'clsx';
 import { Providers } from '@/app/providers';
 import { Layout } from '@/components/Layout';
 import { ThemeFavicon } from '@/components/ThemeFavicon';
-import { absoluteSiteUrl, siteOrigin } from '@/lib/site';
+import { absoluteSiteUrl, siteOrigin, sitePath } from '@/lib/site';
 
 import '@/styles/tailwind.css';
 import 'shaderpad/web-component.css';
 
 const googleTagId = 'G-KB68X7DK43';
+const siteName = 'ShaderPad Docs';
+const siteDescription =
+	'Documentation for ShaderPad, a lightweight WebGL2 library for fullscreen fragment shaders, textures, history buffers, and vision plugins.';
 
 const ufficio = localFont({
 	src: '../fonts/UfficioVF.woff2',
@@ -26,15 +29,26 @@ const ufficioDisplay = localFont({
 });
 
 export const metadata: Metadata = {
-	metadataBase: new URL(siteOrigin),
-	applicationName: 'ShaderPad Docs',
+	metadataBase: new URL(sitePath('/'), siteOrigin),
+	applicationName: siteName,
 	title: {
 		template: 'ShaderPad | %s',
 		default: 'ShaderPad | Get creative with shaders',
 	},
-	description:
-		'ShaderPad is a lightweight, dependency-free library that reduces boilerplate when working with fragment shaders.',
+	description: siteDescription,
 	keywords: ['ShaderPad', 'WebGL2', 'GLSL', 'fragment shaders', 'shader library', 'AI agent guide', 'LLM docs'],
+	authors: [{ name: 'Misery and Co.', url: siteOrigin }],
+	alternates: {
+		canonical: './',
+	},
+	creator: 'Misery and Co.',
+	publisher: 'Misery and Co.',
+	category: 'developer tools',
+	formatDetection: {
+		address: false,
+		email: false,
+		telephone: false,
+	},
 	robots: {
 		index: true,
 		follow: true,
@@ -44,17 +58,31 @@ export const metadata: Metadata = {
 		},
 	},
 	openGraph: {
-		title: 'ShaderPad Docs',
-		description:
-			'Documentation for ShaderPad, a lightweight WebGL2 library for fullscreen fragment shaders, textures, history buffers, and vision plugins.',
-		url: absoluteSiteUrl('/'),
-		siteName: 'ShaderPad Docs',
+		siteName,
+		locale: 'en_US',
+		url: './',
+		images: [
+			{
+				url: absoluteSiteUrl('/opengraph-image.png'),
+				alt: 'ShaderPad wordmark over abstract fragment shader artwork.',
+				type: 'image/png',
+				width: 1200,
+				height: 630,
+			},
+		],
 		type: 'website',
 	},
 	twitter: {
-		card: 'summary',
-		title: 'ShaderPad Docs',
-		description: 'Docs, examples, and AI-focused guidance for building with ShaderPad.',
+		card: 'summary_large_image',
+		images: [
+			{
+				url: absoluteSiteUrl('/twitter-image.png'),
+				alt: 'ShaderPad wordmark over abstract fragment shader artwork.',
+				type: 'image/png',
+				width: 1200,
+				height: 630,
+			},
+		],
 	},
 	icons: {
 		icon: [
@@ -69,7 +97,22 @@ export const metadata: Metadata = {
 				media: '(prefers-color-scheme: dark)',
 			},
 		],
+		apple: [
+			{
+				url: '/shaderpad/apple-icon.png',
+				type: 'image/png',
+				sizes: '180x180',
+			},
+		],
 	},
+};
+
+export const viewport: Viewport = {
+	colorScheme: 'light dark',
+	themeColor: [
+		{ media: '(prefers-color-scheme: light)', color: '#ffffff' },
+		{ media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+	],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
