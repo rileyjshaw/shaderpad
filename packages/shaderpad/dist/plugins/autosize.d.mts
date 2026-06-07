@@ -1,10 +1,12 @@
-import ShaderPad, { PluginContext } from '../index.mjs';
+import ShaderPad, { PluginContext } from "../index.mjs";
 
+//#region src/plugins/autosize.d.ts
 interface AutosizeOptions {
-    scale?: number;
-    target?: Element | Window;
-    throttle?: number;
+  scale?: number;
+  target?: Element | Window;
+  throttle?: number;
 }
 declare function autosize(options?: AutosizeOptions): (shaderPad: ShaderPad, context: PluginContext) => void;
-
-export { type AutosizeOptions, autosize as default };
+//#endregion
+export { AutosizeOptions, autosize as default };
+//# sourceMappingURL=autosize.d.mts.map

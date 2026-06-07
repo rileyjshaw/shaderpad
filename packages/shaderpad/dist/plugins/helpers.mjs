@@ -36,5 +36,5 @@ float historyZ(highp usampler2DArray tex, int frameOffset, int framesAgo) {
 float historyZ(highp isampler2DArray tex, int frameOffset, int framesAgo) {
 	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
 }
-`;function i(){return function(o,t){t.injectGLSL(e)}}var a=i;export{a as default};
+`;function t(){return function(t,n){n.injectGLSL(e)}}export{t as default};
 //# sourceMappingURL=helpers.mjs.map

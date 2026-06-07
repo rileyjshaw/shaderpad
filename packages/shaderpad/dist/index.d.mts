@@ -1,8 +1,9 @@
+//#region src/index.d.ts
 interface Uniform {
-    type: 'float' | 'int' | 'uint';
-    length: 1 | 2 | 3 | 4;
-    location: WebGLUniformLocation;
-    arrayLength?: number;
+  type: 'float' | 'int' | 'uint';
+  length: 1 | 2 | 3 | 4;
+  location: WebGLUniformLocation;
+  arrayLength?: number;
 }
 type GLInternalFormatChannels = 'R' | 'RG' | 'RGB' | 'RGBA';
 type GLInternalFormatDepth = '8' | '16F' | '32F' | '8UI' | '8I' | '16UI' | '16I' | '32UI' | '32I';
@@ -13,126 +14,133 @@ type GLFilterString = 'LINEAR' | 'NEAREST';
 type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
 type ColorSpace = PredefinedColorSpace;
 interface TextureOptions {
-    internalFormat?: GLInternalFormatString;
-    format?: GLFormatString;
-    type?: GLTypeString;
-    minFilter?: GLFilterString;
-    magFilter?: GLFilterString;
-    wrapS?: GLWrapString;
-    wrapT?: GLWrapString;
-    colorSpace?: ColorSpace;
-    preserveY?: boolean;
+  internalFormat?: GLInternalFormatString;
+  format?: GLFormatString;
+  type?: GLTypeString;
+  minFilter?: GLFilterString;
+  magFilter?: GLFilterString;
+  wrapS?: GLWrapString;
+  wrapT?: GLWrapString;
+  colorSpace?: ColorSpace;
+  preserveY?: boolean;
 }
 interface CustomTexture {
-    data: ArrayBufferView | null;
-    width: number;
-    height: number;
+  data: ArrayBufferView | null;
+  width: number;
+  height: number;
 }
 interface PartialCustomTexture extends CustomTexture {
-    isPartial?: boolean;
-    x?: number;
-    y?: number;
+  isPartial?: boolean;
+  x?: number;
+  y?: number;
 }
 interface InitializeTextureOptions extends TextureOptions {
-    history?: number;
+  history?: number;
 }
 type TextureSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | ImageBitmap | WebGLTexture | CustomTexture | ShaderPad;
 type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 interface PluginContext {
-    injectGLSL: (code: string) => void;
-    emit: (name: ShaderPadEventName, ...args: any[]) => void;
-    updateTexture: (name: string, source: UpdateTextureSource, historySlots?: HistorySlots) => void;
+  injectGLSL: (code: string) => void;
+  emit: (name: ShaderPadEventName, ...args: any[]) => void;
+  updateTexture: (name: string, source: UpdateTextureSource, historySlots?: HistorySlots) => void;
 }
 type Plugin = (shaderPad: ShaderPad, context: PluginContext) => void;
 type ShaderPadEventName = '_init' | 'initializeTexture' | 'initializeUniform' | 'updateTextures' | 'updateUniforms' | 'preStep' | 'postStep' | 'preDraw' | 'postDraw' | 'updateResolution' | 'play' | 'pause' | 'reset' | 'destroy' | `${string}:${string}`;
 type RenderTextureOptions = Omit<TextureOptions, 'preserveY'>;
 interface Options extends RenderTextureOptions {
-    canvas?: HTMLCanvasElement | OffscreenCanvas | {
-        width: number;
-        height: number;
-    } | null;
-    plugins?: Plugin[];
-    history?: number;
-    cursorTarget?: Window | Element;
+  canvas?: HTMLCanvasElement | OffscreenCanvas | {
+    width: number;
+    height: number;
+  } | null;
+  plugins?: Plugin[];
+  history?: number;
+  cursorTarget?: Window | Element;
 }
 interface StepOptions {
-    skipClear?: boolean;
-    skipHistory?: boolean;
+  skipClear?: boolean;
+  skipHistory?: boolean;
 }
 type HistorySlots = number | number[];
 declare class ShaderPad {
-    private isHeadless;
-    private isTouch;
-    readonly gl: WebGL2RenderingContext;
-    private typeArrays;
-    private typeFormats;
-    private uintTypes;
-    private uniforms;
-    private textures;
-    private texPool;
-    private buffer;
-    private vao;
-    private program;
-    private frameId;
-    private listeners;
-    private frame;
-    private tElapsed;
-    private tStart;
-    private cursorPos;
-    private clickPos;
-    private isClicked;
-    canvas: HTMLCanvasElement | OffscreenCanvas;
-    private resObserver;
-    private hooks;
-    private historyDepth;
-    private texOptions;
-    private cursorTgt;
-    private intermediateFbo;
-    constructor(fragmentShaderSrc: string, { canvas, plugins, history, cursorTarget, ...texOptions }?: Options);
-    private resolveGLConst;
-    private emit;
-    on(name: ShaderPadEventName, fn: Function): void;
-    off(name: ShaderPadEventName, fn: Function): void;
-    private createShader;
-    private getCursorTgtRect;
-    private addListeners;
-    private syncRes;
-    private resizeTex;
-    private reserveTex;
-    private resolveTexOpts;
-    private getPxArray;
-    private isRgba;
-    private clearHistTexLayers;
-    private updateFrameOffset;
-    private resetHist;
-    initializeUniform(name: string, type: Uniform['type'], value: number | number[] | (number | number[])[], options?: {
-        arrayLength?: number;
-        allowMissing?: boolean;
-    }): void;
-    private _updateUniforms;
-    updateUniforms(updates: Record<string, number | number[] | (number | number[])[]>, options?: {
-        startIndex?: number;
-        allowMissing?: boolean;
-    }): void;
-    private createTex;
-    private initTex;
-    initializeTexture(name: string, source: TextureSource, options?: InitializeTextureOptions): void;
-    updateTextures(updates: Record<string, UpdateTextureSource>): void;
-    private updateTex;
-    private bindIntermediate;
-    clear(): void;
-    clearHistory(): void;
-    draw(options?: StepOptions | void): void;
-    step(options?: StepOptions): void;
-    private tick;
-    private _step;
-    play(onPreStep?: (time: number, frame: number) => StepOptions | void): void;
-    private getElapsed;
-    private _pause;
-    pause(): void;
-    rewind(): void;
-    reset(): void;
-    destroy(): void;
+  private isHeadless;
+  private isTouch;
+  readonly gl: WebGL2RenderingContext;
+  private typeArrays;
+  private typeFormats;
+  private uintTypes;
+  private uniforms;
+  private textures;
+  private texPool;
+  private buffer;
+  private vao;
+  private program;
+  private frameId;
+  private listeners;
+  private frame;
+  private tElapsed;
+  private tStart;
+  private cursorPos;
+  private clickPos;
+  private isClicked;
+  canvas: HTMLCanvasElement | OffscreenCanvas;
+  private resObserver;
+  private hooks;
+  private historyDepth;
+  private texOptions;
+  private cursorTgt;
+  private intermediateFbo;
+  constructor(fragmentShaderSrc: string, {
+    canvas,
+    plugins,
+    history,
+    cursorTarget,
+    ...texOptions
+  }?: Options);
+  private resolveGLConst;
+  private emit;
+  on(name: ShaderPadEventName, fn: Function): void;
+  off(name: ShaderPadEventName, fn: Function): void;
+  private createShader;
+  private getCursorTgtRect;
+  private addListeners;
+  private syncRes;
+  private resizeTex;
+  private reserveTex;
+  private resolveTexOpts;
+  private getPxArray;
+  private isRgba;
+  private clearHistTexLayers;
+  private updateFrameOffset;
+  private resetHist;
+  initializeUniform(name: string, type: Uniform['type'], value: number | number[] | (number | number[])[], options?: {
+    arrayLength?: number;
+    allowMissing?: boolean;
+  }): void;
+  private _updateUniforms;
+  updateUniforms(updates: Record<string, number | number[] | (number | number[])[]>, options?: {
+    startIndex?: number;
+    allowMissing?: boolean;
+  }): void;
+  private createTex;
+  private initTex;
+  initializeTexture(name: string, source: TextureSource, options?: InitializeTextureOptions): void;
+  updateTextures(updates: Record<string, UpdateTextureSource>): void;
+  private updateTex;
+  private bindIntermediate;
+  clear(): void;
+  clearHistory(): void;
+  draw(options?: StepOptions | void): void;
+  step(options?: StepOptions): void;
+  private tick;
+  private _step;
+  play(onPreStep?: (time: number, frame: number) => StepOptions | void): void;
+  private getElapsed;
+  private _pause;
+  pause(): void;
+  rewind(): void;
+  reset(): void;
+  destroy(): void;
 }
-
-export { type ColorSpace, type CustomTexture, type GLFilterString, type GLFormatString, type GLInternalFormatString, type GLTypeString, type GLWrapString, type InitializeTextureOptions, type Options, type PartialCustomTexture, type Plugin, type PluginContext, type RenderTextureOptions, type ShaderPadEventName, type StepOptions, type TextureOptions, type TextureSource, type UpdateTextureSource, ShaderPad as default };
+//#endregion
+export { ColorSpace, CustomTexture, GLFilterString, GLFormatString, GLInternalFormatString, GLTypeString, GLWrapString, InitializeTextureOptions, Options, PartialCustomTexture, Plugin, PluginContext, RenderTextureOptions, ShaderPadEventName, StepOptions, TextureOptions, TextureSource, UpdateTextureSource, ShaderPad as default };
+//# sourceMappingURL=index.d.mts.map

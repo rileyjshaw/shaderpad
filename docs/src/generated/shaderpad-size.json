@@ -1,87 +1,87 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-06-07T15:13:04.995Z",
+	"generatedAt": "2026-06-07T15:21:16.563Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
-			"minifiedBytes": 17972,
-			"minified": "17.6 kB",
-			"gzippedBytes": 6037,
+			"minifiedBytes": 17871,
+			"minified": "17.5 kB",
+			"gzippedBytes": 6008,
 			"gzipped": "5.9 kB",
 			"gzippedLabel": "5.9 kB gzipped"
 		},
 		"./plugins/autosize": {
 			"specifier": "shaderpad/plugins/autosize",
-			"minifiedBytes": 964,
+			"minifiedBytes": 948,
 			"minified": "0.9 kB",
-			"gzippedBytes": 557,
+			"gzippedBytes": 546,
 			"gzipped": "0.5 kB",
 			"gzippedLabel": "0.5 kB gzipped"
 		},
 		"./plugins/face": {
 			"specifier": "shaderpad/plugins/face",
-			"minifiedBytes": 15239,
-			"minified": "14.9 kB",
-			"gzippedBytes": 5939,
-			"gzipped": "5.8 kB",
-			"gzippedLabel": "5.8 kB gzipped"
+			"minifiedBytes": 15066,
+			"minified": "14.7 kB",
+			"gzippedBytes": 5857,
+			"gzipped": "5.7 kB",
+			"gzippedLabel": "5.7 kB gzipped"
 		},
 		"./plugins/hands": {
 			"specifier": "shaderpad/plugins/hands",
-			"minifiedBytes": 6097,
-			"minified": "6.0 kB",
-			"gzippedBytes": 2639,
+			"minifiedBytes": 6057,
+			"minified": "5.9 kB",
+			"gzippedBytes": 2613,
 			"gzipped": "2.6 kB",
 			"gzippedLabel": "2.6 kB gzipped"
 		},
 		"./plugins/helpers": {
 			"specifier": "shaderpad/plugins/helpers",
-			"minifiedBytes": 1783,
+			"minifiedBytes": 1775,
 			"minified": "1.7 kB",
-			"gzippedBytes": 513,
+			"gzippedBytes": 508,
 			"gzipped": "0.5 kB",
 			"gzippedLabel": "0.5 kB gzipped"
 		},
 		"./plugins/pose": {
 			"specifier": "shaderpad/plugins/pose",
-			"minifiedBytes": 27438,
-			"minified": "26.8 kB",
-			"gzippedBytes": 9408,
-			"gzipped": "9.2 kB",
-			"gzippedLabel": "9.2 kB gzipped"
+			"minifiedBytes": 27286,
+			"minified": "26.6 kB",
+			"gzippedBytes": 9342,
+			"gzipped": "9.1 kB",
+			"gzippedLabel": "9.1 kB gzipped"
 		},
 		"./plugins/segmenter": {
 			"specifier": "shaderpad/plugins/segmenter",
-			"minifiedBytes": 23684,
-			"minified": "23.1 kB",
-			"gzippedBytes": 8184,
+			"minifiedBytes": 23543,
+			"minified": "23.0 kB",
+			"gzippedBytes": 8143,
 			"gzipped": "8.0 kB",
 			"gzippedLabel": "8.0 kB gzipped"
 		},
 		"./react": {
 			"specifier": "shaderpad/react",
-			"minifiedBytes": 27327,
-			"minified": "26.7 kB",
-			"gzippedBytes": 9434,
+			"minifiedBytes": 27158,
+			"minified": "26.5 kB",
+			"gzippedBytes": 9370,
 			"gzipped": "9.2 kB",
 			"gzippedLabel": "9.2 kB gzipped"
 		},
 		"./util": {
 			"specifier": "shaderpad/util",
-			"minifiedBytes": 1178,
-			"minified": "1.2 kB",
-			"gzippedBytes": 706,
+			"minifiedBytes": 1174,
+			"minified": "1.1 kB",
+			"gzippedBytes": 704,
 			"gzipped": "0.7 kB",
 			"gzippedLabel": "0.7 kB gzipped"
 		},
 		"./web-component": {
 			"specifier": "shaderpad/web-component",
-			"minifiedBytes": 31095,
-			"minified": "30.4 kB",
-			"gzippedBytes": 10105,
-			"gzipped": "9.9 kB",
-			"gzippedLabel": "9.9 kB gzipped"
+			"minifiedBytes": 30910,
+			"minified": "30.2 kB",
+			"gzippedBytes": 10026,
+			"gzipped": "9.8 kB",
+			"gzippedLabel": "9.8 kB gzipped"
 		}
 	}
 }

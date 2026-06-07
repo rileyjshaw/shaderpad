@@ -1,7 +1,6 @@
 import { readFileSync } from 'fs';
-import { dirname, join, resolve } from 'path';
-import type { Plugin as EsbuildPlugin } from 'esbuild';
-import { defineConfig } from 'tsup';
+import { dirname, resolve } from 'path';
+import { defineConfig } from 'tsdown';
 
 const glslIncludePattern = /^[ \t]*#include\s+["']([^"']+)["'];?\s*$/gm;
 
@@ -17,28 +16,28 @@ function inlineGLSLImports(source: string, filePath: string, stack = [filePath])
 	});
 }
 
-const glslIncludePlugin: EsbuildPlugin = {
-	name: 'shaderpad-glsl-includes',
-	setup(build) {
-		build.onLoad({ filter: /\.glsl$/ }, args => ({
-			contents: inlineGLSLImports(readFileSync(args.path, 'utf-8'), args.path),
-			loader: 'text',
-		}));
-	},
-};
+function glslIncludePlugin() {
+	return {
+		name: 'shaderpad-glsl-includes',
+		load(id: string) {
+			if (!id.endsWith('.glsl')) return null;
+
+			const source = inlineGLSLImports(readFileSync(id, 'utf-8'), id);
+			return {
+				code: `export default ${JSON.stringify(source)};`,
+			};
+		},
+	};
+}
 
 const sharedConfig = {
 	entry,
 	format: ['esm', 'cjs'] as const,
 	target: 'esnext',
 	sourcemap: true,
-	esbuildPlugins: [glslIncludePlugin],
-	esbuildOptions(options) {
-		options.loader = {
-			...options.loader,
-			'.glsl': 'text',
-		};
-	},
+	cjsDefault: false,
+	fixedExtension: false,
+	plugins: [glslIncludePlugin()],
 };
 
 export default defineConfig([
@@ -46,10 +45,9 @@ export default defineConfig([
 		...sharedConfig,
 		clean: true,
 		dts: {
-			// tsup 8 injects `baseUrl: "."` into the dts bundler, which TS 6 flags as deprecated.
+			cjsDefault: false,
 			compilerOptions: {
 				moduleResolution: 'Bundler',
-				ignoreDeprecations: '6.0',
 			},
 		},
 		minify: true,

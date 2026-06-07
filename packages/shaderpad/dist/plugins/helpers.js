@@ -1,4 +1,4 @@
-"use strict";var o=Object.defineProperty;var a=Object.getOwnPropertyDescriptor;var n=Object.getOwnPropertyNames;var c=Object.prototype.hasOwnProperty;var f=(t,e)=>{for(var i in e)o(t,i,{get:e[i],enumerable:!0})},x=(t,e,i,u)=>{if(e&&typeof e=="object"||typeof e=="function")for(let r of n(e))!c.call(t,r)&&r!==i&&o(t,r,{get:()=>e[r],enumerable:!(u=a(e,r))||u.enumerable});return t};var v=t=>x(o({},"__esModule",{value:!0}),t);var h={};f(h,{default:()=>m});module.exports=v(h);var s=`uniform vec2 u_resolution;
+Object.defineProperties(exports,{__esModule:{value:!0},[Symbol.toStringTag]:{value:`Module`}});var e=`uniform vec2 u_resolution;
 
 // Apply aspect ratio correction (object-fit: contain)
 vec2 fitContain(vec2 uv, vec2 textureSize) {
@@ -36,5 +36,5 @@ float historyZ(highp usampler2DArray tex, int frameOffset, int framesAgo) {
 float historyZ(highp isampler2DArray tex, int frameOffset, int framesAgo) {
 	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
 }
-`;function y(){return function(t,e){e.injectGLSL(s)}}var m=y;
+`;function t(){return function(t,n){n.injectGLSL(e)}}exports.default=t;
 //# sourceMappingURL=helpers.js.map

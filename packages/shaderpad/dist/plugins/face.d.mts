@@ -1,20 +1,22 @@
-import ShaderPad, { PluginContext } from '../index.mjs';
+import ShaderPad, { PluginContext } from "../index.mjs";
 
+//#region src/plugins/face.d.ts
 interface FacePluginOptions {
-    modelPath?: string;
-    maxFaces?: number;
-    minFaceDetectionConfidence?: number;
-    minFacePresenceConfidence?: number;
-    minTrackingConfidence?: number;
-    outputFaceBlendshapes?: boolean;
-    outputFacialTransformationMatrixes?: boolean;
-    history?: number;
+  modelPath?: string;
+  maxFaces?: number;
+  minFaceDetectionConfidence?: number;
+  minFacePresenceConfidence?: number;
+  minTrackingConfidence?: number;
+  outputFaceBlendshapes?: boolean;
+  outputFacialTransformationMatrixes?: boolean;
+  history?: number;
 }
 interface FacePluginConfig {
-    textureName: string;
-    wasmBaseUrl?: string;
-    options?: FacePluginOptions;
+  textureName: string;
+  wasmBaseUrl?: string;
+  options?: FacePluginOptions;
 }
 declare function face(config: FacePluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;
-
-export { type FacePluginConfig, type FacePluginOptions, face as default };
+//#endregion
+export { FacePluginConfig, FacePluginOptions, face as default };
+//# sourceMappingURL=face.d.mts.map

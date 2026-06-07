@@ -1,9 +1,10 @@
-import { TextureSource } from '../index.js';
+import { TextureSource } from "../index.js";
 
+//#region src/plugins/mediapipe-common.d.ts
 declare const dummyTexture: {
-    data: Uint8Array<ArrayBuffer>;
-    width: number;
-    height: number;
+  data: Uint8Array<ArrayBuffer>;
+  width: number;
+  height: number;
 };
 type MediaPipeSource = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas;
 declare function isMediaPipeSource(source: TextureSource): source is MediaPipeSource;
@@ -13,8 +14,9 @@ declare function calculateBoundingBoxCenter(data: Float32Array, entityIdx: numbe
 declare const DEFAULT_WASM_BASE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
 declare function getSharedFileset(wasmBaseUrl?: string): Promise<any>;
 declare function generateGLSLFn(history: number | undefined): {
-    historyParams: string;
-    fn: (returnType: string, name: string, args: string, body: string) => string;
+  historyParams: string;
+  fn: (returnType: string, name: string, args: string, body: string) => string;
 };
-
-export { DEFAULT_WASM_BASE_URL, type MediaPipeSource, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource };
+//#endregion
+export { DEFAULT_WASM_BASE_URL, MediaPipeSource, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource };
+//# sourceMappingURL=mediapipe-common.d.ts.map

@@ -1,18 +1,20 @@
-import ShaderPad, { PluginContext } from '../index.js';
+import ShaderPad, { PluginContext } from "../index.js";
 
+//#region src/plugins/pose.d.ts
 interface PosePluginOptions {
-    modelPath?: string;
-    maxPoses?: number;
-    minPoseDetectionConfidence?: number;
-    minPosePresenceConfidence?: number;
-    minTrackingConfidence?: number;
-    history?: number;
+  modelPath?: string;
+  maxPoses?: number;
+  minPoseDetectionConfidence?: number;
+  minPosePresenceConfidence?: number;
+  minTrackingConfidence?: number;
+  history?: number;
 }
 interface PosePluginConfig {
-    textureName: string;
-    wasmBaseUrl?: string;
-    options?: PosePluginOptions;
+  textureName: string;
+  wasmBaseUrl?: string;
+  options?: PosePluginOptions;
 }
 declare function pose(config: PosePluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;
-
-export { type PosePluginConfig, type PosePluginOptions, pose as default };
+//#endregion
+export { PosePluginConfig, PosePluginOptions, pose as default };
+//# sourceMappingURL=pose.d.ts.map

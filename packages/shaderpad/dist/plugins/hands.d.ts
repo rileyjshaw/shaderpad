@@ -1,18 +1,20 @@
-import ShaderPad, { PluginContext } from '../index.js';
+import ShaderPad, { PluginContext } from "../index.js";
 
+//#region src/plugins/hands.d.ts
 interface HandsPluginOptions {
-    modelPath?: string;
-    maxHands?: number;
-    minHandDetectionConfidence?: number;
-    minHandPresenceConfidence?: number;
-    minTrackingConfidence?: number;
-    history?: number;
+  modelPath?: string;
+  maxHands?: number;
+  minHandDetectionConfidence?: number;
+  minHandPresenceConfidence?: number;
+  minTrackingConfidence?: number;
+  history?: number;
 }
 interface HandsPluginConfig {
-    textureName: string;
-    wasmBaseUrl?: string;
-    options?: HandsPluginOptions;
+  textureName: string;
+  wasmBaseUrl?: string;
+  options?: HandsPluginOptions;
 }
 declare function hands(config: HandsPluginConfig): (shaderPad: ShaderPad, context: PluginContext) => void;
-
-export { type HandsPluginConfig, type HandsPluginOptions, hands as default };
+//#endregion
+export { HandsPluginConfig, HandsPluginOptions, hands as default };
+//# sourceMappingURL=hands.d.ts.map

@@ -157,7 +157,7 @@
 	],
 	"scripts": {
 		"prebuild": "node ../../scripts/generate-error-code-artifacts.mjs",
-		"build": "tsup",
+		"build": "tsdown",
 		"postbuild": "node ./scripts/copy-helper-glsl.mjs"
 	},
 	"peerDependencies": {
