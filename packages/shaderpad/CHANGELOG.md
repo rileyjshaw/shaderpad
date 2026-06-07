@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.86
+
+### Patch Changes
+
+- MediaPipe lifecycle: fix plugin writes after destroy
+
 ## 1.0.0-beta.85
 
 ### Minor Changes
