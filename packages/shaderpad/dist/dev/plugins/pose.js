@@ -1466,7 +1466,7 @@ function pose(config) {
     let historySlot = -1;
     let pendingBackfillSlots = [];
     function writeTextures(historySlots) {
-      if (!detector) return;
+      if (destroyed || !detector) return;
       const { nPoses } = detector.state;
       const nSlots = nPoses * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
       const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
@@ -1485,6 +1485,7 @@ function pose(config) {
       shaderPad.updateUniforms({ u_nPoses: nPoses }, { allowMissing: true });
     }
     function onResult() {
+      if (destroyed || !detector) return;
       if (history) {
         writeTextures(pendingBackfillSlots.length > 0 ? pendingBackfillSlots : historySlot);
         pendingBackfillSlots = [];
@@ -1492,6 +1493,17 @@ function pose(config) {
         writeTextures(historySlot);
       }
       emit("pose:result", detector.state.result);
+    }
+    function notifySubscribers() {
+      if (destroyed || !detector) return;
+      const subscribers = detector.subscribers;
+      for (const [cb, needsResult] of subscribers) {
+        if (needsResult) {
+          cb();
+          if (destroyed) return;
+          if (subscribers.has(cb)) subscribers.set(cb, false);
+        }
+      }
     }
     async function initializeDetector() {
       detector = await getOrCreateSharedResource(
@@ -1582,7 +1594,7 @@ function pose(config) {
       });
     });
     function requestPoses(source) {
-      if (!detector) return;
+      if (destroyed || !detector) return;
       if (history) {
         historySlot = (historySlot + 1) % (history + 1);
         writeTextures(historySlot);
@@ -1605,16 +1617,17 @@ function pose(config) {
     async function detectPoses(source) {
       const now = performance.now();
       await initPromise;
-      if (!detector) return;
+      if (destroyed || !detector) return;
       const callOrder = ++detector.state.nCalls;
       detector.state.pending = detector.state.pending.then(async () => {
-        if (!detector || callOrder !== detector.state.nCalls) return;
+        if (destroyed || !detector || callOrder !== detector.state.nCalls) return;
         const requiredMode = source instanceof HTMLVideoElement ? "VIDEO" : "IMAGE";
         if (detector.state.runningMode !== requiredMode) {
           detector.state.runningMode = requiredMode;
           await detector.landmarker.setOptions({
             runningMode: requiredMode
           });
+          if (destroyed || !detector || callOrder !== detector.state.nCalls) return;
         }
         let shouldDetect = false;
         if (source !== detector.state.source) {
@@ -1645,20 +1658,10 @@ function pose(config) {
             detector.state.result = result;
             updateLandmarksData(detector, result.landmarks);
             updateMask(detector, result.segmentationMasks);
-            for (const [cb, needsResult] of detector.subscribers.entries()) {
-              if (needsResult) {
-                cb();
-                detector.subscribers.set(cb, false);
-              }
-            }
+            notifySubscribers();
           }
         } else if (detector.state.result) {
-          for (const [cb, needsResult] of detector.subscribers.entries()) {
-            if (needsResult) {
-              cb();
-              detector.subscribers.set(cb, false);
-            }
-          }
+          notifySubscribers();
         }
       });
       await detector.state.pending;

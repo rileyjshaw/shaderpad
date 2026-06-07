@@ -235,6 +235,12 @@ export class FakeWebGL2RenderingContext {
 	readonly TEXTURE_MAG_FILTER = 49;
 	readonly COLOR = 50;
 	readonly R8 = 51;
+	readonly FRAMEBUFFER_COMPLETE = 52;
+	readonly DYNAMIC_DRAW = 53;
+	readonly BLEND = 54;
+	readonly MAX = 55;
+	readonly ONE = 56;
+	readonly FUNC_ADD = 57;
 
 	getParameter(param: number) {
 		if (param === this.MAX_COMBINED_TEXTURE_IMAGE_UNITS) return 32;
@@ -287,6 +293,10 @@ export class FakeWebGL2RenderingContext {
 		return '';
 	}
 
+	getAttribLocation(_program: unknown, _name: string) {
+		return 0;
+	}
+
 	createVertexArray() {
 		return { id: nextId++ };
 	}
@@ -306,6 +316,8 @@ export class FakeWebGL2RenderingContext {
 	bufferData(_target: number, _data: unknown, _usage: number) {}
 
 	enableVertexAttribArray(_index: number) {}
+
+	enable(_capability: number) {}
 
 	vertexAttribPointer(
 		_index: number,
@@ -571,6 +583,16 @@ export class FakeWebGL2RenderingContext {
 
 	framebufferTexture2D(_target: number, _attachment: number, _textarget: number, _texture: unknown, _level: number) {}
 
+	checkFramebufferStatus(_target: number) {
+		return this.FRAMEBUFFER_COMPLETE;
+	}
+
+	colorMask(_red: boolean, _green: boolean, _blue: boolean, _alpha: boolean) {}
+
+	blendEquation(_mode: number) {}
+
+	blendFunc(_sfactor: number, _dfactor: number) {}
+
 	blitFramebuffer(
 		_srcX0: number,
 		_srcY0: number,
@@ -617,6 +639,8 @@ export class FakeWebGL2RenderingContext {
 	clearBufferiv(_buffer: number, _drawbuffer: number, _values: Int32Array) {
 		this.log({ kind: 'clearBufferiv' });
 	}
+
+	clearColor(_red: number, _green: number, _blue: number, _alpha: number) {}
 
 	clear(_mask: number) {
 		this.log({ kind: 'clear' });

@@ -1,17 +1,27 @@
 export const __mediapipeMockState = {
 	createDelayMs: 0,
+	setOptionsDelayMs: 0,
 	createCalls: 0,
+	setOptionsCalls: 0,
 	detectCalls: [] as Array<{ mode: 'video' | 'image'; time: number }>,
 	filesetCalls: 0,
 	sequence: [] as Array<{ x: number; y: number }>,
 	reset() {
 		__mediapipeMockState.createDelayMs = 0;
+		__mediapipeMockState.setOptionsDelayMs = 0;
 		__mediapipeMockState.createCalls = 0;
+		__mediapipeMockState.setOptionsCalls = 0;
 		__mediapipeMockState.detectCalls = [];
 		__mediapipeMockState.filesetCalls = 0;
 		__mediapipeMockState.sequence = [];
 	},
 };
+
+async function maybeDelay(ms: number) {
+	if (ms > 0) {
+		await new Promise(resolve => setTimeout(resolve, ms));
+	}
+}
 
 function getFrameIndexFromTime(time: number) {
 	return Math.max(0, Math.round(time * 30));
@@ -50,6 +60,27 @@ function createHandResult(time: number) {
 	};
 }
 
+function createFaceResult(time: number) {
+	const point = getPointForTime(time);
+	return {
+		faceLandmarks: [
+			Array.from({ length: 478 }, (_, index) => ({
+				x: index === 4 ? point.x : 0.5,
+				y: index === 4 ? point.y : 0.5,
+				z: time,
+				visibility: 1,
+			})),
+		],
+	};
+}
+
+function connectionRange(length: number, offset = 0) {
+	return Array.from({ length }, (_, index) => ({
+		start: (offset + index) % 478,
+		end: (offset + index + 1) % 478,
+	}));
+}
+
 export const FilesetResolver = {
 	async forVisionTasks() {
 		__mediapipeMockState.filesetCalls += 1;
@@ -60,11 +91,12 @@ export const FilesetResolver = {
 export class HandLandmarker {
 	static async createFromOptions(_fileset: unknown, _options: unknown) {
 		__mediapipeMockState.createCalls += 1;
-		if (__mediapipeMockState.createDelayMs > 0) {
-			await new Promise(resolve => setTimeout(resolve, __mediapipeMockState.createDelayMs));
-		}
+		await maybeDelay(__mediapipeMockState.createDelayMs);
 		return {
-			async setOptions() {},
+			async setOptions() {
+				__mediapipeMockState.setOptionsCalls += 1;
+				await maybeDelay(__mediapipeMockState.setOptionsDelayMs);
+			},
 			detectForVideo(source: { currentTime: number }, _now: number) {
 				__mediapipeMockState.detectCalls.push({ mode: 'video', time: source.currentTime });
 				return createHandResult(source.currentTime);
@@ -72,6 +104,36 @@ export class HandLandmarker {
 			detect(source: { width: number }) {
 				__mediapipeMockState.detectCalls.push({ mode: 'image', time: source.width });
 				return createHandResult(source.width);
+			},
+			close() {},
+		};
+	}
+}
+
+export class FaceLandmarker {
+	static FACE_LANDMARKS_TESSELATION = connectionRange(12, 0);
+	static FACE_LANDMARKS_LEFT_EYEBROW = connectionRange(8, 20);
+	static FACE_LANDMARKS_RIGHT_EYEBROW = connectionRange(8, 40);
+	static FACE_LANDMARKS_LEFT_EYE = connectionRange(16, 60);
+	static FACE_LANDMARKS_RIGHT_EYE = connectionRange(16, 90);
+	static FACE_LANDMARKS_LIPS = connectionRange(40, 120);
+	static FACE_LANDMARKS_FACE_OVAL = connectionRange(12, 180);
+
+	static async createFromOptions(_fileset: unknown, _options: unknown) {
+		__mediapipeMockState.createCalls += 1;
+		await maybeDelay(__mediapipeMockState.createDelayMs);
+		return {
+			async setOptions() {
+				__mediapipeMockState.setOptionsCalls += 1;
+				await maybeDelay(__mediapipeMockState.setOptionsDelayMs);
+			},
+			detectForVideo(source: { currentTime: number }, _now: number) {
+				__mediapipeMockState.detectCalls.push({ mode: 'video', time: source.currentTime });
+				return createFaceResult(source.currentTime);
+			},
+			detect(source: { width: number }) {
+				__mediapipeMockState.detectCalls.push({ mode: 'image', time: source.width });
+				return createFaceResult(source.width);
 			},
 			close() {},
 		};

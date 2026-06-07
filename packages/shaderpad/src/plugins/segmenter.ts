@@ -125,18 +125,31 @@ function segmenter(config: SegmenterPluginConfig) {
 		let pendingBackfillSlots: number[] = [];
 
 		function writeTextures(historySlots: number | number[]) {
-			if (!detector) return;
+			if (destroyed || !detector) return;
 			updateTexture('u_segmentMask', detector.mask.shader, history ? historySlots : undefined);
 		}
 
 		function onResult() {
+			if (destroyed || !detector) return;
 			if (history) {
 				writeTextures(pendingBackfillSlots.length > 0 ? pendingBackfillSlots : historySlot);
 				pendingBackfillSlots = [];
 			} else {
 				writeTextures(historySlot);
 			}
-			emit('segmenter:result', detector!.state.result);
+			emit('segmenter:result', detector.state.result);
+		}
+
+		function notifySubscribers() {
+			if (destroyed || !detector) return;
+			const subscribers = detector.subscribers;
+			for (const [cb, needsResult] of subscribers) {
+				if (needsResult) {
+					cb();
+					if (destroyed) return;
+					if (subscribers.has(cb)) subscribers.set(cb, false);
+				}
+			}
 		}
 
 		async function initializeDetector() {
@@ -228,7 +241,7 @@ function segmenter(config: SegmenterPluginConfig) {
 		});
 
 		function requestSegments(source: MediaPipeSource) {
-			if (!detector) return;
+			if (destroyed || !detector) return;
 			if (history) {
 				historySlot = (historySlot + 1) % (history + 1);
 				writeTextures(historySlot);
@@ -254,11 +267,11 @@ function segmenter(config: SegmenterPluginConfig) {
 		async function detectSegments(source: MediaPipeSource) {
 			const now = performance.now();
 			await initPromise;
-			if (!detector) return;
+			if (destroyed || !detector) return;
 			const callOrder = ++detector.state.nCalls;
 
 			detector.state.pending = detector.state.pending.then(async () => {
-				if (!detector || callOrder !== detector.state.nCalls) return;
+				if (destroyed || !detector || callOrder !== detector.state.nCalls) return;
 
 				const requiredMode = source instanceof HTMLVideoElement ? 'VIDEO' : 'IMAGE';
 				if (detector.state.runningMode !== requiredMode) {
@@ -266,6 +279,7 @@ function segmenter(config: SegmenterPluginConfig) {
 					await detector.segmenter.setOptions({
 						runningMode: requiredMode,
 					});
+					if (destroyed || !detector || callOrder !== detector.state.nCalls) return;
 				}
 
 				let shouldDetect = false;
@@ -301,20 +315,10 @@ function segmenter(config: SegmenterPluginConfig) {
 						if (result.categoryMask) {
 							updateMask(detector, result.categoryMask, result.confidenceMasks);
 						}
-						for (const [cb, needsResult] of detector.subscribers.entries()) {
-							if (needsResult) {
-								cb();
-								detector.subscribers.set(cb, false);
-							}
-						}
+						notifySubscribers();
 					}
 				} else if (detector.state.result) {
-					for (const [cb, needsResult] of detector.subscribers.entries()) {
-						if (needsResult) {
-							cb();
-							detector.subscribers.set(cb, false);
-						}
-					}
+					notifySubscribers();
 				}
 			});
 
