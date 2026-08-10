@@ -20,11 +20,5 @@ void main() {
 	vec3 segmentColor = palette(segment.y);
 	color = mix(color, segmentColor, isForeground * 0.45);
 
-	float edge = 0.0;
-	vec2 pixel = vec2(1.0) / vec2(textureSize(u_webcam, 0));
-	edge += abs(confidence - segmentAt(webcamUV + vec2(pixel.x, 0.0)).x);
-	edge += abs(confidence - segmentAt(webcamUV + vec2(0.0, pixel.y)).x);
-	color = mix(color, vec3(1.0), smoothstep(0.1, 0.3, edge) * 0.55);
-
 	outColor = vec4(color, 1.0);
 }
