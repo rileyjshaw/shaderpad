@@ -158,7 +158,7 @@
 	"scripts": {
 		"prebuild": "node ../../scripts/generate-error-code-artifacts.mjs",
 		"build": "tsdown",
-		"postbuild": "node ./scripts/copy-helper-glsl.mjs"
+		"postbuild": "node ./scripts/copy-helper-glsl.mjs && node ../../docs/scripts/generate-shaderpad-size.mjs"
 	},
 	"peerDependencies": {
 		"@mediapipe/tasks-vision": "*",

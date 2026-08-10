@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"packageName": "shaderpad",
-	"generatedAt": "2026-08-10T21:05:12.201Z",
+	"generatedAt": "2026-08-10T21:32:55.985Z",
 	"exports": {
 		".": {
 			"specifier": "shaderpad",
@@ -21,19 +21,19 @@
 		},
 		"./plugins/face": {
 			"specifier": "shaderpad/plugins/face",
-			"minifiedBytes": 14976,
-			"minified": "14.6 kB",
-			"gzippedBytes": 5820,
+			"minifiedBytes": 15066,
+			"minified": "14.7 kB",
+			"gzippedBytes": 5857,
 			"gzipped": "5.7 kB",
 			"gzippedLabel": "5.7 kB gzipped"
 		},
 		"./plugins/hands": {
 			"specifier": "shaderpad/plugins/hands",
-			"minifiedBytes": 5977,
-			"minified": "5.8 kB",
-			"gzippedBytes": 2587,
-			"gzipped": "2.5 kB",
-			"gzippedLabel": "2.5 kB gzipped"
+			"minifiedBytes": 6057,
+			"minified": "5.9 kB",
+			"gzippedBytes": 2613,
+			"gzipped": "2.6 kB",
+			"gzippedLabel": "2.6 kB gzipped"
 		},
 		"./plugins/helpers": {
 			"specifier": "shaderpad/plugins/helpers",
@@ -45,19 +45,19 @@
 		},
 		"./plugins/pose": {
 			"specifier": "shaderpad/plugins/pose",
-			"minifiedBytes": 27211,
-			"minified": "26.6 kB",
-			"gzippedBytes": 9320,
-			"gzipped": "9.1 kB",
-			"gzippedLabel": "9.1 kB gzipped"
+			"minifiedBytes": 9545,
+			"minified": "9.3 kB",
+			"gzippedBytes": 3773,
+			"gzipped": "3.7 kB",
+			"gzippedLabel": "3.7 kB gzipped"
 		},
 		"./plugins/segmenter": {
 			"specifier": "shaderpad/plugins/segmenter",
-			"minifiedBytes": 23543,
-			"minified": "23.0 kB",
-			"gzippedBytes": 8143,
-			"gzipped": "8.0 kB",
-			"gzippedLabel": "8.0 kB gzipped"
+			"minifiedBytes": 5810,
+			"minified": "5.7 kB",
+			"gzippedBytes": 2550,
+			"gzipped": "2.5 kB",
+			"gzippedLabel": "2.5 kB gzipped"
 		},
 		"./react": {
 			"specifier": "shaderpad/react",

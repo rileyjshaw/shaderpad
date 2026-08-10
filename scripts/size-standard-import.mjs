@@ -44,8 +44,23 @@ function getSpecifier(exportPath) {
 	return `${shaderpadPackage.name}/${exportPath.slice(2)}`;
 }
 
+// Plugins can only ever run as arguments to `new ShaderPad(...)`, so any real
+// bundle that contains a plugin already contains the core and bundlers dedupe
+// it. Measuring plugins with the core inlined would double-count it, so plugin
+// sizes are reported as incremental over the core by marking the core module
+// (imported from dist/plugins/* as `../index.mjs`) external.
+function externalizeCorePlugin() {
+	return {
+		name: 'externalize-shaderpad-core',
+		setup(build) {
+			build.onResolve({ filter: /^\.\.\/index\.m?js$/ }, args => ({ path: args.path, external: true }));
+		},
+	};
+}
+
 async function measureExport(exportPath) {
 	const specifier = getSpecifier(exportPath);
+	const isPlugin = exportPath.startsWith('./plugins/');
 
 	const result = await build({
 		absWorkingDir: process.cwd(),
@@ -66,6 +81,7 @@ async function measureExport(exportPath) {
 		treeShaking: true,
 		logLevel: 'silent',
 		external: optionalPeerDependencies,
+		plugins: isPlugin ? [externalizeCorePlugin()] : [],
 	});
 
 	const [{ contents }] = result.outputFiles;
