@@ -46,9 +46,6 @@ export default defineConfig([
 		clean: true,
 		dts: {
 			cjsDefault: false,
-			compilerOptions: {
-				moduleResolution: 'Bundler',
-			},
 		},
 		minify: true,
 		define: {
