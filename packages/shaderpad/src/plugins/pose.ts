@@ -117,7 +117,6 @@ void main() {
 
 interface Detector {
 	landmarker: PoseLandmarker;
-	mediapipeCanvas: OffscreenCanvas;
 	maskShader: ShaderPad;
 	subscribers: Map<Function, boolean>;
 	maxPoses: number;
@@ -131,16 +130,13 @@ interface Detector {
 		pending: Promise<void>;
 		nPoses: number;
 	};
-	landmarks: {
-		data: Float32Array;
-		textureHeight: number;
-	};
+	landmarks: Float32Array;
 }
 const sharedDetectors = new Map<string, Detector>();
 const sharedDetectorPromises = new Map<string, Promise<Detector | undefined>>();
 
 function updateLandmarksData(detector: Detector, poses: NormalizedLandmark[][]) {
-	const data = detector.landmarks.data;
+	const data = detector.landmarks;
 	const nPoses = poses.length;
 
 	data[0] = nPoses;
@@ -272,13 +268,12 @@ function pose(config: PosePluginConfig) {
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
-			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
-		const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
+			existingDetector?.landmarks ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		const maskShader =
 			existingDetector?.maskShader ??
 			(() => {
 				const shader = new ShaderPad(MASK_SHADER_SRC, {
-					canvas: mediapipeCanvas,
+					canvas: new OffscreenCanvas(1, 1),
 				});
 				shader.initializeTexture('u_mask', dummyTexture);
 				shader.initializeUniform('u_poseIndex', 'float', 0);
@@ -299,7 +294,7 @@ function pose(config: PosePluginConfig) {
 			updateTexture(
 				'u_poseLandmarksTex',
 				{
-					data: detector.landmarks.data,
+					data: detector.landmarks,
 					width: LANDMARKS_TEXTURE_WIDTH,
 					height: rowsToUpdate,
 					isPartial: true,
@@ -349,7 +344,7 @@ function pose(config: PosePluginConfig) {
 							modelAssetPath: options.modelPath,
 							delegate: 'GPU',
 						},
-						canvas: mediapipeCanvas,
+						canvas: maskShader.canvas,
 						runningMode: 'VIDEO',
 						numPoses: options.maxPoses,
 						minPoseDetectionConfidence: options.minPoseDetectionConfidence,
@@ -365,7 +360,6 @@ function pose(config: PosePluginConfig) {
 
 					const detector: Detector = {
 						landmarker: poseLandmarker,
-						mediapipeCanvas,
 						maskShader,
 						subscribers: new Map(),
 						maxPoses: options.maxPoses,
@@ -379,10 +373,7 @@ function pose(config: PosePluginConfig) {
 							pending: Promise.resolve(),
 							nPoses: 0,
 						},
-						landmarks: {
-							data: landmarksData,
-							textureHeight,
-						},
+						landmarks: landmarksData,
 					};
 					return detector;
 				},

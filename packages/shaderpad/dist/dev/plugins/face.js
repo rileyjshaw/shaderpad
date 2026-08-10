@@ -314,7 +314,7 @@ function accumulateScratch(mask) {
 	gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 function updateLandmarksData(detector, faces) {
-	const data = detector.landmarks.data;
+	const data = detector.landmarks;
 	const nFaces = faces.length;
 	data[0] = nFaces;
 	for (let faceIdx = 0; faceIdx < nFaces; ++faceIdx) {
@@ -337,7 +337,7 @@ function updateLandmarksData(detector, faces) {
 function updateMask(detector, width, height) {
 	const { mask, maxFaces, landmarks, state: { nFaces } } = detector;
 	const { gl, canvas: maskCanvas } = mask;
-	const { data: landmarksData } = landmarks;
+	const landmarksData = landmarks;
 	resizeMaskRenderer(mask, width, height);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	gl.viewport(0, 0, maskCanvas.width, maskCanvas.height);
@@ -382,8 +382,7 @@ function face(config) {
 	return function(shaderPad, context) {
 		const { injectGLSL, emit, updateTexture } = context;
 		const existingDetector = sharedDetectors.get(optionsKey);
-		const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
-		const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
+		const landmarksData = existingDetector?.landmarks ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		const maskCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
 		let detector;
 		let destroyed = false;
@@ -396,7 +395,7 @@ function face(config) {
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
 			const targetHistorySlots = history ? historySlots : void 0;
 			updateTexture("u_faceLandmarksTex", {
-				data: detector.landmarks.data,
+				data: detector.landmarks,
 				width: LANDMARKS_TEXTURE_WIDTH,
 				height: rowsToUpdate,
 				isPartial: true
@@ -430,7 +429,7 @@ function face(config) {
 						modelAssetPath: options.modelPath,
 						delegate: "GPU"
 					},
-					canvas: mediapipeCanvas,
+					canvas: new OffscreenCanvas(1, 1),
 					runningMode: "VIDEO",
 					numFaces: options.maxFaces,
 					minFaceDetectionConfidence: options.minFaceDetectionConfidence,
@@ -445,7 +444,6 @@ function face(config) {
 				}
 				const detector = {
 					landmarker: faceLandmarker,
-					mediapipeCanvas,
 					mask: initMaskRenderer(maskCanvas),
 					subscribers: /* @__PURE__ */ new Map(),
 					maxFaces: options.maxFaces,
@@ -459,10 +457,7 @@ function face(config) {
 						pending: Promise.resolve(),
 						nFaces: 0
 					},
-					landmarks: {
-						data: landmarksData,
-						textureHeight
-					}
+					landmarks: landmarksData
 				};
 				initFaceRegions(FaceLandmarker);
 				return detector;

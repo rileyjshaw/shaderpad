@@ -227,7 +227,6 @@ interface MaskRenderer {
 
 interface Detector {
 	landmarker: FaceLandmarker;
-	mediapipeCanvas: OffscreenCanvas;
 	mask: MaskRenderer;
 	subscribers: Map<Function, boolean>;
 	maxFaces: number;
@@ -241,10 +240,7 @@ interface Detector {
 		pending: Promise<void>;
 		nFaces: number;
 	};
-	landmarks: {
-		data: Float32Array;
-		textureHeight: number;
-	};
+	landmarks: Float32Array;
 }
 const sharedDetectors = new Map<string, Detector>();
 const sharedDetectorPromises = new Map<string, Promise<Detector | undefined>>();
@@ -429,7 +425,7 @@ function accumulateScratch(mask: MaskRenderer) {
 }
 
 function updateLandmarksData(detector: Detector, faces: NormalizedLandmark[][]) {
-	const data = detector.landmarks.data;
+	const data = detector.landmarks;
 	const nFaces = faces.length;
 	data[0] = nFaces;
 
@@ -467,7 +463,7 @@ function updateMask(detector: Detector, width: number, height: number) {
 		state: { nFaces },
 	} = detector;
 	const { gl, canvas: maskCanvas } = mask;
-	const { data: landmarksData } = landmarks;
+	const landmarksData = landmarks;
 
 	resizeMaskRenderer(mask, width, height);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -545,8 +541,7 @@ function face(config: FacePluginConfig) {
 
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData =
-			existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
-		const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
+			existingDetector?.landmarks ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		const maskCanvas = existingDetector?.mask.canvas ?? new OffscreenCanvas(1, 1);
 		let detector: Detector | undefined;
 		let destroyed = false;
@@ -562,7 +557,7 @@ function face(config: FacePluginConfig) {
 			updateTexture(
 				'u_faceLandmarksTex',
 				{
-					data: detector.landmarks.data,
+					data: detector.landmarks,
 					width: LANDMARKS_TEXTURE_WIDTH,
 					height: rowsToUpdate,
 					isPartial: true,
@@ -613,7 +608,7 @@ function face(config: FacePluginConfig) {
 							modelAssetPath: options.modelPath,
 							delegate: 'GPU',
 						},
-						canvas: mediapipeCanvas,
+						canvas: new OffscreenCanvas(1, 1),
 						runningMode: 'VIDEO',
 						numFaces: options.maxFaces,
 						minFaceDetectionConfidence: options.minFaceDetectionConfidence,
@@ -629,7 +624,6 @@ function face(config: FacePluginConfig) {
 
 					const detector: Detector = {
 						landmarker: faceLandmarker,
-						mediapipeCanvas,
 						mask: initMaskRenderer(maskCanvas),
 						subscribers: new Map(),
 						maxFaces: options.maxFaces,
@@ -643,10 +637,7 @@ function face(config: FacePluginConfig) {
 							pending: Promise.resolve(),
 							nFaces: 0,
 						},
-						landmarks: {
-							data: landmarksData,
-							textureHeight,
-						},
+						landmarks: landmarksData,
 					};
 
 					initFaceRegions(FaceLandmarker);

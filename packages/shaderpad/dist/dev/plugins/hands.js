@@ -24,7 +24,7 @@ const DEFAULT_HANDS_OPTIONS = {
 const sharedDetectors = /* @__PURE__ */ new Map();
 const sharedDetectorPromises = /* @__PURE__ */ new Map();
 function updateLandmarksData(detector, hands, handedness) {
-	const data = detector.landmarks.data;
+	const data = detector.landmarks;
 	const nHands = hands.length;
 	data[0] = nHands;
 	for (let handIdx = 0; handIdx < nHands; ++handIdx) {
@@ -62,7 +62,7 @@ function hands(config) {
 	const textureHeight = Math.ceil(nLandmarksMax / LANDMARKS_TEXTURE_WIDTH);
 	return function(shaderPad, context) {
 		const { injectGLSL, emit, updateTexture } = context;
-		const landmarksData = sharedDetectors.get(optionsKey)?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
+		const landmarksData = sharedDetectors.get(optionsKey)?.landmarks ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		let detector;
 		let destroyed = false;
 		let historySlot = -1;
@@ -73,7 +73,7 @@ function hands(config) {
 			const nSlots = nHands * LANDMARK_COUNT + N_LANDMARK_METADATA_SLOTS;
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
 			updateTexture("u_handLandmarksTex", {
-				data: detector.landmarks.data,
+				data: detector.landmarks,
 				width: LANDMARKS_TEXTURE_WIDTH,
 				height: rowsToUpdate,
 				isPartial: true
@@ -101,13 +101,12 @@ function hands(config) {
 			detector = await require_plugins_mediapipe_common.getOrCreateSharedResource(optionsKey, sharedDetectors, sharedDetectorPromises, async () => {
 				const [mediaPipe, { HandLandmarker }] = await Promise.all([require_plugins_mediapipe_common.getSharedFileset(wasmBaseUrl), import("@mediapipe/tasks-vision")]);
 				if (destroyed) return;
-				const mediapipeCanvas = new OffscreenCanvas(1, 1);
 				const handLandmarker = await HandLandmarker.createFromOptions(mediaPipe, {
 					baseOptions: {
 						modelAssetPath: options.modelPath,
 						delegate: "GPU"
 					},
-					canvas: mediapipeCanvas,
+					canvas: new OffscreenCanvas(1, 1),
 					runningMode: "VIDEO",
 					numHands: options.maxHands,
 					minHandDetectionConfidence: options.minHandDetectionConfidence,
@@ -120,9 +119,7 @@ function hands(config) {
 				}
 				return {
 					landmarker: handLandmarker,
-					mediapipeCanvas,
 					subscribers: /* @__PURE__ */ new Map(),
-					maxHands: options.maxHands,
 					state: {
 						nCalls: 0,
 						runningMode: "VIDEO",
@@ -133,10 +130,7 @@ function hands(config) {
 						pending: Promise.resolve(),
 						nHands: 0
 					},
-					landmarks: {
-						data: landmarksData,
-						textureHeight
-					}
+					landmarks: landmarksData
 				};
 			});
 			if (!detector || destroyed) return;

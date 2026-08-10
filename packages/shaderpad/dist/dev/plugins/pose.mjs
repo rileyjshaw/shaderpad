@@ -89,7 +89,7 @@ void main() {
 const sharedDetectors = /* @__PURE__ */ new Map();
 const sharedDetectorPromises = /* @__PURE__ */ new Map();
 function updateLandmarksData(detector, poses) {
-	const data = detector.landmarks.data;
+	const data = detector.landmarks;
 	const nPoses = poses.length;
 	data[0] = nPoses;
 	for (let poseIdx = 0; poseIdx < nPoses; ++poseIdx) {
@@ -168,10 +168,9 @@ function pose(config) {
 	return function(shaderPad, context) {
 		const { injectGLSL, emit, updateTexture } = context;
 		const existingDetector = sharedDetectors.get(optionsKey);
-		const landmarksData = existingDetector?.landmarks.data ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
-		const mediapipeCanvas = existingDetector?.mediapipeCanvas ?? new OffscreenCanvas(1, 1);
+		const landmarksData = existingDetector?.landmarks ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		const maskShader = existingDetector?.maskShader ?? (() => {
-			const shader = new ShaderPad(MASK_SHADER_SRC, { canvas: mediapipeCanvas });
+			const shader = new ShaderPad(MASK_SHADER_SRC, { canvas: new OffscreenCanvas(1, 1) });
 			shader.initializeTexture("u_mask", dummyTexture);
 			shader.initializeUniform("u_poseIndex", "float", 0);
 			return shader;
@@ -187,7 +186,7 @@ function pose(config) {
 			const rowsToUpdate = Math.ceil(nSlots / LANDMARKS_TEXTURE_WIDTH);
 			const targetHistorySlots = history ? historySlots : void 0;
 			updateTexture("u_poseLandmarksTex", {
-				data: detector.landmarks.data,
+				data: detector.landmarks,
 				width: LANDMARKS_TEXTURE_WIDTH,
 				height: rowsToUpdate,
 				isPartial: true
@@ -221,7 +220,7 @@ function pose(config) {
 						modelAssetPath: options.modelPath,
 						delegate: "GPU"
 					},
-					canvas: mediapipeCanvas,
+					canvas: maskShader.canvas,
 					runningMode: "VIDEO",
 					numPoses: options.maxPoses,
 					minPoseDetectionConfidence: options.minPoseDetectionConfidence,
@@ -236,7 +235,6 @@ function pose(config) {
 				}
 				return {
 					landmarker: poseLandmarker,
-					mediapipeCanvas,
 					maskShader,
 					subscribers: /* @__PURE__ */ new Map(),
 					maxPoses: options.maxPoses,
@@ -250,10 +248,7 @@ function pose(config) {
 						pending: Promise.resolve(),
 						nPoses: 0
 					},
-					landmarks: {
-						data: landmarksData,
-						textureHeight
-					}
+					landmarks: landmarksData
 				};
 			});
 			if (!detector || destroyed) return;
