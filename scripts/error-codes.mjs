@@ -346,7 +346,7 @@ export const errors = [
 		causes: [
 			'The MediaPipe vision script or WASM runtime could not load because of a network, CDN, CORS, or Content Security Policy restriction.',
 			'The configured wasmBaseUrl or modelPath is unavailable or incompatible with the installed MediaPipe version.',
-			'MediaPipe could not initialize the requested vision task or GPU delegate in this browser or device.',
+			'MediaPipe could not initialize the requested vision task or delegate in this browser or device.',
 		],
 		fixes: [
 			"Inspect error.cause to see MediaPipe's original failure.",

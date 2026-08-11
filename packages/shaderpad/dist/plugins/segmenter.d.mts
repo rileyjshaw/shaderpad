@@ -2,6 +2,7 @@ import ShaderPad, { PluginContext } from "../index.mjs";
 //#region src/plugins/segmenter.d.ts
 interface SegmenterPluginOptions {
   modelPath?: string;
+  delegate?: 'GPU' | 'CPU';
   outputConfidenceMasks?: boolean;
   history?: number;
 }

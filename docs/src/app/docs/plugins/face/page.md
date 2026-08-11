@@ -40,6 +40,7 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 | Option                                         | Meaning                                        |
 | ---------------------------------------------- | ---------------------------------------------- |
 | `modelPath?: string`                           | Custom MediaPipe model path.                   |
+| `delegate?: 'GPU' \| 'CPU'`                    | MediaPipe delegate. Defaults to `'GPU'`.       |
 | `maxFaces?: number`                            | Maximum faces to detect.                       |
 | `minFaceDetectionConfidence?: number`          | Detection threshold.                           |
 | `minFacePresenceConfidence?: number`           | Face presence threshold.                       |

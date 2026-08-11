@@ -37,14 +37,15 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 
 ## Options
 
-| Option                                | Meaning                      |
-| ------------------------------------- | ---------------------------- |
-| `modelPath?: string`                  | Custom MediaPipe model path. |
-| `maxHands?: number`                   | Maximum hands to detect.     |
-| `minHandDetectionConfidence?: number` | Detection threshold.         |
-| `minHandPresenceConfidence?: number`  | Presence threshold.          |
-| `minTrackingConfidence?: number`      | Tracking threshold.          |
-| `history?: number`                    | History depth for landmarks. |
+| Option                                | Meaning                                  |
+| ------------------------------------- | ---------------------------------------- |
+| `modelPath?: string`                  | Custom MediaPipe model path.             |
+| `delegate?: 'GPU' \| 'CPU'`           | MediaPipe delegate. Defaults to `'GPU'`. |
+| `maxHands?: number`                   | Maximum hands to detect.                 |
+| `minHandDetectionConfidence?: number` | Detection threshold.                     |
+| `minHandPresenceConfidence?: number`  | Presence threshold.                      |
+| `minTrackingConfidence?: number`      | Tracking threshold.                      |
+| `history?: number`                    | History depth for landmarks.             |
 
 ## Events
 

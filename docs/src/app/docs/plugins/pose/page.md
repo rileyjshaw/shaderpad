@@ -40,6 +40,7 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 | Option                                | Meaning                                    |
 | ------------------------------------- | ------------------------------------------ |
 | `modelPath?: string`                  | Custom MediaPipe model path.               |
+| `delegate?: 'GPU' \| 'CPU'`           | MediaPipe delegate. Defaults to `'GPU'`.   |
 | `maxPoses?: number`                   | Maximum poses to detect.                   |
 | `minPoseDetectionConfidence?: number` | Detection threshold.                       |
 | `minPosePresenceConfidence?: number`  | Presence threshold.                        |

@@ -2,6 +2,7 @@ import ShaderPad, { PluginContext } from "../index.js";
 //#region src/plugins/face.d.ts
 interface FacePluginOptions {
   modelPath?: string;
+  delegate?: 'GPU' | 'CPU';
   maxFaces?: number;
   minFaceDetectionConfidence?: number;
   minFacePresenceConfidence?: number;

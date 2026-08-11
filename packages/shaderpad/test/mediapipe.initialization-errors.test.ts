@@ -168,6 +168,33 @@ describe('MediaPipe plugin initialization errors', () => {
 		);
 	});
 
+	it.each(pluginNames)('%s defaults to GPU and forwards an explicit CPU delegate', async pluginName => {
+		const { ShaderPad, plugin, mediapipeState } = await loadPlugin(pluginName);
+		mediapipeState.reset();
+
+		const gpuShader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+			plugins: [plugin({ textureName: 'u_webcam' })],
+		});
+		const cpuShader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+			plugins: [plugin({ textureName: 'u_webcam', options: { delegate: 'CPU' } })],
+		});
+
+		try {
+			await flushAsyncWork();
+
+			expect(mediapipeState.createCalls).toBe(2);
+			expect(mediapipeState.createOptions.map(({ options }) => options.baseOptions?.delegate)).toEqual([
+				'GPU',
+				'CPU',
+			]);
+		} finally {
+			gpuShader.destroy();
+			cpuShader.destroy();
+		}
+	});
+
 	it('preserves Error instances instead of wrapping them', async () => {
 		const { reportMediaPipeError } = await import('../src/plugins/mediapipe-common');
 		const error = new TypeError('MediaPipe rejected its model');

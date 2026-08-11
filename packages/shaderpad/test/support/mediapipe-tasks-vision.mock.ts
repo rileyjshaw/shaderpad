@@ -1,7 +1,17 @@
+type MediaPipeTask = 'face' | 'hands' | 'pose' | 'segmenter';
+
+interface MediaPipeCreateOptions {
+	baseOptions?: {
+		delegate?: 'GPU' | 'CPU';
+	};
+	[key: string]: unknown;
+}
+
 export const __mediapipeMockState = {
 	createDelayMs: 0,
 	setOptionsDelayMs: 0,
 	createCalls: 0,
+	createOptions: [] as Array<{ task: MediaPipeTask; options: MediaPipeCreateOptions }>,
 	setOptionsCalls: 0,
 	detectCalls: [] as Array<{ mode: 'video' | 'image'; time: number }>,
 	filesetCalls: 0,
@@ -13,6 +23,7 @@ export const __mediapipeMockState = {
 		__mediapipeMockState.createDelayMs = 0;
 		__mediapipeMockState.setOptionsDelayMs = 0;
 		__mediapipeMockState.createCalls = 0;
+		__mediapipeMockState.createOptions = [];
 		__mediapipeMockState.setOptionsCalls = 0;
 		__mediapipeMockState.detectCalls = [];
 		__mediapipeMockState.filesetCalls = 0;
@@ -23,7 +34,7 @@ export const __mediapipeMockState = {
 	},
 };
 
-function failCreateIfRequested(task: 'face' | 'hands' | 'pose' | 'segmenter') {
+function failCreateIfRequested(task: MediaPipeTask) {
 	if (
 		__mediapipeMockState.createFailuresRemaining > 0 &&
 		(!__mediapipeMockState.createFailureTask || __mediapipeMockState.createFailureTask === task)
@@ -109,8 +120,9 @@ export const FilesetResolver = {
 };
 
 export class HandLandmarker {
-	static async createFromOptions(_fileset: unknown, _options: unknown) {
+	static async createFromOptions(_fileset: unknown, options: MediaPipeCreateOptions) {
 		__mediapipeMockState.createCalls += 1;
+		__mediapipeMockState.createOptions.push({ task: 'hands', options });
 		await maybeDelay(__mediapipeMockState.createDelayMs);
 		failCreateIfRequested('hands');
 		return {
@@ -140,8 +152,9 @@ export class FaceLandmarker {
 	static FACE_LANDMARKS_LIPS = connectionRange(40, 120);
 	static FACE_LANDMARKS_FACE_OVAL = connectionRange(12, 180);
 
-	static async createFromOptions(_fileset: unknown, _options: unknown) {
+	static async createFromOptions(_fileset: unknown, options: MediaPipeCreateOptions) {
 		__mediapipeMockState.createCalls += 1;
+		__mediapipeMockState.createOptions.push({ task: 'face', options });
 		await maybeDelay(__mediapipeMockState.createDelayMs);
 		failCreateIfRequested('face');
 		return {
@@ -170,8 +183,9 @@ function createPoseResult() {
 }
 
 export class PoseLandmarker {
-	static async createFromOptions(_fileset: unknown, _options: unknown) {
+	static async createFromOptions(_fileset: unknown, options: MediaPipeCreateOptions) {
 		__mediapipeMockState.createCalls += 1;
+		__mediapipeMockState.createOptions.push({ task: 'pose', options });
 		await maybeDelay(__mediapipeMockState.createDelayMs);
 		failCreateIfRequested('pose');
 		return {
@@ -200,8 +214,9 @@ function createSegmenterResult() {
 }
 
 export class ImageSegmenter {
-	static async createFromOptions(_fileset: unknown, _options: unknown) {
+	static async createFromOptions(_fileset: unknown, options: MediaPipeCreateOptions) {
 		__mediapipeMockState.createCalls += 1;
+		__mediapipeMockState.createOptions.push({ task: 'segmenter', options });
 		await maybeDelay(__mediapipeMockState.createDelayMs);
 		failCreateIfRequested('segmenter');
 		return {

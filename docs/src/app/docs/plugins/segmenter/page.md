@@ -45,6 +45,7 @@ The plugin reads from the `textureName` texture. Initialize and update that exac
 | Option                            | Meaning                                                    |
 | --------------------------------- | ---------------------------------------------------------- |
 | `modelPath?: string`              | Custom MediaPipe model path.                               |
+| `delegate?: 'GPU' \| 'CPU'`       | MediaPipe delegate. Defaults to `'GPU'`.                   |
 | `outputConfidenceMasks?: boolean` | Expose per-category confidence instead of flat confidence. |
 | `history?: number`                | History depth for the segment mask.                        |
 

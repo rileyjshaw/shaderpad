@@ -90,6 +90,7 @@ const GREEN_CHANNEL_VALUES = normalizeChannelBitValues(GREEN_REGION_BIT_VALUES);
 const BLUE_CHANNEL_VALUES = normalizeChannelBitValues(BLUE_REGION_BIT_VALUES);
 const DEFAULT_FACE_OPTIONS = {
 	modelPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
+	delegate: "GPU",
 	maxFaces: 1,
 	minFaceDetectionConfidence: .5,
 	minFacePresenceConfidence: .5,
@@ -426,7 +427,7 @@ function face(config) {
 				const faceLandmarker = await FaceLandmarker.createFromOptions(mediaPipe, {
 					baseOptions: {
 						modelAssetPath: options.modelPath,
-						delegate: "GPU"
+						delegate: options.delegate
 					},
 					canvas: new OffscreenCanvas(1, 1),
 					runningMode: "VIDEO",

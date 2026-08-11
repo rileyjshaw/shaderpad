@@ -14,6 +14,7 @@ import type { ImageSegmenter, ImageSegmenterResult, MPMask } from '@mediapipe/ta
 
 export interface SegmenterPluginOptions {
 	modelPath?: string;
+	delegate?: 'GPU' | 'CPU';
 	outputConfidenceMasks?: boolean;
 	history?: number;
 }
@@ -33,6 +34,7 @@ const dummyTextureFloat32 = {
 const DEFAULT_SEGMENTER_OPTIONS: Required<Omit<SegmenterPluginOptions, 'history'>> = {
 	modelPath:
 		'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite',
+	delegate: 'GPU',
 	outputConfidenceMasks: false,
 };
 
@@ -168,7 +170,7 @@ function segmenter(config: SegmenterPluginConfig) {
 					const imageSegmenter = await ImageSegmenter.createFromOptions(mediaPipe, {
 						baseOptions: {
 							modelAssetPath: options.modelPath,
-							delegate: 'GPU',
+							delegate: options.delegate,
 						},
 						canvas: mediapipeCanvas,
 						runningMode: 'VIDEO',

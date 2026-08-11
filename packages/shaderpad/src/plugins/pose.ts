@@ -15,6 +15,7 @@ import type { PoseLandmarker, PoseLandmarkerResult, NormalizedLandmark, MPMask }
 
 export interface PosePluginOptions {
 	modelPath?: string;
+	delegate?: 'GPU' | 'CPU';
 	maxPoses?: number;
 	minPoseDetectionConfidence?: number;
 	minPosePresenceConfidence?: number;
@@ -97,6 +98,7 @@ const N_LANDMARK_METADATA_SLOTS = 1;
 const DEFAULT_POSE_OPTIONS: Required<Omit<PosePluginOptions, 'history'>> = {
 	modelPath:
 		'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+	delegate: 'GPU',
 	maxPoses: 1,
 	minPoseDetectionConfidence: 0.5,
 	minPosePresenceConfidence: 0.5,
@@ -343,7 +345,7 @@ function pose(config: PosePluginConfig) {
 					const poseLandmarker = await PoseLandmarker.createFromOptions(mediaPipe, {
 						baseOptions: {
 							modelAssetPath: options.modelPath,
-							delegate: 'GPU',
+							delegate: options.delegate,
 						},
 						canvas: maskShader.canvas,
 						runningMode: 'VIDEO',

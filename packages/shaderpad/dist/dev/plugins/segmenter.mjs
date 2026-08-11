@@ -9,6 +9,7 @@ const dummyTextureFloat32 = {
 };
 const DEFAULT_SEGMENTER_OPTIONS = {
 	modelPath: "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite",
+	delegate: "GPU",
 	outputConfidenceMasks: false
 };
 const MASK_SHADER_SOURCE = `#version 300 es
@@ -98,7 +99,7 @@ function segmenter(config) {
 				const imageSegmenter = await ImageSegmenter.createFromOptions(mediaPipe, {
 					baseOptions: {
 						modelAssetPath: options.modelPath,
-						delegate: "GPU"
+						delegate: options.delegate
 					},
 					canvas: mediapipeCanvas,
 					runningMode: "VIDEO",

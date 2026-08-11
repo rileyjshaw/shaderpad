@@ -15,6 +15,7 @@ import type { FaceLandmarker, FaceLandmarkerResult, NormalizedLandmark } from '@
 
 export interface FacePluginOptions {
 	modelPath?: string;
+	delegate?: 'GPU' | 'CPU';
 	maxFaces?: number;
 	minFaceDetectionConfidence?: number;
 	minFacePresenceConfidence?: number;
@@ -113,6 +114,7 @@ const BLUE_CHANNEL_VALUES = normalizeChannelBitValues(BLUE_REGION_BIT_VALUES);
 const DEFAULT_FACE_OPTIONS: Required<Omit<FacePluginOptions, 'history'>> = {
 	modelPath:
 		'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',
+	delegate: 'GPU',
 	maxFaces: 1,
 	minFaceDetectionConfidence: 0.5,
 	minFacePresenceConfidence: 0.5,
@@ -607,7 +609,7 @@ function face(config: FacePluginConfig) {
 					const faceLandmarker = await FaceLandmarker.createFromOptions(mediaPipe, {
 						baseOptions: {
 							modelAssetPath: options.modelPath,
-							delegate: 'GPU',
+							delegate: options.delegate,
 						},
 						canvas: new OffscreenCanvas(1, 1),
 						runningMode: 'VIDEO',

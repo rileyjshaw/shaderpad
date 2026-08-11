@@ -70,6 +70,7 @@ const LANDMARKS_TEXTURE_WIDTH = 512;
 const N_LANDMARK_METADATA_SLOTS = 1;
 const DEFAULT_POSE_OPTIONS = {
 	modelPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+	delegate: "GPU",
 	maxPoses: 1,
 	minPoseDetectionConfidence: .5,
 	minPosePresenceConfidence: .5,
@@ -219,7 +220,7 @@ function pose(config) {
 				const poseLandmarker = await PoseLandmarker.createFromOptions(mediaPipe, {
 					baseOptions: {
 						modelAssetPath: options.modelPath,
-						delegate: "GPU"
+						delegate: options.delegate
 					},
 					canvas: maskShader.canvas,
 					runningMode: "VIDEO",

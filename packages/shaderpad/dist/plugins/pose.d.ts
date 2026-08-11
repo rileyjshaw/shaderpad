@@ -2,6 +2,7 @@ import ShaderPad, { PluginContext } from "../index.js";
 //#region src/plugins/pose.d.ts
 interface PosePluginOptions {
   modelPath?: string;
+  delegate?: 'GPU' | 'CPU';
   maxPoses?: number;
   minPoseDetectionConfidence?: number;
   minPosePresenceConfidence?: number;

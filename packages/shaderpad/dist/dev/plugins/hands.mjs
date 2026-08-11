@@ -15,6 +15,7 @@ const LANDMARKS_TEXTURE_WIDTH = 512;
 const N_LANDMARK_METADATA_SLOTS = 1;
 const DEFAULT_HANDS_OPTIONS = {
 	modelPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+	delegate: "GPU",
 	maxHands: 2,
 	minHandDetectionConfidence: .5,
 	minHandPresenceConfidence: .5,
@@ -103,7 +104,7 @@ function hands(config) {
 				const handLandmarker = await HandLandmarker.createFromOptions(mediaPipe, {
 					baseOptions: {
 						modelAssetPath: options.modelPath,
-						delegate: "GPU"
+						delegate: options.delegate
 					},
 					canvas: new OffscreenCanvas(1, 1),
 					runningMode: "VIDEO",

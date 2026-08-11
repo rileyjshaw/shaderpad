@@ -551,6 +551,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
+- `delegate?: 'GPU' | 'CPU'` - MediaPipe delegate (default: `'GPU'`)
 - `maxFaces?: number` - Maximum faces to detect (default: 1)
 - `history?: number` - Frames of history to store for landmarks and mask textures
 
@@ -644,6 +645,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
+- `delegate?: 'GPU' | 'CPU'` - MediaPipe delegate (default: `'GPU'`)
 - `maxPoses?: number` - Maximum poses to detect (default: 1)
 - `history?: number` - Frames of history to store for landmarks and mask textures
 
@@ -747,6 +749,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
+- `delegate?: 'GPU' | 'CPU'` - MediaPipe delegate (default: `'GPU'`)
 - `maxHands?: number` - Maximum hands to detect (default: 2)
 - `history?: number` - Frames of history to store for landmarks texture
 
@@ -837,6 +840,7 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 **Options:**
 
+- `delegate?: 'GPU' | 'CPU'` - MediaPipe delegate (default: `'GPU'`)
 - `modelPath?: string` - Path to the segmentation model (default: MediaPipe selfie segmenter)
 - `outputConfidenceMasks?: boolean` - Whether to output per-category confidence masks (default: `false`). If `false`, confidence is always 1.
 - `history?: number` - Frames of history to store for mask texture
