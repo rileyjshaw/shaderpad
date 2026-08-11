@@ -1,5 +1,11 @@
 # shaderpad
 
+## 1.0.0-beta.88
+
+### Minor Changes
+
+- Allow MediaPipe vision plugins to specify CPU|GPU delegate
+
 ## 1.0.0-beta.87
 
 ### Major Changes

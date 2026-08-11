@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"@mediapipe/tasks-vision": "^1.0.1",
-		"shaderpad": "1.0.0-beta.87"
+		"shaderpad": "1.0.0-beta.88"
 	},
 	"devDependencies": {
 		"typescript": "^7.0.2",
