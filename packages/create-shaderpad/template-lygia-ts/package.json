@@ -13,7 +13,7 @@
 		"shaderpad": "1.0.0-beta.86"
 	},
 	"devDependencies": {
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"vite": "^8.0.16",
 		"vite-plugin-glsl": "^1.6.0"
 	}

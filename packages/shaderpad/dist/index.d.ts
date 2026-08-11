@@ -89,13 +89,7 @@ declare class ShaderPad {
   private texOptions;
   private cursorTgt;
   private intermediateFbo;
-  constructor(fragmentShaderSrc: string, {
-    canvas,
-    plugins,
-    history,
-    cursorTarget,
-    ...texOptions
-  }?: Options);
+  constructor(fragmentShaderSrc: string, { canvas, plugins, history, cursorTarget, ...texOptions }?: Options);
   private resolveGLConst;
   private emit;
   on(name: ShaderPadEventName, fn: Function): void;

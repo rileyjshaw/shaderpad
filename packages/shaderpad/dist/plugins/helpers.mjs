@@ -1,4 +1,4 @@
-var e=`uniform vec2 u_resolution;
+function e(){return function(e,t){t.injectGLSL(`uniform vec2 u_resolution;
 
 // Apply aspect ratio correction (object-fit: contain)
 vec2 fitContain(vec2 uv, vec2 textureSize) {
@@ -36,5 +36,5 @@ float historyZ(highp usampler2DArray tex, int frameOffset, int framesAgo) {
 float historyZ(highp isampler2DArray tex, int frameOffset, int framesAgo) {
 	return _historyZ(textureSize(tex, 0).z, frameOffset, framesAgo);
 }
-`;function t(){return function(t,n){n.injectGLSL(e)}}export{t as default};
+`)}}export{e as default};
 //# sourceMappingURL=helpers.mjs.map

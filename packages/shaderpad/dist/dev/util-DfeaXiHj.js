@@ -1,4 +1,3 @@
-
 //#region src/internal/error-codes.gen.ts
 const ERROR_DOCS_BASE_URL = "https://mry.ac/s/";
 function errorUrl(code) {
@@ -160,4 +159,4 @@ Object.defineProperty(exports, 'spError', {
     return spError;
   }
 });
-//# sourceMappingURL=util-rYP0WqTa.js.map
+//# sourceMappingURL=util-DfeaXiHj.js.map

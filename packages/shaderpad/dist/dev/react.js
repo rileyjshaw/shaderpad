@@ -2,7 +2,7 @@
 
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
 const require_index = require('./index.js');
-const require_declarative_textures = require('./declarative-textures-Dbsfzo3m.js');
+const require_declarative_textures = require('./declarative-textures-AVGdoaZl.js');
 const require_plugins_autosize = require('./plugins/autosize.js');
 let react = require("react");
 let react_jsx_runtime = require("react/jsx-runtime");

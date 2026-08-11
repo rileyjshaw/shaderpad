@@ -1,6 +1,6 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 const require_index = require('./index.js');
-const require_declarative_textures = require('./declarative-textures-Dbsfzo3m.js');
+const require_declarative_textures = require('./declarative-textures-AVGdoaZl.js');
 const require_plugins_autosize = require('./plugins/autosize.js');
 
 //#region src/web-component.ts
@@ -237,10 +237,11 @@ var ShaderPadElement = class ShaderPadElement extends ShaderPadElementBase {
 	}
 	getInstalledPlugins(ownedCanvas) {
 		if (!ownedCanvas || this.autosizeValue === false) return [...this.pluginsValue];
-		return [require_plugins_autosize.default(this.autosizeValue === true ? { target: this } : {
+		const autosizeOptions = this.autosizeValue === true ? { target: this } : {
 			target: this,
 			...this.autosizeValue
-		}), ...this.pluginsValue];
+		};
+		return [require_plugins_autosize.default(autosizeOptions), ...this.pluginsValue];
 	}
 	bindInstanceEvents(instance) {
 		const handlePlay = () => {

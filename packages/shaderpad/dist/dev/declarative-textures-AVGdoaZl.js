@@ -1,4 +1,3 @@
-
 //#region src/internal/autoplay.ts
 function isElementInViewport(element) {
 	const view = element.ownerDocument.defaultView ?? window;
@@ -213,4 +212,4 @@ Object.defineProperty(exports, 'parseTextureOptionsFromAttributes', {
     return parseTextureOptionsFromAttributes;
   }
 });
-//# sourceMappingURL=declarative-textures-Dbsfzo3m.js.map
+//# sourceMappingURL=declarative-textures-AVGdoaZl.js.map

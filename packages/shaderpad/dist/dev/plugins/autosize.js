@@ -1,5 +1,4 @@
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-
 //#region src/plugins/autosize.ts
 const THROTTLE_INTERVAL_DEFAULT = 1e3 / 30;
 function autosize(options = {}) {

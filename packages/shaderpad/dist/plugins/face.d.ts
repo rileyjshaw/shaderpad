@@ -1,5 +1,4 @@
 import ShaderPad, { PluginContext } from "../index.js";
-
 //#region src/plugins/face.d.ts
 interface FacePluginOptions {
   modelPath?: string;

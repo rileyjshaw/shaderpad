@@ -236,10 +236,11 @@ var ShaderPadElement = class ShaderPadElement extends ShaderPadElementBase {
 	}
 	getInstalledPlugins(ownedCanvas) {
 		if (!ownedCanvas || this.autosizeValue === false) return [...this.pluginsValue];
-		return [autosize(this.autosizeValue === true ? { target: this } : {
+		const autosizeOptions = this.autosizeValue === true ? { target: this } : {
 			target: this,
 			...this.autosizeValue
-		}), ...this.pluginsValue];
+		};
+		return [autosize(autosizeOptions), ...this.pluginsValue];
 	}
 	bindInstanceEvents(instance) {
 		const handlePlay = () => {

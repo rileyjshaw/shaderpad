@@ -1,5 +1,4 @@
 import ShaderPad, { PluginContext } from "../index.js";
-
 //#region src/plugins/hands.d.ts
 interface HandsPluginOptions {
   modelPath?: string;

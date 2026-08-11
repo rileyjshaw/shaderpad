@@ -3,7 +3,7 @@ import { DEFAULT_WASM_BASE_URL, dummyTexture, generateGLSLFn, getOrCreateSharedR
 
 //#region src/plugins/segmenter.ts
 const dummyTextureFloat32 = {
-	data: new Float32Array(1).fill(1),
+	data: (/* @__PURE__ */ new Float32Array(1)).fill(1),
 	width: 1,
 	height: 1
 };
@@ -39,7 +39,10 @@ function updateMask(detector, categoryMask, confidenceMasks) {
 		const categoryData = categoryMask.getAsUint8Array();
 		const confidenceArrays = confidenceMasks.map((m) => m.getAsFloat32Array());
 		const data = confidence.data;
-		for (let i = 0; i < categoryData.length; ++i) data[i] = confidenceArrays[categoryData[i]][i];
+		for (let i = 0; i < categoryData.length; ++i) {
+			const categoryIndex = categoryData[i];
+			data[i] = confidenceArrays[categoryIndex][i];
+		}
 	}
 	shader.updateTextures({
 		u_categoryMask: categoryMask.getAsWebGLTexture(),

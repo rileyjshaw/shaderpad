@@ -1,6 +1,5 @@
 import ShaderPad, { Options, Plugin, StepOptions } from "./index.js";
 import { AutosizeOptions } from "./plugins/autosize.js";
-
 //#region src/web-component.d.ts
 declare const ShaderPadElementBase: typeof HTMLElement;
 type ShaderPadElementOptions = Omit<Options, 'canvas' | 'plugins' | 'cursorTarget'>;

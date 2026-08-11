@@ -1,5 +1,5 @@
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-const require_util = require('../util-rYP0WqTa.js');
+const require_util = require('../util-DfeaXiHj.js');
 const require_plugins_mediapipe_common = require('./mediapipe-common.js');
 
 //#region src/plugins/face.ts

@@ -2,7 +2,7 @@ import { n as spError } from "../util-F8Zq4veT.mjs";
 
 //#region src/plugins/mediapipe-common.ts
 const dummyTexture = {
-	data: new Uint8Array(4),
+	data: /* @__PURE__ */ new Uint8Array(4),
 	width: 1,
 	height: 1
 };

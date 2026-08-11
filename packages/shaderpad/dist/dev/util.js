@@ -1,5 +1,4 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-
 //#region src/util.ts
 function getDefaultExtension(type) {
 	switch (type?.toLowerCase()) {

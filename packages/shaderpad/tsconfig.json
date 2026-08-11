@@ -5,7 +5,7 @@
 		"moduleResolution": "Bundler",
 		"jsx": "react-jsx",
 		"declaration": true,
-		"declarationDir": "./dist",
+		"rootDir": "./src",
 		"emitDeclarationOnly": true,
 		"outDir": "./dist",
 		"strict": true,

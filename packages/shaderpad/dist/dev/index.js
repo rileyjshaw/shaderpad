@@ -1,5 +1,5 @@
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-const require_util = require('./util-rYP0WqTa.js');
+const require_util = require('./util-DfeaXiHj.js');
 
 //#region src/index.ts
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
@@ -95,7 +95,7 @@ var ShaderPad = class ShaderPad {
 			canvasHeight: this.canvas.height
 		});
 		this.gl = gl;
-		this.typeArrays = new Map([
+		this.typeArrays = /* @__PURE__ */ new Map([
 			[gl.FLOAT, Float32Array],
 			[gl.HALF_FLOAT, Uint16Array],
 			[gl.UNSIGNED_SHORT, Uint16Array],
@@ -104,7 +104,7 @@ var ShaderPad = class ShaderPad {
 			[gl.UNSIGNED_INT, Uint32Array],
 			[gl.INT, Int32Array]
 		]);
-		this.typeFormats = new Map([
+		this.typeFormats = /* @__PURE__ */ new Map([
 			[gl.FLOAT, "RGBA32F"],
 			[gl.HALF_FLOAT, "RGBA16F"],
 			[gl.UNSIGNED_SHORT, "RGBA32UI"],
@@ -113,7 +113,7 @@ var ShaderPad = class ShaderPad {
 			[gl.UNSIGNED_INT, "RGBA32UI"],
 			[gl.INT, "RGBA32I"]
 		]);
-		this.uintTypes = new Set([
+		this.uintTypes = /* @__PURE__ */ new Set([
 			gl.UNSIGNED_BYTE,
 			gl.UNSIGNED_SHORT,
 			gl.UNSIGNED_INT
@@ -126,7 +126,7 @@ var ShaderPad = class ShaderPad {
 					next: 0,
 					max: gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)
 				},
-				instances: new Set([this])
+				instances: /* @__PURE__ */ new Set([this])
 			};
 			canvasRegistry.set(this.canvas, registryEntry);
 		}
@@ -703,8 +703,8 @@ var ShaderPad = class ShaderPad {
 		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY);
 		if (intermediateInfo.options.isIntegerColorFormat) {
 			const t = intermediateInfo.options.type;
-			if (this.uintTypes.has(t)) gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array(4));
-			else gl.clearBufferiv(gl.COLOR, 0, new Int32Array(4));
+			if (this.uintTypes.has(t)) gl.clearBufferuiv(gl.COLOR, 0, /* @__PURE__ */ new Uint32Array(4));
+			else gl.clearBufferiv(gl.COLOR, 0, /* @__PURE__ */ new Int32Array(4));
 		} else gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 	clearHistory() {

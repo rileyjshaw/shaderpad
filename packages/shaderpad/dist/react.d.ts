@@ -1,7 +1,6 @@
 import ShaderPad$1, { Options, Plugin, StepOptions } from "./index.js";
 import { AutosizeOptions } from "./plugins/autosize.js";
 import { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
-
 //#region src/react.d.ts
 type CursorTarget = Window | Element | RefObject<Element | null>;
 type ShaderPadOptions = Omit<Options, 'canvas' | 'plugins' | 'cursorTarget'>;
