@@ -15,23 +15,9 @@ type GLInternalFormatDepth = '8' | '16F' | '32F' | '8UI' | '8I' | '16UI' | '16I'
 export type GLInternalFormatString = `${GLInternalFormatChannels}${GLInternalFormatDepth}`;
 
 export type GLFormatString =
-	| 'RED'
-	| 'RG'
-	| 'RGB'
-	| 'RGBA'
-	| 'RED_INTEGER'
-	| 'RG_INTEGER'
-	| 'RGB_INTEGER'
-	| 'RGBA_INTEGER';
+	'RED' | 'RG' | 'RGB' | 'RGBA' | 'RED_INTEGER' | 'RG_INTEGER' | 'RGB_INTEGER' | 'RGBA_INTEGER';
 export type GLTypeString =
-	| 'UNSIGNED_BYTE'
-	| 'BYTE'
-	| 'FLOAT'
-	| 'HALF_FLOAT'
-	| 'UNSIGNED_SHORT'
-	| 'SHORT'
-	| 'UNSIGNED_INT'
-	| 'INT';
+	'UNSIGNED_BYTE' | 'BYTE' | 'FLOAT' | 'HALF_FLOAT' | 'UNSIGNED_SHORT' | 'SHORT' | 'UNSIGNED_INT' | 'INT';
 export type GLFilterString = 'LINEAR' | 'NEAREST';
 export type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
 export type ColorSpace = PredefinedColorSpace;

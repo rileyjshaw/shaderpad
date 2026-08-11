@@ -40,6 +40,6 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"@clack/prompts": "^1.5.1"
+		"@clack/prompts": "^1.7.0"
 	}
 }
