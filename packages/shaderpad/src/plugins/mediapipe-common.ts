@@ -1,4 +1,5 @@
 import { TextureSource } from '..';
+import { spError } from '../internal/util';
 
 export const dummyTexture = { data: new Uint8Array(4), width: 1, height: 1 };
 
@@ -81,6 +82,34 @@ export function calculateBoundingBoxCenter(
 }
 
 export const DEFAULT_WASM_BASE_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm';
+
+export function reportMediaPipeError(cause: unknown, pluginName: string): void {
+	let error = cause;
+	if (!(error instanceof Error)) {
+		error = spError(
+			63,
+			__SHADERPAD_DEV__ && {
+				pluginName,
+				failedScriptUrl:
+					typeof Event !== 'undefined' &&
+					error instanceof Event &&
+					typeof HTMLScriptElement !== 'undefined' &&
+					error.target instanceof HTMLScriptElement
+						? error.target.src
+						: undefined,
+			},
+			{ cause },
+		);
+	}
+
+	if (typeof globalThis.reportError === 'function') {
+		globalThis.reportError(error);
+	} else {
+		queueMicrotask(() => {
+			throw error;
+		});
+	}
+}
 
 const filesetPromises = new Map<string, Promise<any>>();
 

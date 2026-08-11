@@ -103,13 +103,17 @@ const DEV_ERRORS = {
 	"62": {
 		title: "Face Mask Renderer Initialization Failed",
 		summary: "The face plugin could not finish setting up its internal face-mask renderer."
+	},
+	"63": {
+		title: "MediaPipe Plugin Initialization Failed",
+		summary: "A ShaderPad MediaPipe plugin could not initialize its vision runtime or task."
 	}
 };
 
 //#endregion
 //#region src/internal/util.ts
-function withCode(message, code) {
-	const error = new Error(message);
+function withCode(message, code, options) {
+	const error = new Error(message, options);
 	error.code = code;
 	return error;
 }
@@ -136,8 +140,8 @@ function renderDevMessage(code, context) {
 	}
 	return parts.join("\n\n");
 }
-function spError(code, context) {
-	return withCode(renderDevMessage(code, context), code);
+function spError(code, context, options) {
+	return withCode(renderDevMessage(code, context), code, options);
 }
 function safeMod(i, m) {
 	return (i % m + m) % m;
@@ -156,4 +160,4 @@ Object.defineProperty(exports, 'spError', {
     return spError;
   }
 });
-//# sourceMappingURL=util-DhEICOH_.js.map
+//# sourceMappingURL=util-rYP0WqTa.js.map

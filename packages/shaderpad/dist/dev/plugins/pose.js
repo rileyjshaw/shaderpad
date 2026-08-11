@@ -256,7 +256,9 @@ function pose(config) {
 			if (maskShader !== detector.maskShader) maskShader.destroy();
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch((cause) => {
+			if (!destroyed) require_plugins_mediapipe_common.reportMediaPipeError(cause, "pose");
+		});
 		shaderPad.on("_init", () => {
 			shaderPad.initializeUniform("u_maxPoses", "int", options.maxPoses, { allowMissing: true });
 			shaderPad.initializeUniform("u_nPoses", "int", 0, { allowMissing: true });

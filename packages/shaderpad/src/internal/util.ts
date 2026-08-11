@@ -4,8 +4,8 @@ import { DEV_ERRORS } from './error-codes.dev.gen.js';
 type DevContext = Record<string, unknown> | false | undefined;
 type ShaderPadError = Error & { code: ErrorCode };
 
-function withCode(message: string, code: ErrorCode): ShaderPadError {
-	const error = new Error(message) as ShaderPadError;
+function withCode(message: string, code: ErrorCode, options?: ErrorOptions): ShaderPadError {
+	const error = new Error(message, options) as ShaderPadError;
 	error.code = code;
 	return error;
 }
@@ -48,8 +48,12 @@ function renderDevMessage(code: ErrorCode, context?: DevContext) {
 	return parts.join('\n\n');
 }
 
-export function spError(code: ErrorCode, context?: DevContext) {
-	return withCode(__SHADERPAD_DEV__ ? renderDevMessage(code, context) : `ShaderPad error: ${errorUrl(code)}`, code);
+export function spError(code: ErrorCode, context?: DevContext, options?: ErrorOptions) {
+	return withCode(
+		__SHADERPAD_DEV__ ? renderDevMessage(code, context) : `ShaderPad error: ${errorUrl(code)}`,
+		code,
+		options,
+	);
 }
 
 export function safeMod(i: number, m: number): number {

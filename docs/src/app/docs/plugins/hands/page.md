@@ -55,6 +55,8 @@ Subscribe with `shader.on(name, callback)`.
 | `hands:ready`  | `() => void`                             | Model assets are loaded and the plugin is ready.        |
 | `hands:result` | `(result: HandLandmarkerResult) => void` | Latest MediaPipe result for the current analyzed frame. |
 
+Initialization failures are reported once through the browser's global error mechanism, and `hands:ready` is not emitted.
+
 ```javascript
 shader.on('hands:result', result => {
 	console.log(`${result.handLandmarks.length} hands detected`);

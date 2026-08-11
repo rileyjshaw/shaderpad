@@ -57,6 +57,8 @@ Subscribe with `shader.on(name, callback)`.
 | `segmenter:ready`  | `() => void`                             | Model assets are loaded and the plugin is ready.        |
 | `segmenter:result` | `(result: ImageSegmenterResult) => void` | Latest MediaPipe result for the current analyzed frame. |
 
+Initialization failures are reported once through the browser's global error mechanism, and `segmenter:ready` is not emitted.
+
 ```javascript
 shader.on('segmenter:result', result => {
 	console.log(result.categoryMask);

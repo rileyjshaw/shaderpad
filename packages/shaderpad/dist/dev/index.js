@@ -1,5 +1,5 @@
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-const require_util = require('./util-DhEICOH_.js');
+const require_util = require('./util-rYP0WqTa.js');
 
 //#region src/index.ts
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es

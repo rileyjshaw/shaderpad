@@ -5,6 +5,9 @@ export const __mediapipeMockState = {
 	setOptionsCalls: 0,
 	detectCalls: [] as Array<{ mode: 'video' | 'image'; time: number }>,
 	filesetCalls: 0,
+	filesetFailuresRemaining: 0,
+	createFailuresRemaining: 0,
+	createFailureTask: null as 'face' | 'hands' | 'pose' | 'segmenter' | null,
 	sequence: [] as Array<{ x: number; y: number }>,
 	reset() {
 		__mediapipeMockState.createDelayMs = 0;
@@ -13,9 +16,22 @@ export const __mediapipeMockState = {
 		__mediapipeMockState.setOptionsCalls = 0;
 		__mediapipeMockState.detectCalls = [];
 		__mediapipeMockState.filesetCalls = 0;
+		__mediapipeMockState.filesetFailuresRemaining = 0;
+		__mediapipeMockState.createFailuresRemaining = 0;
+		__mediapipeMockState.createFailureTask = null;
 		__mediapipeMockState.sequence = [];
 	},
 };
+
+function failCreateIfRequested(task: 'face' | 'hands' | 'pose' | 'segmenter') {
+	if (
+		__mediapipeMockState.createFailuresRemaining > 0 &&
+		(!__mediapipeMockState.createFailureTask || __mediapipeMockState.createFailureTask === task)
+	) {
+		__mediapipeMockState.createFailuresRemaining -= 1;
+		throw new Event('error');
+	}
+}
 
 async function maybeDelay(ms: number) {
 	if (ms > 0) {
@@ -84,6 +100,10 @@ function connectionRange(length: number, offset = 0) {
 export const FilesetResolver = {
 	async forVisionTasks() {
 		__mediapipeMockState.filesetCalls += 1;
+		if (__mediapipeMockState.filesetFailuresRemaining > 0) {
+			__mediapipeMockState.filesetFailuresRemaining -= 1;
+			throw new Event('error');
+		}
 		return {};
 	},
 };
@@ -92,6 +112,7 @@ export class HandLandmarker {
 	static async createFromOptions(_fileset: unknown, _options: unknown) {
 		__mediapipeMockState.createCalls += 1;
 		await maybeDelay(__mediapipeMockState.createDelayMs);
+		failCreateIfRequested('hands');
 		return {
 			async setOptions() {
 				__mediapipeMockState.setOptionsCalls += 1;
@@ -122,6 +143,7 @@ export class FaceLandmarker {
 	static async createFromOptions(_fileset: unknown, _options: unknown) {
 		__mediapipeMockState.createCalls += 1;
 		await maybeDelay(__mediapipeMockState.createDelayMs);
+		failCreateIfRequested('face');
 		return {
 			async setOptions() {
 				__mediapipeMockState.setOptionsCalls += 1;
@@ -134,6 +156,69 @@ export class FaceLandmarker {
 			detect(source: { width: number }) {
 				__mediapipeMockState.detectCalls.push({ mode: 'image', time: source.width });
 				return createFaceResult(source.width);
+			},
+			close() {},
+		};
+	}
+}
+
+function createPoseResult() {
+	return {
+		landmarks: [],
+		segmentationMasks: [],
+	};
+}
+
+export class PoseLandmarker {
+	static async createFromOptions(_fileset: unknown, _options: unknown) {
+		__mediapipeMockState.createCalls += 1;
+		await maybeDelay(__mediapipeMockState.createDelayMs);
+		failCreateIfRequested('pose');
+		return {
+			async setOptions() {
+				__mediapipeMockState.setOptionsCalls += 1;
+				await maybeDelay(__mediapipeMockState.setOptionsDelayMs);
+			},
+			detectForVideo(source: { currentTime: number }, _now: number) {
+				__mediapipeMockState.detectCalls.push({ mode: 'video', time: source.currentTime });
+				return createPoseResult();
+			},
+			detect(source: { width: number }) {
+				__mediapipeMockState.detectCalls.push({ mode: 'image', time: source.width });
+				return createPoseResult();
+			},
+			close() {},
+		};
+	}
+}
+
+function createSegmenterResult() {
+	return {
+		categoryMask: undefined,
+		confidenceMasks: [],
+	};
+}
+
+export class ImageSegmenter {
+	static async createFromOptions(_fileset: unknown, _options: unknown) {
+		__mediapipeMockState.createCalls += 1;
+		await maybeDelay(__mediapipeMockState.createDelayMs);
+		failCreateIfRequested('segmenter');
+		return {
+			async setOptions() {
+				__mediapipeMockState.setOptionsCalls += 1;
+				await maybeDelay(__mediapipeMockState.setOptionsDelayMs);
+			},
+			segmentForVideo(source: { currentTime: number }, _now: number) {
+				__mediapipeMockState.detectCalls.push({ mode: 'video', time: source.currentTime });
+				return createSegmenterResult();
+			},
+			segment(source: { width: number }) {
+				__mediapipeMockState.detectCalls.push({ mode: 'image', time: source.width });
+				return createSegmenterResult();
+			},
+			getLabels() {
+				return ['background'];
 			},
 			close() {},
 		};

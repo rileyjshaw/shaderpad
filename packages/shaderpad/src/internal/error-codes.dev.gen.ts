@@ -106,5 +106,9 @@ export const DEV_ERRORS: Record<ErrorCode, DevErrorDetails> | undefined = __SHAD
 				title: 'Face Mask Renderer Initialization Failed',
 				summary: 'The face plugin could not finish setting up its internal face-mask renderer.',
 			},
+			'63': {
+				title: 'MediaPipe Plugin Initialization Failed',
+				summary: 'A ShaderPad MediaPipe plugin could not initialize its vision runtime or task.',
+			},
 		}
 	: undefined;

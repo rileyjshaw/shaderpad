@@ -136,7 +136,9 @@ function hands(config) {
 			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch((cause) => {
+			if (!destroyed) require_plugins_mediapipe_common.reportMediaPipeError(cause, "hands");
+		});
 		shaderPad.on("_init", () => {
 			shaderPad.initializeUniform("u_maxHands", "int", options.maxHands, { allowMissing: true });
 			shaderPad.initializeUniform("u_nHands", "int", 0, { allowMissing: true });

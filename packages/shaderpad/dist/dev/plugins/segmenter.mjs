@@ -1,5 +1,5 @@
 import ShaderPad from "../index.mjs";
-import { DEFAULT_WASM_BASE_URL, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource } from "./mediapipe-common.mjs";
+import { DEFAULT_WASM_BASE_URL, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError } from "./mediapipe-common.mjs";
 
 //#region src/plugins/segmenter.ts
 const dummyTextureFloat32 = {
@@ -145,7 +145,9 @@ function segmenter(config) {
 			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch((cause) => {
+			if (!destroyed) reportMediaPipeError(cause, "segmenter");
+		});
 		shaderPad.on("_init", () => {
 			shaderPad.initializeUniform("u_numCategories", "int", 1, { allowMissing: true });
 			shaderPad.initializeTexture("u_segmentMask", mediapipeCanvas, {

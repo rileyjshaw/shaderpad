@@ -1,3 +1,5 @@
+import { n as spError } from "../util-F8Zq4veT.mjs";
+
 //#region src/plugins/mediapipe-common.ts
 const dummyTexture = {
 	data: new Uint8Array(4),
@@ -46,6 +48,17 @@ function calculateBoundingBoxCenter(data, entityIdx, landmarkIndices, landmarkCo
 	];
 }
 const DEFAULT_WASM_BASE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
+function reportMediaPipeError(cause, pluginName) {
+	let error = cause;
+	if (!(error instanceof Error)) error = spError(63, {
+		pluginName,
+		failedScriptUrl: typeof Event !== "undefined" && error instanceof Event && typeof HTMLScriptElement !== "undefined" && error.target instanceof HTMLScriptElement ? error.target.src : void 0
+	}, { cause });
+	if (typeof globalThis.reportError === "function") globalThis.reportError(error);
+	else queueMicrotask(() => {
+		throw error;
+	});
+}
 const filesetPromises = /* @__PURE__ */ new Map();
 function getSharedFileset(wasmBaseUrl = DEFAULT_WASM_BASE_URL) {
 	const existing = filesetPromises.get(wasmBaseUrl);
@@ -69,5 +82,5 @@ ${returnType} ${name}(${args}) { return ${name}(${argsOnly ? `${argsOnly}, 0` : 
 }
 
 //#endregion
-export { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource };
+export { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError };
 //# sourceMappingURL=mediapipe-common.mjs.map

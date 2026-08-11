@@ -1,5 +1,5 @@
-import { n as spError } from "../util-euRtPf0Y.mjs";
-import { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource } from "./mediapipe-common.mjs";
+import { n as spError } from "../util-F8Zq4veT.mjs";
+import { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError } from "./mediapipe-common.mjs";
 
 //#region src/plugins/face.ts
 const MASK_VERTEX_SHADER = `#version 300 es
@@ -464,7 +464,9 @@ function face(config) {
 			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch((cause) => {
+			if (!destroyed) reportMediaPipeError(cause, "face");
+		});
 		async function detectFaces(source) {
 			const now = performance.now();
 			await initPromise;

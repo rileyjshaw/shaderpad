@@ -57,6 +57,8 @@ Subscribe with `shader.on(name, callback)`.
 | `face:ready`  | `() => void`                             | Model assets are loaded and the plugin is ready.        |
 | `face:result` | `(result: FaceLandmarkerResult) => void` | Latest MediaPipe result for the current analyzed frame. |
 
+Initialization failures are reported once through the browser's global error mechanism, and `face:ready` is not emitted.
+
 ```javascript
 shader.on('face:result', result => {
 	console.log(`${result.faceLandmarks.length} faces detected`);

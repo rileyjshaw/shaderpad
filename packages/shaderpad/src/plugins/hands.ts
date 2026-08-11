@@ -8,6 +8,7 @@ import {
 	hashOptions,
 	isMediaPipeSource,
 	MediaPipeSource,
+	reportMediaPipeError,
 } from './mediapipe-common';
 import type { HandLandmarker, HandLandmarkerResult, NormalizedLandmark } from '@mediapipe/tasks-vision';
 
@@ -209,7 +210,9 @@ function hands(config: HandsPluginConfig) {
 			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch(cause => {
+			if (!destroyed) reportMediaPipeError(cause, 'hands');
+		});
 
 		shaderPad.on('_init', () => {
 			shaderPad.initializeUniform('u_maxHands', 'int', options.maxHands, { allowMissing: true });

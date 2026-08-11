@@ -1,5 +1,5 @@
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-const require_util = require('../util-DhEICOH_.js');
+const require_util = require('../util-rYP0WqTa.js');
 const require_plugins_mediapipe_common = require('./mediapipe-common.js');
 
 //#region src/plugins/face.ts
@@ -465,7 +465,9 @@ function face(config) {
 			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch((cause) => {
+			if (!destroyed) require_plugins_mediapipe_common.reportMediaPipeError(cause, "face");
+		});
 		async function detectFaces(source) {
 			const now = performance.now();
 			await initPromise;

@@ -1,4 +1,4 @@
-import { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource } from "./mediapipe-common.mjs";
+import { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError } from "./mediapipe-common.mjs";
 
 //#region src/plugins/hands.ts
 const STANDARD_LANDMARK_COUNT = 21;
@@ -135,7 +135,9 @@ function hands(config) {
 			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch((cause) => {
+			if (!destroyed) reportMediaPipeError(cause, "hands");
+		});
 		shaderPad.on("_init", () => {
 			shaderPad.initializeUniform("u_maxHands", "int", options.maxHands, { allowMissing: true });
 			shaderPad.initializeUniform("u_nHands", "int", 0, { allowMissing: true });

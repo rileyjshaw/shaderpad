@@ -9,6 +9,7 @@ import {
 	hashOptions,
 	isMediaPipeSource,
 	MediaPipeSource,
+	reportMediaPipeError,
 } from './mediapipe-common';
 import type { FaceLandmarker, FaceLandmarkerResult, NormalizedLandmark } from '@mediapipe/tasks-vision';
 
@@ -648,7 +649,9 @@ function face(config: FacePluginConfig) {
 			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch(cause => {
+			if (!destroyed) reportMediaPipeError(cause, 'face');
+		});
 
 		async function detectFaces(source: MediaPipeSource) {
 			const now = performance.now();

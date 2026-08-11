@@ -340,6 +340,21 @@ export const errors: readonly ErrorEntry[] = [
 			'If you are modifying ShaderPad internals, inspect initMaskRenderer() and the dev error details to see which setup step failed.',
 		],
 	},
+	{
+		code: 63,
+		title: 'MediaPipe Plugin Initialization Failed',
+		summary: 'A ShaderPad MediaPipe plugin could not initialize its vision runtime or task.',
+		causes: [
+			'The MediaPipe vision script or WASM runtime could not load because of a network, CDN, CORS, or Content Security Policy restriction.',
+			'The configured wasmBaseUrl or modelPath is unavailable or incompatible with the installed MediaPipe version.',
+			'MediaPipe could not initialize the requested vision task or GPU delegate in this browser or device.',
+		],
+		fixes: [
+			"Inspect error.cause to see MediaPipe's original failure.",
+			'Make sure the MediaPipe script, wasmBaseUrl, and modelPath are reachable and compatible with the installed @mediapipe/tasks-vision version.',
+			'Try a different browser or device, or create a new ShaderPad instance to retry a temporary failure.',
+		],
+	},
 ];
 
 export function getErrorByCode(code: string | number) {

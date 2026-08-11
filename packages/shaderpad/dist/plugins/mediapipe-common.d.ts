@@ -12,11 +12,12 @@ declare function hashOptions(options: object): string;
 declare function getOrCreateSharedResource<T>(key: string, sharedResources: Map<string, T>, sharedResourcePromises: Map<string, Promise<T | undefined>>, create: () => Promise<T | undefined>): Promise<T | undefined>;
 declare function calculateBoundingBoxCenter(data: Float32Array, entityIdx: number, landmarkIndices: readonly number[] | number[], landmarkCount: number, offset?: number): [number, number, number, number];
 declare const DEFAULT_WASM_BASE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
+declare function reportMediaPipeError(cause: unknown, pluginName: string): void;
 declare function getSharedFileset(wasmBaseUrl?: string): Promise<any>;
 declare function generateGLSLFn(history: number | undefined): {
   historyParams: string;
   fn: (returnType: string, name: string, args: string, body: string) => string;
 };
 //#endregion
-export { DEFAULT_WASM_BASE_URL, MediaPipeSource, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource };
+export { DEFAULT_WASM_BASE_URL, MediaPipeSource, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError };
 //# sourceMappingURL=mediapipe-common.d.ts.map

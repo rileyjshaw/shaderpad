@@ -1,4 +1,5 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+const require_util = require('../util-rYP0WqTa.js');
 
 //#region src/plugins/mediapipe-common.ts
 const dummyTexture = {
@@ -48,6 +49,17 @@ function calculateBoundingBoxCenter(data, entityIdx, landmarkIndices, landmarkCo
 	];
 }
 const DEFAULT_WASM_BASE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
+function reportMediaPipeError(cause, pluginName) {
+	let error = cause;
+	if (!(error instanceof Error)) error = require_util.spError(63, {
+		pluginName,
+		failedScriptUrl: typeof Event !== "undefined" && error instanceof Event && typeof HTMLScriptElement !== "undefined" && error.target instanceof HTMLScriptElement ? error.target.src : void 0
+	}, { cause });
+	if (typeof globalThis.reportError === "function") globalThis.reportError(error);
+	else queueMicrotask(() => {
+		throw error;
+	});
+}
 const filesetPromises = /* @__PURE__ */ new Map();
 function getSharedFileset(wasmBaseUrl = DEFAULT_WASM_BASE_URL) {
 	const existing = filesetPromises.get(wasmBaseUrl);
@@ -79,4 +91,5 @@ exports.getOrCreateSharedResource = getOrCreateSharedResource;
 exports.getSharedFileset = getSharedFileset;
 exports.hashOptions = hashOptions;
 exports.isMediaPipeSource = isMediaPipeSource;
+exports.reportMediaPipeError = reportMediaPipeError;
 //# sourceMappingURL=mediapipe-common.js.map

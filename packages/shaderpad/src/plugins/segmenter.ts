@@ -8,6 +8,7 @@ import {
 	hashOptions,
 	isMediaPipeSource,
 	MediaPipeSource,
+	reportMediaPipeError,
 } from './mediapipe-common';
 import type { ImageSegmenter, ImageSegmenterResult, MPMask } from '@mediapipe/tasks-vision';
 
@@ -224,7 +225,9 @@ function segmenter(config: SegmenterPluginConfig) {
 			if (!detector || destroyed) return;
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch(cause => {
+			if (!destroyed) reportMediaPipeError(cause, 'segmenter');
+		});
 
 		shaderPad.on('_init', () => {
 			shaderPad.initializeUniform('u_numCategories', 'int', 1, { allowMissing: true });

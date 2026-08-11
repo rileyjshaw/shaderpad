@@ -1,0 +1,2 @@
+function e(e){return`https://mry.ac/s/${e}`}function t(e,t,n){let r=Error(e,n);return r.code=t,r}function n(n,r,i){return t(`ShaderPad error: ${e(n)}`,n,i)}function r(e,t){return(e%t+t)%t}Object.defineProperty(exports,"n",{enumerable:!0,get:function(){return n}}),Object.defineProperty(exports,"t",{enumerable:!0,get:function(){return r}});
+//# sourceMappingURL=util-RFtxv4qS.js.map

@@ -9,6 +9,7 @@ import {
 	hashOptions,
 	isMediaPipeSource,
 	MediaPipeSource,
+	reportMediaPipeError,
 } from './mediapipe-common';
 import type { PoseLandmarker, PoseLandmarkerResult, NormalizedLandmark, MPMask } from '@mediapipe/tasks-vision';
 
@@ -385,7 +386,9 @@ function pose(config: PosePluginConfig) {
 			}
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch(cause => {
+			if (!destroyed) reportMediaPipeError(cause, 'pose');
+		});
 
 		shaderPad.on('_init', () => {
 			shaderPad.initializeUniform('u_maxPoses', 'int', options.maxPoses, { allowMissing: true });

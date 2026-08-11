@@ -1,5 +1,5 @@
 import ShaderPad from "../index.mjs";
-import { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource } from "./mediapipe-common.mjs";
+import { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError } from "./mediapipe-common.mjs";
 
 //#region src/plugins/pose.ts
 const STANDARD_LANDMARK_COUNT = 33;
@@ -255,7 +255,9 @@ function pose(config) {
 			if (maskShader !== detector.maskShader) maskShader.destroy();
 			detector.subscribers.set(onResult, false);
 		}
-		const initPromise = initializeDetector();
+		const initPromise = initializeDetector().catch((cause) => {
+			if (!destroyed) reportMediaPipeError(cause, "pose");
+		});
 		shaderPad.on("_init", () => {
 			shaderPad.initializeUniform("u_maxPoses", "int", options.maxPoses, { allowMissing: true });
 			shaderPad.initializeUniform("u_nPoses", "int", 0, { allowMissing: true });

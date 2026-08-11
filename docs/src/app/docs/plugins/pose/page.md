@@ -55,6 +55,8 @@ Subscribe with `shader.on(name, callback)`.
 | `pose:ready`  | `() => void`                             | Model assets are loaded and the plugin is ready.        |
 | `pose:result` | `(result: PoseLandmarkerResult) => void` | Latest MediaPipe result for the current analyzed frame. |
 
+Initialization failures are reported once through the browser's global error mechanism, and `pose:ready` is not emitted.
+
 ```javascript
 shader.on('pose:result', result => {
 	console.log(`${result.landmarks.length} poses detected`);
