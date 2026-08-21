@@ -1,8 +1,8 @@
 'use client';
 
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-const require_index = require('./index.js');
-const require_declarative_textures = require('./declarative-textures-AVGdoaZl.js');
+const require_src = require('./src-DDTpIDcH.js');
+const require_declarative_textures = require('./declarative-textures-Cp3VOj4O.js');
 const require_plugins_autosize = require('./plugins/autosize.js');
 let react = require("react");
 let react_jsx_runtime = require("react/jsx-runtime");
@@ -22,7 +22,7 @@ function queueUnhandledError(error) {
 		throw error;
 	});
 }
-const ShaderPad = (0, react.forwardRef)(function ShaderPad({ shader, children, plugins, options, autosize: autosize$1 = true, cursorTarget, autoplay = true, autopause = true, onInit, onPreStep, onError, style, "data-texture": textureNameValue, "data-texture-history": textureHistory, "data-texture-preserve-y": texturePreserveY, "data-texture-internal-format": textureInternalFormat, "data-texture-format": textureFormat, "data-texture-type": textureType, "data-texture-min-filter": textureMinFilter, "data-texture-mag-filter": textureMagFilter, "data-texture-wrap-s": textureWrapS, "data-texture-wrap-t": textureWrapT, ...canvasProps }, ref) {
+const ShaderPad = (0, react.forwardRef)(function ShaderPad({ shader, children, plugins, options, autosize: autosize$1 = true, cursorTarget, autoplay = true, autopause = true, onInit, onPreStep, onError, style, "data-texture": textureNameValue, "data-texture-history": textureHistory, "data-texture-preserve-y": texturePreserveY, "data-texture-format": textureFormat, "data-texture-min-filter": textureMinFilter, "data-texture-mag-filter": textureMagFilter, "data-texture-wrap-s": textureWrapS, "data-texture-wrap-t": textureWrapT, ...canvasProps }, ref) {
 	const parentTextureRegistry = (0, react.useContext)(ShaderPadTextureContext);
 	const canvasRef = (0, react.useRef)(null);
 	const textureHostRef = (0, react.useRef)(null);
@@ -48,9 +48,7 @@ const ShaderPad = (0, react.forwardRef)(function ShaderPad({ shader, children, p
 	const nestedTextureAttributes = {
 		"data-texture-history": textureHistory,
 		"data-texture-preserve-y": texturePreserveY,
-		"data-texture-internal-format": textureInternalFormat,
 		"data-texture-format": textureFormat,
-		"data-texture-type": textureType,
 		"data-texture-min-filter": textureMinFilter,
 		"data-texture-mag-filter": textureMagFilter,
 		"data-texture-wrap-s": textureWrapS,
@@ -276,7 +274,7 @@ const ShaderPad = (0, react.forwardRef)(function ShaderPad({ shader, children, p
 		};
 		const initialize = async () => {
 			try {
-				instance = new require_index.default(shader, {
+				instance = new require_src.ShaderPad(shader, {
 					...options,
 					canvas,
 					plugins: installedPlugins,
@@ -305,10 +303,11 @@ const ShaderPad = (0, react.forwardRef)(function ShaderPad({ shader, children, p
 					live: true
 				}));
 				const textureBindings = [...domTextureBindings, ...nestedTextureBindings];
-				for (const binding of textureBindings) {
-					const source = binding.kind === "dom" ? await require_declarative_textures.loadDomTextureSource(binding.element) : await binding.registration.waitForShader();
+				const textureSources = await Promise.all(textureBindings.map((binding) => binding.kind === "dom" ? require_declarative_textures.loadDomTextureSource(binding.element) : binding.registration.waitForShader()));
+				for (let i = 0; i < textureBindings.length; ++i) {
 					if (isDisposed) return;
-					instance.initializeTexture(binding.name, source, binding.options);
+					const binding = textureBindings[i];
+					instance.initializeTexture(binding.name, textureSources[i], binding.options);
 				}
 				liveTexturesRef.current = textureBindings.filter((binding) => binding.live);
 				for (const binding of textureBindings) {
@@ -324,8 +323,9 @@ const ShaderPad = (0, react.forwardRef)(function ShaderPad({ shader, children, p
 					}));
 				}
 				if (isDisposed) return;
+				await onInitRef.current?.(instance, canvas);
+				if (isDisposed) return;
 				shaderRef.current = instance;
-				onInitRef.current?.(instance, canvas);
 				resolveReadyWaiters(instance);
 				playbackController = require_declarative_textures.createPlaybackVisibilityController({
 					target: canvas,

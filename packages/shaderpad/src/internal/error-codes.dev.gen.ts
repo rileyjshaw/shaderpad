@@ -110,5 +110,13 @@ export const DEV_ERRORS: Record<ErrorCode, DevErrorDetails> | undefined = __SHAD
 				title: 'MediaPipe Plugin Initialization Failed',
 				summary: 'A ShaderPad MediaPipe plugin could not initialize its vision runtime or task.',
 			},
+			'64': {
+				title: 'Deep History Configuration Invalid',
+				summary: 'The deepHistory plugin received a configuration that it cannot allocate or express in GLSL.',
+			},
+			'65': {
+				title: 'Deep History Lifecycle Invalid',
+				summary: 'The deepHistory plugin or its updater was used outside its valid ShaderPad lifecycle.',
+			},
 		}
 	: undefined;

@@ -22,6 +22,7 @@ const loaders: Record<string, ExampleLoader> = {
 	selfie: () => import('@/examples/demos/selfie'),
 	'cursor-feedback': () => import('@/examples/demos/cursor-feedback'),
 	'history-tiles': () => import('@/examples/demos/history-tiles'),
+	'deep-history': () => import('@/examples/demos/deep-history'),
 	'webcam-trails': () => import('@/examples/demos/webcam-trails'),
 	'webcam-channel-trails': () => import('@/examples/demos/webcam-channel-trails'),
 	'reading-history': () => import('@/examples/demos/reading-history'),

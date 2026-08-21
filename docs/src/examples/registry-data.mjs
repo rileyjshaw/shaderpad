@@ -30,6 +30,11 @@ export const exampleRegistry = [
 		description: 'An illustration of how to read past frames using the historyZ helper.',
 	},
 	{
+		slug: 'deep-history',
+		title: 'Deep history',
+		description: 'A looping video sliced into horizontal bands from hundreds of frames of texture history.',
+	},
+	{
 		slug: 'selfie',
 		title: 'Selfie',
 		description: 'Capture shader output to PNG with the save utility.',

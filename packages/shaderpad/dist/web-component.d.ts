@@ -1,4 +1,4 @@
-import ShaderPad, { Options, Plugin, StepOptions } from "./index.js";
+import { c as Plugin, d as ShaderPad, o as Options, p as StepOptions } from "./index-Bx7YV0w_.js";
 import { AutosizeOptions } from "./plugins/autosize.js";
 //#region src/web-component.d.ts
 declare const ShaderPadElementBase: typeof HTMLElement;

@@ -66,8 +66,48 @@ describe('ShaderPad uniform and texture update behavior', () => {
 
 		expect(getUniformValue(shader as any, 'u_points')).toEqual([0, 1, 2, 3, 4, 5]);
 		expect(getUniformValue(shader as any, 'u_points[1]')).toEqual([9, 8]);
+		expect(
+			getGlOperations(shader, 'uniform').filter(operation => operation.name.startsWith('u_points')),
+		).toHaveLength(2);
 
 		shader.destroy();
+	});
+
+	it('validates every element when initializing uniform arrays', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+		});
+
+		expect(() =>
+			shader.initializeUniform('u_points', 'float', [[0, 1], [2], [3, 4]], { arrayLength: 3 }),
+		).toThrow();
+
+		shader.destroy();
+	});
+
+	it('selects its program when initializing uniforms and texture samplers late', async () => {
+		const ShaderPad = await loadShaderPad();
+		const canvas = new OffscreenCanvas(4, 4);
+		const shaderA = new ShaderPad(FRAGMENT_SHADER, { canvas });
+		const shaderB = new ShaderPad(FRAGMENT_SHADER, { canvas });
+		const useProgram = vi.spyOn(getGl(shaderA), 'useProgram');
+
+		shaderA.draw();
+		const programA = useProgram.mock.calls.at(-1)![0];
+		shaderB.draw();
+		useProgram.mockClear();
+
+		shaderA.initializeUniform('u_late', 'float', 1);
+		expect(useProgram).toHaveBeenLastCalledWith(programA);
+
+		shaderB.draw();
+		useProgram.mockClear();
+		shaderA.initializeTexture('u_lateTexture', { data: null, width: 1, height: 1 });
+		expect(useProgram).toHaveBeenLastCalledWith(programA);
+
+		shaderA.destroy();
+		shaderB.destroy();
 	});
 
 	it('treats public texture history depth as current plus N previous frames', async () => {
@@ -85,8 +125,7 @@ describe('ShaderPad uniform and texture update behavior', () => {
 			},
 			{
 				history: 2,
-				internalFormat: 'RGBA8',
-				type: 'UNSIGNED_BYTE',
+				format: 'RGBA8',
 				minFilter: 'NEAREST',
 				magFilter: 'NEAREST',
 			},
@@ -111,6 +150,24 @@ describe('ShaderPad uniform and texture update behavior', () => {
 		shader.destroy();
 	});
 
+	it('defaults integer texture filters to nearest', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+		});
+
+		shader.initializeTexture(
+			'u_integerData',
+			{ data: new Uint32Array([1, 2, 3, 4]), width: 1, height: 1 },
+			{ format: 'RGBA32UI' },
+		);
+
+		const info = getTextureInfo(shader, 'u_integerData');
+		expect(info.options.minFilter).toBe(getGl(shader).NEAREST);
+		expect(info.options.magFilter).toBe(getGl(shader).NEAREST);
+		shader.destroy();
+	});
+
 	it('uses partial texSubImage2D updates without resizing the texture', async () => {
 		const ShaderPad = await loadShaderPad();
 		const shader = new ShaderPad(FRAGMENT_SHADER, {
@@ -125,9 +182,7 @@ describe('ShaderPad uniform and texture update behavior', () => {
 				height: 2,
 			},
 			{
-				internalFormat: 'R8',
-				format: 'RED',
-				type: 'UNSIGNED_BYTE',
+				format: 'R8',
 				minFilter: 'NEAREST',
 				magFilter: 'NEAREST',
 			},
@@ -153,6 +208,61 @@ describe('ShaderPad uniform and texture update behavior', () => {
 			width: 1,
 			height: 1,
 		});
+
+		shader.destroy();
+	});
+
+	it('infers each half-float upload type from the current data array', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+		});
+
+		shader.initializeTexture('u_data', { data: null, width: 1, height: 1 }, { format: 'RGBA16F' });
+		expect(getGlOperations(shader, 'texImage2D').at(-1)).toMatchObject({
+			type: getGl(shader).FLOAT,
+			sourceData: null,
+		});
+		shader.updateTextures({
+			u_data: { data: new Uint16Array([0, 0, 0, 0]), width: 1, height: 1 },
+		});
+		expect(getGlOperations(shader, 'texImage2D').at(-1)).toMatchObject({
+			type: getGl(shader).HALF_FLOAT,
+		});
+
+		shader.updateTextures({
+			u_data: { data: new Float32Array([1, 2, 3, 4]), width: 1, height: 1 },
+		});
+		expect(getGlOperations(shader, 'texImage2D').at(-1)).toMatchObject({
+			type: getGl(shader).FLOAT,
+			sourceData: new Float32Array([1, 2, 3, 4]),
+		});
+
+		shader.destroy();
+	});
+
+	it('does not upload or advance empty history textures', async () => {
+		const ShaderPad = await loadShaderPad();
+		const shader = new ShaderPad(FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+		});
+
+		shader.initializeTexture('u_data', { data: null, width: 1, height: 1 }, { format: 'RGBA16F', history: 1 });
+		const info = getTextureInfo(shader as any, 'u_data');
+		const initialWrites = getGlOperations(shader, 'texSubImage3D');
+		expect(initialWrites).toHaveLength(2);
+		expect(initialWrites.every(write => write.sourceData instanceof Float32Array)).toBe(true);
+		expect(info.history.writeIndex).toBe(0);
+
+		shader.updateTextures({
+			u_data: { data: new Uint16Array([0, 0, 0, 0]), width: 1, height: 1 },
+		});
+		expect(getGlOperations(shader, 'texSubImage3D')).toHaveLength(3);
+		expect(getGlOperations(shader, 'texSubImage3D').at(-1)).toMatchObject({
+			type: getGl(shader).HALF_FLOAT,
+			sourceData: new Uint16Array([0, 0, 0, 0]),
+		});
+		expect(info.history.writeIndex).toBe(1);
 
 		shader.destroy();
 	});

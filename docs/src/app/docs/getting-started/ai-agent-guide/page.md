@@ -81,6 +81,7 @@ Add `helpers()` only when you actually need helper GLSL like `fitCover()` or `hi
 | Declare only the built-in uniforms you actually use.                                                                         | Avoid duplicate or stale declarations.                           |
 | Call `initializeUniform()` before `updateUniforms()`.                                                                        | Updates do not create uniforms.                                  |
 | Call `initializeTexture()` before `updateTextures()`.                                                                        | Updates do not create textures.                                  |
+| Create `deepHistory()` before ShaderPad construction.                                                                        | Its plugin must inject the typed accessor before eager linking.  |
 | For live DOM textures like webcam or video, call `updateTextures()` every frame.                                             | The GPU copy does not refresh itself.                            |
 | Use `play()` for normal animation, `step()` for manual advancement, and `draw()` only for render-only passes.                | `draw()` does not advance time, frame count, or history.         |
 | If you use `helpers()`, do not manually declare `u_resolution`.                                                              | The plugin injects it for you.                                   |
@@ -113,6 +114,7 @@ Add `helpers()` only when you actually need helper GLSL like `fitCover()` or `hi
 | -------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Fullscreen browser shader                          | `createFullscreenCanvas()` plus `autosize()`                                    | Start with one visible canvas and one pass.                                            | [`basic.ts`](/examples/source/basic.ts)                                                                                          |
 | Shader output feedback or trails                   | Enable `history`, add `helpers()`, sample with `historyZ()`                     | Keep history depth as small as the max delay really needs.                             | [`history.ts`](/examples/source/history.ts)                                                                                      |
+| History too deep for one texture allocation        | Use `deepHistory` with the required number of `chunks`                          | Use the fewest chunks that fit; every chunk consumes a texture unit.                   | [`deepHistory`](/docs/plugins/deep-history)                                                                                      |
 | Webcam time delays or RGB echoes                   | Put `{ history: N }` on the webcam texture                                      | Compute `N` from the largest frame offset and stop there.                              | [`webcam-trails.ts`](/examples/source/webcam-trails.ts), [`webcam-channel-trails.ts`](/examples/source/webcam-channel-trails.ts) |
 | Face, mouth, eye, or eyebrow region effects        | Use `face()` plus `faceAt()`, `inFace()`, or the specific region helpers        | Use a region helper first, then only do expensive math inside the hit region.          | [`face.ts`](/examples/source/face.ts), [`camo.ts`](/examples/source/camo.ts)                                                     |
 | Body region effects                                | Use `pose()` plus `poseAt()` or `inPose()` and `poseLandmark()`                 | `poseAt()` tells you which pose owns a pixel without manual mask decoding.             | [`pose.ts`](/examples/source/pose.ts), [`camo.ts`](/examples/source/camo.ts)                                                     |
@@ -139,7 +141,7 @@ Install `@mediapipe/tasks-vision` when using the MediaPipe plugins, and make sur
 | ----------------------------------------------------------- | ------------------------------------------- |
 | Ordinary color compositing                                  | `RGBA8` with `LINEAR`                       |
 | Single-channel masks or grayscale                           | `R8` with `NEAREST`                         |
-| Float accumulation, halation, or trails                     | `RGBA16F` with `HALF_FLOAT`                 |
+| Float accumulation, halation, or trails                     | `RGBA16F`                                   |
 | Scalar float data                                           | `R32F` with `NEAREST`                       |
 | Integer IDs, coordinates, acceptance maps, or position maps | `R32UI`, `RG16I`, or `RG32I` with `NEAREST` |
 
@@ -394,17 +396,13 @@ const chainOpts = {
 
 const score = new ShaderPad(scoreFrag, {
 	...chainOpts,
-	internalFormat: 'RG16I',
-	format: 'RG_INTEGER',
-	type: 'SHORT',
+	format: 'RG16I',
 });
 
 const state = new ShaderPad(stateFrag, {
 	...chainOpts,
 	history: 1,
-	internalFormat: 'R32UI',
-	format: 'RED_INTEGER',
-	type: 'UNSIGNED_INT',
+	format: 'R32UI',
 });
 
 const output = new ShaderPad(outputFrag, {

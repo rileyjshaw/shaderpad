@@ -1,5 +1,5 @@
-import ShaderPad from "./index.mjs";
-import { a as loadDomTextureSource, i as isLiveDomTextureElement, l as createPlaybackVisibilityController, n as getLiveDomTextureSource, o as parseBooleanLikeValue, r as isDomTextureElement, s as parseTextureOptions, t as addDomTextureRefreshListener } from "./declarative-textures-CiZHpMui.mjs";
+import { t as ShaderPad } from "./src-SI9RyT8t.mjs";
+import { a as loadDomTextureSource, i as isLiveDomTextureElement, l as createPlaybackVisibilityController, n as getLiveDomTextureSource, o as parseBooleanLikeValue, r as isDomTextureElement, s as parseTextureOptions, t as addDomTextureRefreshListener } from "./declarative-textures-CLw4roIN.mjs";
 import autosize from "./plugins/autosize.mjs";
 
 //#region src/web-component.ts
@@ -68,7 +68,6 @@ var ShaderPadElement = class ShaderPadElement extends ShaderPadElementBase {
 	liveTextures = [];
 	constructor() {
 		super();
-		ensureShaderPadHostDefaults(this);
 		const defaults = this.constructor.shaderPadConfig;
 		this.pluginsValue = [...defaults.plugins];
 		this.defaultOptionsValue = { ...defaults.options };
@@ -125,6 +124,7 @@ var ShaderPadElement = class ShaderPadElement extends ShaderPadElementBase {
 		this.syncPlayback();
 	}
 	connectedCallback() {
+		ensureShaderPadHostDefaults(this);
 		this.ensureInitialized().catch(() => {});
 	}
 	disconnectedCallback() {
@@ -389,9 +389,10 @@ var ShaderPadElement = class ShaderPadElement extends ShaderPadElementBase {
 		}
 	}
 	async initializeTextures(instance, bindings) {
-		for (const binding of bindings) {
-			const source = isDomTextureElement(binding.element) ? await loadDomTextureSource(binding.element) : await loadNestedShaderPadSource(binding.element);
-			instance.initializeTexture(binding.name, source, binding.options);
+		const sources = await Promise.all(bindings.map((binding) => isDomTextureElement(binding.element) ? loadDomTextureSource(binding.element) : loadNestedShaderPadSource(binding.element)));
+		for (let i = 0; i < bindings.length; ++i) {
+			const binding = bindings[i];
+			instance.initializeTexture(binding.name, sources[i], binding.options);
 		}
 	}
 	installChildListeners(bindings) {

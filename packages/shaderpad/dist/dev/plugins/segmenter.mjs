@@ -1,4 +1,4 @@
-import ShaderPad from "../index.mjs";
+import { t as ShaderPad } from "../src-SI9RyT8t.mjs";
 import { DEFAULT_WASM_BASE_URL, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError } from "./mediapipe-common.mjs";
 
 //#region src/plugins/segmenter.ts
@@ -113,9 +113,7 @@ function segmenter(config) {
 				const maskShader = new ShaderPad(MASK_SHADER_SOURCE, { canvas: mediapipeCanvas });
 				maskShader.initializeTexture("u_categoryMask", dummyTexture);
 				maskShader.initializeTexture("u_confidenceMask", dummyTextureFloat32, {
-					format: "RED",
-					internalFormat: "R32F",
-					type: "FLOAT",
+					format: "R32F",
 					minFilter: "NEAREST",
 					magFilter: "NEAREST"
 				});

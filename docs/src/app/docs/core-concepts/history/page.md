@@ -6,7 +6,7 @@ nextjs:
         description: Use output history and texture history for feedback, delay, and temporal effects.
 ---
 
-History is one of ShaderPad’s more unique features, and can assist with snapshots, feedback effects, and creative coding. It lets you sample earlier frames without building the ring buffer yourself.
+History can assist with snapshots, feedback effects, accumulation, and creative coding. It lets you sample earlier frames without building the ring buffer yourself.
 
 ## Shader History
 
@@ -35,6 +35,10 @@ shader.initializeTexture('u_webcam', videoElement, { history: 30 });
 ```
 
 That creates a history texture plus a matching frame-offset uniform such as `u_webcamFrameOffset`.
+
+{% callout title="Deep history" %}
+For unusually deep, high-resolution shader or texture history that exceeds a browser’s per-texture allocation limit, use the optional [`deepHistory` plugin](/docs/plugins/deep-history).
+{% /callout %}
 
 ## Plugin History
 
@@ -85,6 +89,10 @@ const shader = new ShaderPad(fragmentShaderSrc, {
 
 Use `historyZ(..., 1)` to sample the previous stored frame. Larger values move further back in time. For texture and plugin history, `historyZ(..., 0)` is also valid and refers to the current value.
 
+{% callout title="Reading deep history" type="warning" %}
+Since `deepHistory` may span several arrays, sample it through its custom accessor instead of `historyZ()`.
+{% /callout %}
+
 ## Skipping History Writes
 
 Each frame is written to the history buffer by default. You can prevent a step from updating output history with:
@@ -110,7 +118,7 @@ shader.step({ skipHistory: true });
 
 ## History Precision
 
-History buffers match the [precision and format options](/docs/core-concepts/format-and-precision) of their corresponding texture. This applies to framebuffer history (configured in the `ShaderPad` constructor) and texture history (configured in `initializeTexture()`).
+History buffers match the [precision and format options](/docs/core-concepts/format-and-precision) of their corresponding texture. This applies to framebuffer history (configured in the `ShaderPad` constructor), texture history (configured in `initializeTexture`), and `deepHistory` (configured in the plugin options).
 
 ---
 

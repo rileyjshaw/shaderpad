@@ -379,8 +379,7 @@ describe('ShaderPad lifecycle and history semantics', () => {
 			},
 			{
 				history: 2,
-				internalFormat: 'RGBA8',
-				type: 'UNSIGNED_BYTE',
+				format: 'RGBA8',
 				minFilter: 'NEAREST',
 				magFilter: 'NEAREST',
 			},
@@ -402,7 +401,7 @@ describe('ShaderPad lifecycle and history semantics', () => {
 		expect((shader as any).frame).toBe(2);
 
 		const elapsedBeforeClear = (shader as any).tElapsed;
-		const outputHistoryBaseline = getTextureWrites(shader as any, 'u_history').length;
+		const outputTextureWriteBaseline = getTextureWrites(shader as any, 'u_history').length;
 		const textureHistoryBaseline = getTextureWrites(shader as any, 'u_data').length;
 		clearGlOperations(shader);
 
@@ -416,7 +415,7 @@ describe('ShaderPad lifecycle and history semantics', () => {
 		expect(getUniformValue(shader as any, 'u_dataFrameOffset')).toBe(0);
 		expect(getGlOperations(shader, 'clear')).toHaveLength(0);
 
-		expect(getTextureWrites(shader as any, 'u_history').slice(outputHistoryBaseline)).toEqual([
+		expect(getTextureWrites(shader as any, 'u_history').slice(outputTextureWriteBaseline)).toEqual([
 			expect.objectContaining({ kind: 'sub3d', slot: 0 }),
 			expect.objectContaining({ kind: 'sub3d', slot: 1 }),
 			expect.objectContaining({ kind: 'sub3d', slot: 2 }),

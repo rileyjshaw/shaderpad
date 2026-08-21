@@ -1,55 +1,43 @@
-import { safeMod, spError } from './internal/util';
+// Trailing underscores mark private record fields that the production build may safely mangle.
+import {
+	arrayForType,
+	channelsFor,
+	uploadFormatFor,
+	typeFor,
+	type GLFormatString,
+	type GLRenderFormatString,
+	type GLUploadFormatString,
+} from './internal/formats';
+import { getSourceDimensions, safeMod, spError } from './internal/util';
+
+export type { GLFormatString, GLRenderFormatString } from './internal/formats';
 
 const DEFAULT_VERTEX_SHADER_SRC = `#version 300 es
 in vec2 a_position;out vec2 v_uv;void main(){gl_Position=vec4(a_position,0.,1.);v_uv=a_position*.5+.5;}`;
 
+type UniformValue = number | number[] | (number | number[])[];
+
 interface Uniform {
-	type: 'float' | 'int' | 'uint';
-	length: 1 | 2 | 3 | 4;
-	location: WebGLUniformLocation;
-	arrayLength?: number;
+	type_: 'float' | 'int' | 'uint';
+	length_: 1 | 2 | 3 | 4;
+	location_: WebGLUniformLocation;
+	arrayLength_?: number;
 }
 
-type GLInternalFormatChannels = 'R' | 'RG' | 'RGB' | 'RGBA';
-type GLInternalFormatDepth = '8' | '16F' | '32F' | '8UI' | '8I' | '16UI' | '16I' | '32UI' | '32I';
-export type GLInternalFormatString = `${GLInternalFormatChannels}${GLInternalFormatDepth}`;
-
-export type GLFormatString =
-	'RED' | 'RG' | 'RGB' | 'RGBA' | 'RED_INTEGER' | 'RG_INTEGER' | 'RGB_INTEGER' | 'RGBA_INTEGER';
-export type GLTypeString =
-	'UNSIGNED_BYTE' | 'BYTE' | 'FLOAT' | 'HALF_FLOAT' | 'UNSIGNED_SHORT' | 'SHORT' | 'UNSIGNED_INT' | 'INT';
-export type GLFilterString = 'LINEAR' | 'NEAREST';
-export type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
-export type ColorSpace = PredefinedColorSpace;
-
-const FORMAT_TYPE_SUFFIXES: [string, GLTypeString][] = [
-	['8UI', 'UNSIGNED_BYTE'],
-	['8I', 'BYTE'],
-	['16UI', 'UNSIGNED_SHORT'],
-	['16I', 'SHORT'],
-	['16F', 'HALF_FLOAT'],
-	['32UI', 'UNSIGNED_INT'],
-	['32I', 'INT'],
-	['32F', 'FLOAT'],
-	['8', 'UNSIGNED_BYTE'],
-];
-
-const UNIFORM_TYPE_SUFFIXES: Record<Uniform['type'], string> = {
+const UNIFORM_TYPE_SUFFIXES: Record<Uniform['type_'], string> = {
 	float: 'f',
 	int: 'i',
 	uint: 'ui',
 };
 
-function typeFromInternalFormatString(internalFormatString?: GLInternalFormatString): GLTypeString | undefined {
-	return internalFormatString && FORMAT_TYPE_SUFFIXES.find(([suffix]) => internalFormatString.endsWith(suffix))?.[1];
-}
+export type GLFilterString = 'LINEAR' | 'NEAREST';
+export type GLWrapString = 'CLAMP_TO_EDGE' | 'REPEAT' | 'MIRRORED_REPEAT';
+export type ColorSpace = PredefinedColorSpace;
 
-type GLConstantString = GLInternalFormatString | GLFormatString | GLTypeString | GLFilterString | GLWrapString;
+type GLConstantString = GLFormatString | GLUploadFormatString | GLFilterString | GLWrapString;
 
 export interface TextureOptions {
-	internalFormat?: GLInternalFormatString;
 	format?: GLFormatString;
-	type?: GLTypeString;
 	minFilter?: GLFilterString;
 	magFilter?: GLFilterString;
 	wrapS?: GLWrapString;
@@ -57,29 +45,39 @@ export interface TextureOptions {
 	colorSpace?: ColorSpace;
 	preserveY?: boolean;
 }
-type ResolvedTextureOptions = {
-	type: number;
-	format: number;
-	internalFormat: number;
-	minFilter: number;
-	magFilter: number;
-	wrapS: number;
-	wrapT: number;
-	colorSpace?: ColorSpace;
-	preserveY?: boolean;
-	isIntegerColorFormat: boolean;
-};
+interface ResolvedTextureOptions {
+	formatName_: GLFormatString;
+	format_: number;
+	uploadFormat_: number;
+	channelCount_: number;
+	minFilter_: number;
+	magFilter_: number;
+	wrapS_: number;
+	wrapT_: number;
+	colorSpace_?: ColorSpace;
+	preserveY_?: boolean;
+}
 
-interface Texture {
-	texture: WebGLTexture;
-	unitIndex: number;
-	width: number;
-	height: number;
-	history?: {
-		depth: number;
-		writeIndex: number;
-	};
-	options: ResolvedTextureOptions;
+interface TextureHistory {
+	depth_: number;
+	writeIndex_: number;
+}
+
+interface TextureSeed {
+	width_: number;
+	height_: number;
+	history_: TextureHistory | undefined;
+	options_: ResolvedTextureOptions;
+}
+
+interface Texture extends TextureSeed {
+	texture_: WebGLTexture;
+	unitIndex_: number;
+}
+
+function getPxArray(type: number, pixelCount: number, channelCount: number): ArrayBufferView {
+	const ArrayType = arrayForType(type);
+	return new ArrayType(pixelCount * (type > 30000 ? 1 : channelCount));
 }
 
 export interface CustomTexture {
@@ -112,6 +110,7 @@ export type TextureSource =
 export type UpdateTextureSource = Exclude<TextureSource, CustomTexture> | PartialCustomTexture;
 
 export interface PluginContext {
+	readonly options: Options;
 	injectGLSL: (code: string) => void;
 	emit: (name: ShaderPadEventName, ...args: any[]) => void;
 	updateTexture: (name: string, source: UpdateTextureSource, historySlots?: HistorySlots) => void;
@@ -136,7 +135,9 @@ export type ShaderPadEventName =
 	| 'destroy'
 	| `${string}:${string}`;
 
-export type RenderTextureOptions = Omit<TextureOptions, 'preserveY'>;
+export interface RenderTextureOptions extends Omit<TextureOptions, 'format' | 'preserveY'> {
+	format?: GLRenderFormatString;
+}
 
 export interface Options extends RenderTextureOptions {
 	canvas?: HTMLCanvasElement | OffscreenCanvas | { width: number; height: number } | null;
@@ -152,22 +153,24 @@ export interface StepOptions {
 
 type HistorySlots = number | number[];
 
-type TextureUnitPool = {
-	free: number[];
-	next: number;
-	max: number;
-};
+interface TextureUnitPool {
+	free_: number[];
+	next_: number;
+	max_: number;
+}
+
+interface CanvasRegistryEntry {
+	texturePool_: TextureUnitPool;
+	instances_: Set<ShaderPad>;
+}
 
 const HISTORY_TEXTURE_KEY = Symbol('u_history');
-const INTERMEDIATE_TEXTURE_KEY = Symbol('__SHADERPAD_BUFFER');
+const INTERMEDIATE_TEXTURE_KEY = __SHADERPAD_DEV__ ? Symbol('__SHADERPAD_BUFFER') : Symbol();
 
-const canvasRegistry = new WeakMap<
-	HTMLCanvasElement | OffscreenCanvas,
-	{ texPool: TextureUnitPool; instances: Set<ShaderPad> }
->();
+const canvasRegistry = new WeakMap<HTMLCanvasElement | OffscreenCanvas, CanvasRegistryEntry>();
 
 function combineShaderCode(shader: string, injections: string[]): string {
-	if (!injections?.length) return shader;
+	if (!injections.length) return shader;
 	const lines = shader.split('\n');
 	const insertAt =
 		lines.findLastIndex(line => {
@@ -178,71 +181,43 @@ function combineShaderCode(shader: string, injections: string[]): string {
 	return lines.join('\n');
 }
 
-function getSourceDimensions(source: TextureSource): {
-	width: number;
-	height: number;
-} {
-	if (source instanceof WebGLTexture) {
-		return { width: 0, height: 0 }; // Invalid - dimensions not readable.
-	}
-	if (source instanceof ShaderPad) {
-		return { width: source.canvas.width, height: source.canvas.height };
-	}
-	if (source instanceof HTMLVideoElement) {
-		return { width: source.videoWidth, height: source.videoHeight };
-	}
-	if (source instanceof HTMLImageElement) {
-		return {
-			width: source.naturalWidth ?? source.width,
-			height: source.naturalHeight ?? source.height,
-		};
-	}
-	// CustomTexture, HTMLCanvasElement, OffscreenCanvas, ImageBitmap.
-	return { width: source.width, height: source.height };
-}
-
 function stringFrom(name: string | symbol) {
 	return typeof name === 'symbol' ? (name.description ?? '') : name;
 }
 
 class ShaderPad {
-	private isHeadless = false;
-	private isTouch = false;
+	#isHeadless = false;
+	#isTouch = false;
 	declare public readonly gl: WebGL2RenderingContext;
-	declare private typeArrays: Map<number, new (length: number) => ArrayBufferView>;
-	declare private typeFormats: Map<number, GLInternalFormatString>;
-	declare private uintTypes: Set<number>;
-	private uniforms: Map<string, Uniform> = new Map();
-	private textures: Map<string | symbol, Texture> = new Map();
-	declare private texPool: TextureUnitPool;
-	private buffer: WebGLBuffer | null = null;
-	private vao: WebGLVertexArrayObject | null = null;
-	private program: WebGLProgram | null = null;
-	declare private frameId: number | null;
-	private listeners: Map<string, EventListener> = new Map();
-	private frame = 0;
-	private tElapsed = 0;
-	private tStart = NaN;
-	private cursorPos = [0.5, 0.5];
-	private clickPos = [0.5, 0.5];
-	private isClicked = false;
+	#uniforms: Map<string, Uniform> = new Map();
+	#textures: Map<string | symbol, Texture> = new Map();
+	#texturePool!: TextureUnitPool;
+	#buffer: WebGLBuffer | null = null;
+	#vao: WebGLVertexArrayObject | null = null;
+	#program: WebGLProgram | null = null;
+	#frameId: number | null = null;
+	#listeners: Map<string, EventListener> = new Map();
+	#frame = 0;
+	#tElapsed = 0;
+	#tStart = NaN;
+	#cursorPos = [0.5, 0.5];
+	#clickPos = [0.5, 0.5];
 	declare public canvas: HTMLCanvasElement | OffscreenCanvas;
-	private resObserver: MutationObserver | null = null;
-	private hooks: Map<ShaderPadEventName, Function[]> = new Map();
-	private historyDepth = 0;
-	declare private texOptions: TextureOptions;
-	declare private cursorTgt: Window | Element | undefined;
+	#resObserver: MutationObserver | null = null;
+	#hooks: Partial<Record<ShaderPadEventName, Function[]>> = {};
+	#cursorTarget: Window | Element | undefined;
 	// WebGL can’t read from and write to the history texture at the same time.
 	// We write to an intermediate texture then blit to the history texture.
-	private intermediateFbo: WebGLFramebuffer | null = null;
+	#intermediateFbo: WebGLFramebuffer | null = null;
 
-	constructor(fragmentShaderSrc: string, { canvas, plugins, history, cursorTarget, ...texOptions }: Options = {}) {
+	constructor(fragmentShaderSrc: string, options: Options = {}) {
+		const { canvas, plugins, history = 0, cursorTarget, ...textureOptions } = options;
 		if (canvas && 'getContext' in canvas) {
 			this.canvas = canvas;
 		} else {
 			const { width = 1, height = 1 } = canvas || {};
 			this.canvas = new OffscreenCanvas(width, height);
-			this.isHeadless = true;
+			this.#isHeadless = true;
 		}
 
 		const gl = this.canvas.getContext('webgl2', {
@@ -252,75 +227,64 @@ class ShaderPad {
 			throw __SHADERPAD_DEV__
 				? spError(0, {
 						canvasType: this.canvas.constructor.name,
-						isHeadless: this.isHeadless,
+						isHeadless: this.#isHeadless,
 						canvasWidth: this.canvas.width,
 						canvasHeight: this.canvas.height,
 					})
 				: spError(0);
 		}
 		this.gl = gl;
-		this.typeArrays = new Map<number, new (length: number) => ArrayBufferView>([
-			[gl.FLOAT, Float32Array],
-			[gl.HALF_FLOAT, Uint16Array],
-			[gl.UNSIGNED_SHORT, Uint16Array],
-			[gl.SHORT, Int16Array],
-			[gl.BYTE, Int8Array],
-			[gl.UNSIGNED_INT, Uint32Array],
-			[gl.INT, Int32Array],
-		]);
-		this.typeFormats = new Map<number, GLInternalFormatString>([
-			[gl.FLOAT, 'RGBA32F'],
-			[gl.HALF_FLOAT, 'RGBA16F'],
-			[gl.UNSIGNED_SHORT, 'RGBA32UI'],
-			[gl.SHORT, 'RGBA32I'],
-			[gl.BYTE, 'RGBA32I'],
-			[gl.UNSIGNED_INT, 'RGBA32UI'],
-			[gl.INT, 'RGBA32I'],
-		]);
-		this.uintTypes = new Set([gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT, gl.UNSIGNED_INT]);
-
+		const renderFormat = textureOptions.format;
+		// gl.getExtension isn’t just a check, it’s a required side-effect to enable float targets.
+		if (renderFormat?.includes('F') && !gl.getExtension('EXT_color_buffer_float')) {
+			throw __SHADERPAD_DEV__ ? spError(6, { format: renderFormat, type: typeFor(renderFormat) }) : spError(6);
+		}
 		let registryEntry = canvasRegistry.get(this.canvas);
 		if (!registryEntry) {
 			registryEntry = {
-				texPool: {
-					free: [],
-					next: 0,
-					max: gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),
+				texturePool_: {
+					free_: [],
+					next_: 0,
+					max_: gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),
 				},
-				instances: new Set([this]),
+				instances_: new Set(),
 			};
 			canvasRegistry.set(this.canvas, registryEntry);
 		}
-		this.texPool = registryEntry.texPool;
-		registryEntry.instances.add(this);
+		this.#texturePool = registryEntry.texturePool_;
+		registryEntry.instances_.add(this);
+		if (__SHADERPAD_DEV__) {
+			Object.defineProperties(this, {
+				uniforms: { value: this.#uniforms },
+				textures: { value: this.#textures },
+				texturePool: { value: this.#texturePool },
+				frame: { get: () => this.#frame },
+				tElapsed: { get: () => this.#tElapsed },
+			});
+		}
 
-		this.texOptions = texOptions;
+		this.#cursorTarget = cursorTarget ?? (this.canvas instanceof HTMLCanvasElement ? this.canvas : undefined);
 
-		if (history) this.historyDepth = history;
-		this.cursorTgt = cursorTarget ?? (this.canvas instanceof HTMLCanvasElement ? this.canvas : undefined);
-		this.frameId = null;
-
+		// TODO: Unify output and texture history behind generated accessors in a separate breaking change.
 		const glslInjections: string[] = [];
 		if (plugins) {
 			plugins.forEach(plugin =>
 				plugin(this, {
+					options,
 					injectGLSL: (code: string) => {
 						glslInjections.push(code);
 					},
-					emit: this.emit.bind(this),
-					updateTexture: this.updateTex.bind(this),
+					emit: this.#emit.bind(this),
+					updateTexture: this.#updateTexture.bind(this),
 				}),
 			);
 		}
 
 		const program = gl.createProgram();
-		if (!program) {
-			throw spError(1);
-		}
-		this.program = program;
-
-		const vertexShader = this.createShader(gl.VERTEX_SHADER, DEFAULT_VERTEX_SHADER_SRC);
-		const fragmentShader = this.createShader(
+		if (!program) throw spError(1);
+		this.#program = program;
+		const vertexShader = this.#createShader(gl.VERTEX_SHADER, DEFAULT_VERTEX_SHADER_SRC);
+		const fragmentShader = this.#createShader(
 			gl.FRAGMENT_SHADER,
 			combineShaderCode(fragmentShaderSrc, glslInjections),
 		);
@@ -330,9 +294,8 @@ class ShaderPad {
 		gl.linkProgram(program);
 		gl.deleteShader(vertexShader);
 		gl.deleteShader(fragmentShader);
-
 		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-			const linkError = __SHADERPAD_DEV__
+			const error = __SHADERPAD_DEV__
 				? spError(2, {
 						programInfoLog: gl.getProgramInfoLog(program),
 						fragmentShaderLength: fragmentShaderSrc.length,
@@ -340,24 +303,23 @@ class ShaderPad {
 					})
 				: spError(2);
 			gl.deleteProgram(program);
-			throw linkError;
+			this.#program = null;
+			throw error;
 		}
 
-		this.vao = gl.createVertexArray();
-		gl.bindVertexArray(this.vao);
-		this.buffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+		this.#vao = gl.createVertexArray();
+		gl.bindVertexArray(this.#vao);
+		this.#buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#buffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
 		gl.enableVertexAttribArray(0);
 		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
-		gl.useProgram(program);
-
 		if (this.canvas instanceof HTMLCanvasElement) {
-			this.resObserver = new MutationObserver(() => this.syncRes());
-			this.resObserver.observe(this.canvas, {
+			this.#resObserver = new MutationObserver(() => this.#syncRes());
+			this.#resObserver.observe(this.canvas, {
 				attributes: true,
 				attributeFilter: ['width', 'height'],
 			});
@@ -371,8 +333,8 @@ class ShaderPad {
 						descriptor.set!.call(canvas, v);
 						const entry = canvasRegistry.get(canvas);
 						if (entry) {
-							for (const instance of entry.instances) {
-								instance.syncRes();
+							for (const instance of entry.instances_) {
+								instance.#syncRes();
 							}
 						}
 					},
@@ -383,33 +345,26 @@ class ShaderPad {
 			wrapDimension('width');
 			wrapDimension('height');
 		}
-		this.syncRes();
+		this.#syncRes();
 
-		this.initializeUniform('u_cursor', 'float', this.cursorPos, { allowMissing: true });
-		this.initializeUniform('u_click', 'float', [...this.clickPos, this.isClicked ? 1.0 : 0.0], {
-			allowMissing: true,
-		});
-		this.initializeUniform('u_time', 'float', 0, { allowMissing: true });
-		this.initializeUniform('u_frame', 'int', 0, { allowMissing: true });
+		this.#initializeOptionalUniform('u_cursor', 'float', this.#cursorPos);
+		this.#initializeOptionalUniform('u_click', 'float', [...this.#clickPos, 0]);
+		this.#initializeOptionalUniform('u_time', 'float', 0);
+		this.#initializeOptionalUniform('u_frame', 'int', 0);
 
-		this.initTex(INTERMEDIATE_TEXTURE_KEY, this.canvas, {
-			...this.texOptions,
+		this.#initializeTexture(INTERMEDIATE_TEXTURE_KEY, this.canvas, {
+			...textureOptions,
 		});
-		this.intermediateFbo = gl.createFramebuffer();
-		this.bindIntermediate();
+		this.#intermediateFbo = gl.createFramebuffer();
+		this.#bindIntermediate();
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-		if (this.historyDepth > 0) {
-			this.initTex(HISTORY_TEXTURE_KEY, this.canvas, {
-				history: this.historyDepth,
-				...this.texOptions,
-			});
-		}
-		this.addListeners();
-		this.emit('_init');
+		if (history > 0) this.#initializeTexture(HISTORY_TEXTURE_KEY, this.canvas, { ...textureOptions, history });
+		this.#addListeners();
+		this.#emit('_init');
 	}
 
-	private resolveGLConst(value: GLConstantString): number {
+	#resolveGLConst(value: GLConstantString): number {
 		const gl = this.gl;
 		const resolved = gl[value];
 		if (resolved === undefined) {
@@ -418,19 +373,16 @@ class ShaderPad {
 		return resolved;
 	}
 
-	private emit(name: ShaderPadEventName, ...args: any[]) {
-		this.hooks.get(name)?.forEach(hook => hook.call(this, ...args));
+	#emit(name: ShaderPadEventName, ...args: any[]) {
+		this.#hooks[name]?.forEach(hook => hook.call(this, ...args));
 	}
 
 	on(name: ShaderPadEventName, fn: Function) {
-		if (!this.hooks.has(name)) {
-			this.hooks.set(name, []);
-		}
-		this.hooks.get(name)!.push(fn);
+		(this.#hooks[name] ??= []).push(fn);
 	}
 
 	off(name: ShaderPadEventName, fn: Function) {
-		const hooks = this.hooks.get(name);
+		const hooks = this.#hooks[name];
 		if (hooks) {
 			const index = hooks.indexOf(fn);
 			if (index >= 0) {
@@ -439,7 +391,7 @@ class ShaderPad {
 		}
 	}
 
-	private createShader(type: number, source: string): WebGLShader {
+	#createShader(type: number, source: string): WebGLShader {
 		const gl = this.gl;
 		const shader = gl.createShader(type)!;
 		gl.shaderSource(shader, source);
@@ -458,219 +410,178 @@ class ShaderPad {
 		return shader;
 	}
 
-	private getCursorTgtRect(): {
-		left: number;
-		top: number;
-		width: number;
-		height: number;
-	} {
-		const target = this.cursorTgt!;
+	#getCursorTargetRect(): [number, number, number, number] {
+		const target = this.#cursorTarget!;
 		if (target === window) {
-			return {
-				left: 0,
-				top: 0,
-				width: window.innerWidth,
-				height: window.innerHeight,
-			};
+			return [0, 0, window.innerWidth, window.innerHeight];
 		}
-		return (target as Element).getBoundingClientRect();
+		const rect = (target as Element).getBoundingClientRect();
+		return [rect.left, rect.top, rect.width, rect.height];
 	}
 
-	private addListeners() {
-		if (!this.cursorTgt) return;
+	#addListeners() {
+		if (!this.#cursorTarget) return;
 		const updateCursor = (x: number, y: number) => {
-			if (!this.uniforms.has('u_cursor')) return;
-			const rect = this.getCursorTgtRect();
-			const u = (x - rect.left) / rect.width;
-			const v = 1 - (y - rect.top) / rect.height; // Flip Y for WebGL
-			this.cursorPos[0] = Math.max(0, Math.min(1, u));
-			this.cursorPos[1] = Math.max(0, Math.min(1, v));
-			this.updateUniforms({ u_cursor: this.cursorPos });
+			if (!this.#uniforms.has('u_cursor')) return;
+			const [left, top, width, height] = this.#getCursorTargetRect();
+			const u = (x - left) / width;
+			const v = 1 - (y - top) / height; // Flip Y for WebGL
+			this.#cursorPos[0] = Math.max(0, Math.min(1, u));
+			this.#cursorPos[1] = Math.max(0, Math.min(1, v));
+			this.updateUniforms({ u_cursor: this.#cursorPos });
 		};
 
 		const updateClick = (isClicked: boolean, x?: number, y?: number) => {
-			if (!this.uniforms.has('u_click')) return;
-			this.isClicked = isClicked;
+			if (!this.#uniforms.has('u_click')) return;
 			if (isClicked) {
-				const rect = this.getCursorTgtRect();
+				const [left, top, width, height] = this.#getCursorTargetRect();
 				const xVal = x as number;
 				const yVal = y as number;
-				this.clickPos[0] = Math.max(0, Math.min(1, (xVal - rect.left) / rect.width));
-				this.clickPos[1] = Math.max(0, Math.min(1, 1 - (yVal - rect.top) / rect.height)); // Flip Y for WebGL
+				this.#clickPos[0] = Math.max(0, Math.min(1, (xVal - left) / width));
+				this.#clickPos[1] = Math.max(0, Math.min(1, 1 - (yVal - top) / height)); // Flip Y for WebGL
 			}
 			this.updateUniforms({
-				u_click: [...this.clickPos, this.isClicked ? 1.0 : 0.0],
+				u_click: [...this.#clickPos, +isClicked],
 			});
 		};
 
-		this.listeners.set('mousemove', event => {
+		this.#listeners.set('mousemove', event => {
 			const mouseEvent = event as MouseEvent;
-			if (!this.isTouch) {
+			if (!this.#isTouch) {
 				updateCursor(mouseEvent.clientX, mouseEvent.clientY);
 			}
 		});
 
-		this.listeners.set('mousedown', event => {
+		this.#listeners.set('mousedown', event => {
 			const mouseEvent = event as MouseEvent;
-			if (!this.isTouch) {
+			if (!this.#isTouch) {
 				if (mouseEvent.button === 0) {
-					this.isClicked = true;
 					updateClick(true, mouseEvent.clientX, mouseEvent.clientY);
 				}
 			}
 		});
 
-		this.listeners.set('mouseup', event => {
+		this.#listeners.set('mouseup', event => {
 			const mouseEvent = event as MouseEvent;
-			if (!this.isTouch) {
+			if (!this.#isTouch) {
 				if (mouseEvent.button === 0) {
 					updateClick(false);
 				}
 			}
 		});
 
-		this.listeners.set('touchmove', event => {
+		this.#listeners.set('touchmove', event => {
 			const touchEvent = event as TouchEvent;
 			if (touchEvent.touches.length > 0) {
 				updateCursor(touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
 			}
 		});
 
-		this.listeners.set('touchstart', event => {
+		this.#listeners.set('touchstart', event => {
 			const touchEvent = event as TouchEvent;
-			this.isTouch = true;
+			this.#isTouch = true;
 			if (touchEvent.touches.length > 0) {
 				updateCursor(touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
 				updateClick(true, touchEvent.touches[0].clientX, touchEvent.touches[0].clientY);
 			}
 		});
 
-		this.listeners.set('touchend', event => {
+		this.#listeners.set('touchend', event => {
 			const touchEvent = event as TouchEvent;
 			if (touchEvent.touches.length === 0) {
 				updateClick(false);
 			}
 		});
 
-		this.listeners.forEach((listener, event) => {
-			this.cursorTgt!.addEventListener(event, listener);
+		this.#listeners.forEach((listener, event) => {
+			this.#cursorTarget!.addEventListener(event, listener);
 		});
 	}
 
-	private syncRes() {
+	#syncRes() {
 		const gl = this.gl;
 		const resolution: [number, number] = [gl.drawingBufferWidth, gl.drawingBufferHeight];
 		gl.viewport(0, 0, ...resolution);
-		if (this.uniforms.has('u_resolution')) {
+		if (this.#uniforms.has('u_resolution')) {
 			this.updateUniforms({ u_resolution: resolution });
 		} else {
-			this.initializeUniform('u_resolution', 'float', resolution, { allowMissing: true });
+			this.#initializeOptionalUniform('u_resolution', 'float', resolution);
 		}
-		this.resizeTex(INTERMEDIATE_TEXTURE_KEY, ...resolution);
-		if (this.historyDepth > 0) {
-			this.resizeTex(HISTORY_TEXTURE_KEY, ...resolution);
-		}
-		this.emit('updateResolution', ...resolution);
+		this.#resizeTexture(INTERMEDIATE_TEXTURE_KEY, ...resolution);
+		this.#resizeTexture(HISTORY_TEXTURE_KEY, ...resolution);
+		this.#emit('updateResolution', ...resolution);
 	}
 
-	private resizeTex(name: string | symbol, width: number, height: number) {
-		const info = this.textures.get(name);
-		if (!info || (info.width === width && info.height === height)) return;
+	#resizeTexture(name: string | symbol, width: number, height: number) {
+		const info = this.#textures.get(name);
+		if (!info || (info.width_ === width && info.height_ === height)) return;
 
 		const gl = this.gl;
-		gl.deleteTexture(info.texture);
-		info.width = width;
-		info.height = height;
-		const { texture } = this.createTex(name, info);
-		info.texture = texture;
-		this.resetHist(name, info);
+		gl.deleteTexture(info.texture_);
+		info.width_ = width;
+		info.height_ = height;
+		info.texture_ = this.#createTexture(name, info, info.unitIndex_);
+		this.#resetHistory(name, info);
 	}
 
-	private reserveTex(name: string | symbol) {
-		const existing = this.textures.get(name);
-		if (existing) return existing.unitIndex;
-		if (this.texPool.free.length > 0) return this.texPool.free.pop()!;
-		if (this.texPool.next >= this.texPool.max) {
+	#reserveTexture(name: string | symbol) {
+		if (this.#texturePool.free_.length > 0) return this.#texturePool.free_.pop()!;
+		if (this.#texturePool.next_ >= this.#texturePool.max_) {
 			throw __SHADERPAD_DEV__
 				? spError(5, {
 						name: stringFrom(name),
-						nextTextureUnit: this.texPool.next,
-						maxTextureUnits: this.texPool.max,
-						freeTextureUnits: this.texPool.free.length,
+						nextTextureUnit: this.#texturePool.next_,
+						maxTextureUnits: this.#texturePool.max_,
+						freeTextureUnits: this.#texturePool.free_.length,
 					})
 				: spError(5);
 		}
-		return this.texPool.next++;
+		return this.#texturePool.next_++;
 	}
 
-	private resolveTexOpts(options?: TextureOptions): ResolvedTextureOptions {
-		const { gl } = this;
-		const internalFormatOption = options?.internalFormat;
-		const typeString = options?.type ?? typeFromInternalFormatString(internalFormatOption) ?? 'UNSIGNED_BYTE';
-		const type = this.resolveGLConst(typeString);
-		const internalFormatString = internalFormatOption ?? this.typeFormats.get(type) ?? 'RGBA8';
-		const isIntegerColorFormat = /^(R|RG|RGB|RGBA)(8|16|32)(UI|I)$/.test(internalFormatString);
-		const formatString = options?.format ?? (isIntegerColorFormat ? 'RGBA_INTEGER' : 'RGBA');
-		const result: ResolvedTextureOptions = {
-			type,
-			format: this.resolveGLConst(formatString),
-			internalFormat: this.resolveGLConst(internalFormatString),
-			minFilter: this.resolveGLConst(options?.minFilter ?? 'LINEAR'),
-			magFilter: this.resolveGLConst(options?.magFilter ?? 'LINEAR'),
-			wrapS: this.resolveGLConst(options?.wrapS ?? 'CLAMP_TO_EDGE'),
-			wrapT: this.resolveGLConst(options?.wrapT ?? 'CLAMP_TO_EDGE'),
-			colorSpace: options?.colorSpace,
-			preserveY: options?.preserveY,
-			isIntegerColorFormat,
+	#resolveTextureOptions(options?: TextureOptions): ResolvedTextureOptions {
+		const formatName_ = options?.format ?? 'RGBA8';
+		const defaultFilter = formatName_.endsWith('I') ? 'NEAREST' : 'LINEAR';
+		return {
+			formatName_,
+			format_: this.#resolveGLConst(formatName_),
+			uploadFormat_: this.#resolveGLConst(uploadFormatFor(formatName_)),
+			channelCount_: channelsFor(formatName_),
+			minFilter_: this.#resolveGLConst(options?.minFilter ?? defaultFilter),
+			magFilter_: this.#resolveGLConst(options?.magFilter ?? defaultFilter),
+			wrapS_: this.#resolveGLConst(options?.wrapS ?? 'CLAMP_TO_EDGE'),
+			wrapT_: this.#resolveGLConst(options?.wrapT ?? 'CLAMP_TO_EDGE'),
+			colorSpace_: options?.colorSpace,
+			preserveY_: options?.preserveY,
 		};
-		const isFloatColorFormat = result.internalFormat === gl.RGBA16F || result.internalFormat === gl.RGBA32F;
-		// gl.getExtension isn’t just a check, it’s a required side-effect to enable floats.
-		if (isFloatColorFormat && !gl.getExtension('EXT_color_buffer_float')) {
-			throw __SHADERPAD_DEV__
-				? spError(6, {
-						internalFormat: internalFormatString,
-						type: typeString,
-					})
-				: spError(6);
-		}
-		return result;
 	}
 
-	private getPxArray(type: number, size: number): ArrayBufferView {
-		const ArrayType = this.typeArrays.get(type) ?? Uint8Array;
-		return new ArrayType(size);
-	}
-
-	private isRgba(format: number): boolean {
-		const gl = this.gl;
-		return format === gl.RGBA || format === gl.RGBA_INTEGER;
-	}
-
-	private clearHistTexLayers(textureInfo: Texture): void {
-		if (!textureInfo.history) return;
+	#clearHistoryTextureLayers(textureInfo: Texture): void {
+		if (!textureInfo.history_) return;
 
 		const gl = this.gl;
-		const { type, format } = textureInfo.options;
-		const transparent = this.getPxArray(type, textureInfo.width * textureInfo.height * 4);
-		gl.activeTexture(gl.TEXTURE0 + textureInfo.unitIndex);
-		gl.bindTexture(gl.TEXTURE_2D_ARRAY, textureInfo.texture);
-		const needsAlignmentFix = !this.isRgba(format);
+		const { formatName_, uploadFormat_, channelCount_ } = textureInfo.options_;
+		const type = typeFor(formatName_);
+		const transparent = getPxArray(type, textureInfo.width_ * textureInfo.height_, channelCount_);
+		const needsAlignmentFix = channelCount_ < 4;
 		let previousAlignment;
 		if (needsAlignmentFix) {
 			previousAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
 			gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 		}
-		for (let layer = 0; layer < textureInfo.history.depth; ++layer) {
+		gl.activeTexture(gl.TEXTURE0 + textureInfo.unitIndex_);
+		gl.bindTexture(gl.TEXTURE_2D_ARRAY, textureInfo.texture_);
+		for (let layer = 0; layer < textureInfo.history_.depth_; ++layer) {
 			gl.texSubImage3D(
 				gl.TEXTURE_2D_ARRAY,
 				0,
 				0,
 				0,
 				layer,
-				textureInfo.width,
-				textureInfo.height,
+				textureInfo.width_,
+				textureInfo.height_,
 				1,
-				format,
+				uploadFormat_,
 				type,
 				transparent,
 			);
@@ -678,37 +589,35 @@ class ShaderPad {
 		if (needsAlignmentFix) gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousAlignment);
 	}
 
-	private updateFrameOffset(
-		name: string | symbol,
-		frameOffset: number,
-		options?: {
-			allowMissing?: boolean;
-		},
-	) {
+	#updateFrameOffset(name: string | symbol, frameOffset: number) {
 		this.updateUniforms(
 			{
 				[`${stringFrom(name)}FrameOffset`]: frameOffset,
 			},
-			options,
+			{ allowMissing: true },
 		);
 	}
 
-	private resetHist(name: string | symbol, textureInfo: Texture) {
-		if (!textureInfo.history) return;
-		textureInfo.history.writeIndex = 0;
-		this.clearHistTexLayers(textureInfo);
-		this.updateFrameOffset(name, 0, { allowMissing: true });
+	#resetHistory(name: string | symbol, textureInfo: Texture) {
+		if (!textureInfo.history_) return;
+		textureInfo.history_.writeIndex_ = 0;
+		this.#clearHistoryTextureLayers(textureInfo);
+		this.#updateFrameOffset(name, 0);
+	}
+
+	#initializeOptionalUniform(name: string, type: Uniform['type_'], value: UniformValue) {
+		this.initializeUniform(name, type, value, { allowMissing: true });
 	}
 
 	initializeUniform(
 		name: string,
-		type: Uniform['type'],
-		value: number | number[] | (number | number[])[],
+		type: Uniform['type_'],
+		value: UniformValue,
 		options?: { arrayLength?: number; allowMissing?: boolean },
 	) {
 		const arrayLength = options?.arrayLength;
-		const allowMissing = options?.allowMissing ?? false;
-		if (this.uniforms.has(name)) {
+		const allowMissing = !!options?.allowMissing;
+		if (this.#uniforms.has(name)) {
 			throw __SHADERPAD_DEV__ ? spError(7, { name, arrayLength: arrayLength ?? null }) : spError(7);
 		}
 		if (!UNIFORM_TYPE_SUFFIXES[type]) {
@@ -730,37 +639,31 @@ class ShaderPad {
 				: spError(9);
 		}
 
-		const gl = this.gl;
-		let location = gl.getUniformLocation(this.program!, name);
-		if (!location && arrayLength) {
-			location = gl.getUniformLocation(this.program!, `${name}[0]`);
-		}
+		const probeValue = arrayLength ? (value as number[] | number[][])[0] : value;
+		const length = Array.isArray(probeValue) ? (probeValue.length as 1 | 2 | 3 | 4) : 1;
+		const location =
+			this.gl.getUniformLocation(this.#program!, name) ??
+			(arrayLength ? this.gl.getUniformLocation(this.#program!, `${name}[0]`) : null);
 		if (!location) {
 			if (allowMissing) return;
 			throw __SHADERPAD_DEV__ ? spError(19, { name, arrayLength: arrayLength ?? null }) : spError(19);
 		}
-
-		const probeValue = arrayLength ? (value as number[] | number[][])[0] : value;
-		const length = Array.isArray(probeValue) ? (probeValue.length as 1 | 2 | 3 | 4) : 1;
-		this.uniforms.set(name, { type, length, location, arrayLength });
-
+		const uniform: Uniform = { type_: type, length_: length, location_: location, arrayLength_: arrayLength };
+		this.#uniforms.set(name, uniform);
 		try {
 			this.updateUniforms({ [name]: value });
 		} catch (error) {
-			this.uniforms.delete(name);
+			this.#uniforms.delete(name);
 			throw error;
 		}
-		this.emit('initializeUniform', ...arguments);
+		this.#emit('initializeUniform', ...arguments);
 	}
 
-	private _updateUniforms(
-		updates: Record<string, number | number[] | (number | number[])[]>,
-		options?: { startIndex?: number; allowMissing?: boolean },
-	) {
+	#updateUniforms(updates: Record<string, UniformValue>, options?: { startIndex?: number; allowMissing?: boolean }) {
 		const gl = this.gl;
-		gl.useProgram(this.program);
+		gl.useProgram(this.#program);
 		Object.entries(updates).forEach(([name, newValue]) => {
-			const uniform = this.uniforms.get(name);
+			const uniform = this.#uniforms.get(name);
 			if (!uniform) {
 				if (options?.allowMissing) return;
 				throw __SHADERPAD_DEV__
@@ -770,8 +673,8 @@ class ShaderPad {
 						})
 					: spError(20);
 			}
-			let glFunctionName = `uniform${uniform.length}${UNIFORM_TYPE_SUFFIXES[uniform.type]}`;
-			if (uniform.arrayLength) {
+			const glFunctionName = `uniform${uniform.length_}${UNIFORM_TYPE_SUFFIXES[uniform.type_]}`;
+			if (uniform.arrayLength_) {
 				if (!Array.isArray(newValue)) {
 					throw __SHADERPAD_DEV__
 						? spError(10, {
@@ -782,299 +685,285 @@ class ShaderPad {
 				}
 				const nValues = newValue.length;
 				if (!nValues) return;
-				if (nValues > uniform.arrayLength) {
+				if (nValues > uniform.arrayLength_) {
 					throw __SHADERPAD_DEV__
 						? spError(11, {
 								name,
 								receivedLength: nValues,
-								maxLength: uniform.arrayLength,
+								maxLength: uniform.arrayLength_,
 							})
 						: spError(11);
 				}
-				if (newValue.some(item => (Array.isArray(item) ? item.length : 1) !== uniform.length)) {
+				if (newValue.some(item => (Array.isArray(item) ? item.length : 1) !== uniform.length_)) {
 					throw __SHADERPAD_DEV__
 						? spError(12, {
 								name,
-								expectedElementLength: uniform.length,
+								expectedElementLength: uniform.length_,
 							})
 						: spError(12);
 				}
+				if ((options?.startIndex ?? 0) + nValues > uniform.arrayLength_) {
+					throw __SHADERPAD_DEV__
+						? spError(11, {
+								name,
+								receivedLength: (options?.startIndex ?? 0) + nValues,
+								maxLength: uniform.arrayLength_,
+							})
+						: spError(11);
+				}
 				const flat = newValue.flat();
 				const typedArray =
-					uniform.type === 'float'
+					uniform.type_ === 'float'
 						? new Float32Array(flat)
-						: uniform.type === 'uint'
+						: uniform.type_ === 'uint'
 							? new Uint32Array(flat)
 							: new Int32Array(flat);
-				let location = uniform.location;
+				let location: WebGLUniformLocation | null = uniform.location_;
 				if (options?.startIndex) {
-					const newLocation = gl.getUniformLocation(this.program!, `${name}[${options.startIndex}]`);
-					if (!newLocation) {
+					location = gl.getUniformLocation(this.#program!, `${name}[${options.startIndex}]`);
+					if (!location) {
 						throw __SHADERPAD_DEV__
 							? spError(13, {
 									name,
 									startIndex: options.startIndex,
-									arrayLength: uniform.arrayLength,
+									arrayLength: uniform.arrayLength_,
 								})
 							: spError(13);
 					}
-					location = newLocation;
 				}
 				(gl as any)[glFunctionName + 'v'](location, typedArray);
 			} else {
-				if (!Array.isArray(newValue)) newValue = [newValue];
-				const scalarValue = newValue as number[];
-				if (scalarValue.length !== uniform.length) {
+				const scalarValue = (Array.isArray(newValue) ? newValue : [newValue]) as number[];
+				if (scalarValue.length !== uniform.length_) {
 					throw __SHADERPAD_DEV__
 						? spError(14, {
 								name,
 								receivedLength: scalarValue.length,
-								expectedLength: uniform.length,
+								expectedLength: uniform.length_,
 							})
 						: spError(14);
 				}
-				(gl as any)[glFunctionName](uniform.location, ...scalarValue);
+				(gl as any)[glFunctionName](uniform.location_, ...scalarValue);
 			}
 		});
-		this.emit('updateUniforms', ...arguments);
+		this.#emit('updateUniforms', ...arguments);
 	}
 
-	updateUniforms(
-		updates: Record<string, number | number[] | (number | number[])[]>,
-		options?: { startIndex?: number; allowMissing?: boolean },
-	) {
-		this._updateUniforms(updates, options);
+	updateUniforms(updates: Record<string, UniformValue>, options?: { startIndex?: number; allowMissing?: boolean }) {
+		this.#updateUniforms(updates, options);
 
 		if (typeof updates.u_time === 'number') {
-			this.tElapsed = updates.u_time;
-			if (!isNaN(this.tStart)) this.tStart = performance.now();
+			this.#tElapsed = updates.u_time;
+			if (!isNaN(this.#tStart)) this.#tStart = performance.now();
 		}
-		if (typeof updates.u_frame === 'number') this.frame = updates.u_frame;
+		if (typeof updates.u_frame === 'number') this.#frame = updates.u_frame;
 	}
 
-	private createTex(
-		name: string | symbol,
-		textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> & { unitIndex?: number },
-	) {
+	#createTexture(name: string | symbol, textureInfo: TextureSeed, unitIndex: number) {
 		const gl = this.gl;
-		const { width, height } = textureInfo;
-		const historyDepth = textureInfo.history?.depth ?? 0;
+		const { width_, height_, history_, options_ } = textureInfo;
 
 		const texture = gl.createTexture();
 		if (!texture) {
 			throw __SHADERPAD_DEV__
 				? spError(15, {
 						name: stringFrom(name),
-						width,
-						height,
-						historyDepth,
+						width: width_,
+						height: height_,
+						historyDepth: history_?.depth_ ?? 0,
 					})
 				: spError(15);
 		}
 
-		let unitIndex = textureInfo.unitIndex;
-		if (typeof unitIndex !== 'number') {
-			try {
-				unitIndex = this.reserveTex(name);
-			} catch (error) {
-				gl.deleteTexture(texture);
-				throw error;
-			}
-		}
-
-		const hasHistory = historyDepth > 0;
-		const textureTarget = hasHistory ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D;
-		const { options } = textureInfo;
+		const textureTarget = history_ ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D;
 		gl.activeTexture(gl.TEXTURE0 + unitIndex);
 		gl.bindTexture(textureTarget, texture);
-		gl.texParameteri(textureTarget, gl.TEXTURE_WRAP_S, options.wrapS);
-		gl.texParameteri(textureTarget, gl.TEXTURE_WRAP_T, options.wrapT);
-		gl.texParameteri(textureTarget, gl.TEXTURE_MIN_FILTER, options.minFilter);
-		gl.texParameteri(textureTarget, gl.TEXTURE_MAG_FILTER, options.magFilter);
-		if (hasHistory) {
-			gl.texStorage3D(textureTarget, 1, options.internalFormat, width, height, historyDepth);
+		gl.texParameteri(textureTarget, gl.TEXTURE_WRAP_S, options_.wrapS_);
+		gl.texParameteri(textureTarget, gl.TEXTURE_WRAP_T, options_.wrapT_);
+		gl.texParameteri(textureTarget, gl.TEXTURE_MIN_FILTER, options_.minFilter_);
+		gl.texParameteri(textureTarget, gl.TEXTURE_MAG_FILTER, options_.magFilter_);
+		if (history_) {
+			gl.texStorage3D(textureTarget, 1, options_.format_, width_, height_, history_.depth_);
 		} else if (name === INTERMEDIATE_TEXTURE_KEY) {
 			gl.texImage2D(
 				gl.TEXTURE_2D,
 				0,
-				options.internalFormat,
-				width,
-				height,
+				options_.format_,
+				width_,
+				height_,
 				0,
-				options.format,
-				options.type,
+				options_.uploadFormat_,
+				typeFor(options_.formatName_),
 				null,
 			);
 		}
-		return { texture, unitIndex };
+		return texture;
 	}
 
-	private initTex(name: string | symbol, source: TextureSource, options?: InitializeTextureOptions) {
+	#initializeTexture(name: string | symbol, source: TextureSource, options?: InitializeTextureOptions) {
 		const gl = this.gl;
-		if (this.textures.has(name)) {
+		if (this.#textures.has(name)) {
 			throw __SHADERPAD_DEV__ ? spError(16, { name: stringFrom(name) }) : spError(16);
 		}
 
-		const { history: historyDepth = 0, ...texOptions } = options ?? {};
-		const { width, height } = getSourceDimensions(source);
-		if (!width || !height) {
+		const [width_, height_] = getSourceDimensions(source);
+		if (!width_ || !height_) {
 			throw __SHADERPAD_DEV__
 				? spError(17, {
 						name: stringFrom(name),
-						width,
-						height,
+						width_,
+						height_,
 						sourceType: source.constructor.name,
 					})
 				: spError(17);
 		}
-		const textureInfo: Pick<Texture, 'width' | 'height' | 'history' | 'options'> = {
-			width,
-			height,
-			options:
+		const { history = 0, ...textureOptions } = options ?? {};
+		const textureInfo: TextureSeed = {
+			width_,
+			height_,
+			history_: history > 0 ? { depth_: history, writeIndex_: 0 } : undefined,
+			options_:
 				source instanceof ShaderPad &&
-				Object.keys(texOptions).length === 0 &&
-				source.textures.has(INTERMEDIATE_TEXTURE_KEY)
-					? source.textures.get(INTERMEDIATE_TEXTURE_KEY)!.options
-					: this.resolveTexOpts(texOptions),
+				!Object.keys(textureOptions).length &&
+				source.#textures.has(INTERMEDIATE_TEXTURE_KEY)
+					? source.#textures.get(INTERMEDIATE_TEXTURE_KEY)!.options_
+					: this.#resolveTextureOptions(textureOptions),
 		};
-		if (historyDepth > 0) {
-			textureInfo.history = { depth: historyDepth, writeIndex: 0 };
+		let unitIndex: number | undefined;
+		let texture: WebGLTexture;
+		try {
+			unitIndex = this.#reserveTexture(name);
+			texture = this.#createTexture(name, textureInfo, unitIndex);
+		} catch (error) {
+			if (unitIndex !== undefined) this.#texturePool.free_.push(unitIndex);
+			throw error;
 		}
-		const { texture, unitIndex } = this.createTex(name, textureInfo);
-		const completeTextureInfo: Texture = {
-			texture,
-			unitIndex,
-			...textureInfo,
-		};
-		if (historyDepth > 0) {
-			this.initializeUniform(`${stringFrom(name)}FrameOffset`, 'int', 0, { allowMissing: true });
-			this.clearHistTexLayers(completeTextureInfo);
+		const completeTextureInfo: Texture = { texture_: texture!, unitIndex_: unitIndex!, ...textureInfo };
+		if (textureInfo.history_) {
+			this.#initializeOptionalUniform(`${stringFrom(name)}FrameOffset`, 'int', 0);
+			this.#clearHistoryTextureLayers(completeTextureInfo);
 		}
-		this.textures.set(name, completeTextureInfo);
+		this.#textures.set(name, completeTextureInfo);
 		if (name !== INTERMEDIATE_TEXTURE_KEY && name !== HISTORY_TEXTURE_KEY) {
-			this.updateTex(name, source);
+			this.#updateTexture(name, source);
 		}
-
-		// Set a uniform to access the texture in the fragment shader.
-		gl.useProgram(this.program!);
-		const uSampler = gl.getUniformLocation(this.program!, stringFrom(name));
-		if (uSampler) {
-			gl.uniform1i(uSampler, unitIndex);
+		const sampler = gl.getUniformLocation(this.#program!, stringFrom(name));
+		if (sampler) {
+			gl.useProgram(this.#program);
+			gl.uniform1i(sampler, completeTextureInfo.unitIndex_);
 		}
 	}
 
 	initializeTexture(name: string, source: TextureSource, options?: InitializeTextureOptions) {
-		// Since history[0] is the current frame, add 1 to history depth to allow history[maxHistory].
-		const opts =
-			options?.history != null && options.history > 0 ? { ...options, history: options.history + 1 } : options;
-		this.initTex(name, source, opts);
-		this.emit('initializeTexture', ...arguments);
+		const { history = 0 } = options ?? {};
+		this.#initializeTexture(name, source, history > 0 ? { ...options, history: history + 1 } : options);
+		this.#emit('initializeTexture', ...arguments);
 	}
 
 	updateTextures(updates: Record<string, UpdateTextureSource>) {
 		Object.entries(updates).forEach(([name, source]) => {
-			this.updateTex(name, source);
+			this.#updateTexture(name, source);
 		});
-		this.emit('updateTextures', ...arguments);
+		this.#emit('updateTextures', ...arguments);
 	}
 
-	private updateTex(name: string | symbol, source: UpdateTextureSource, historySlots?: HistorySlots) {
+	#updateTexture(name: string | symbol, source: UpdateTextureSource, historySlots?: HistorySlots) {
 		const gl = this.gl;
-		const info = this.textures.get(name);
+		const info = this.#textures.get(name);
 		if (!info) {
 			throw __SHADERPAD_DEV__ ? spError(18, { name: stringFrom(name) }) : spError(18);
 		}
 
 		if (source instanceof WebGLTexture) {
-			gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
+			gl.activeTexture(gl.TEXTURE0 + info.unitIndex_);
 			gl.bindTexture(gl.TEXTURE_2D, source);
 			return;
 		}
 
 		let nonShaderPadSource = source as Exclude<UpdateTextureSource, ShaderPad>;
 		if (source instanceof ShaderPad) {
-			const sourceIntermediateInfo = source.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
-			const srcW = sourceIntermediateInfo.width;
-			const srcH = sourceIntermediateInfo.height;
+			const sourceIntermediateInfo = source.#textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+			const { width_, height_, options_ } = sourceIntermediateInfo;
 
 			if (source.gl === gl) {
-				if (!info.history) {
-					gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
-					gl.bindTexture(gl.TEXTURE_2D, sourceIntermediateInfo.texture);
+				if (!info.history_) {
+					gl.activeTexture(gl.TEXTURE0 + info.unitIndex_);
+					gl.bindTexture(gl.TEXTURE_2D, sourceIntermediateInfo.texture_);
 					return;
 				}
-				const { depth } = info.history;
+				this.#resizeTexture(name, width_, height_);
+				const { depth_ } = info.history_;
 				const targetSlots =
 					historySlots === undefined
-						? [info.history.writeIndex]
-						: Array.isArray(historySlots)
-							? historySlots.map(i => safeMod(i, depth))
-							: [safeMod(historySlots, depth)];
-				gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
-				gl.bindTexture(gl.TEXTURE_2D_ARRAY, info.texture);
-				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, source.intermediateFbo);
+						? [info.history_.writeIndex_]
+						: (Array.isArray(historySlots) ? historySlots : [historySlots]).map(slot =>
+								safeMod(slot, depth_),
+							);
+				gl.activeTexture(gl.TEXTURE0 + info.unitIndex_);
+				gl.bindTexture(gl.TEXTURE_2D_ARRAY, info.texture_);
+				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, source.#intermediateFbo);
 				for (const slot of targetSlots) {
-					gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, slot, 0, 0, srcW, srcH);
+					gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, slot, 0, 0, width_, height_);
 				}
 				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-				this.updateFrameOffset(name, targetSlots[targetSlots.length - 1], { allowMissing: true });
+				this.#updateFrameOffset(name, targetSlots[targetSlots.length - 1]);
 				if (historySlots === undefined) {
-					info.history.writeIndex = (info.history.writeIndex + 1) % depth;
+					info.history_.writeIndex_ = (info.history_.writeIndex_ + 1) % depth_;
 				}
 				return;
 			}
 
 			// Different contexts - transfer via readPixels to preserve precision.
-			const {
-				width,
-				height,
-				options: { format, type },
-			} = sourceIntermediateInfo;
-			const pixels = this.getPxArray(type, width * height * 4);
-			source.gl.bindFramebuffer(source.gl.FRAMEBUFFER, source.intermediateFbo);
-			source.gl.readPixels(0, 0, width, height, format, type, pixels);
-			source.gl.bindFramebuffer(source.gl.FRAMEBUFFER, null);
-			nonShaderPadSource = { data: pixels, width, height };
+			const sourceGl = source.gl;
+			sourceGl.bindFramebuffer(sourceGl.FRAMEBUFFER, source.#intermediateFbo);
+			const format = sourceGl.getParameter(sourceGl.IMPLEMENTATION_COLOR_READ_FORMAT);
+			const type = sourceGl.getParameter(sourceGl.IMPLEMENTATION_COLOR_READ_TYPE);
+			const pixels = getPxArray(type, width_ * height_, options_.channelCount_);
+			sourceGl.readPixels(0, 0, width_, height_, format, type, pixels);
+			sourceGl.bindFramebuffer(sourceGl.FRAMEBUFFER, null);
+			nonShaderPadSource = { data: pixels, width: width_, height: height_ };
 		}
 
 		// If dimensions changed, recreate the texture with new dimensions.
-		const { width, height } = getSourceDimensions(nonShaderPadSource);
+		const [width, height] = getSourceDimensions(nonShaderPadSource);
 		if (!width || !height) return;
 
 		const isPartial = 'isPartial' in nonShaderPadSource && nonShaderPadSource.isPartial;
 		if (!isPartial) {
-			this.resizeTex(name, width, height);
+			this.#resizeTexture(name, width, height);
 		}
 
 		// UNPACK_FLIP_Y_WEBGL only works for DOM element sources, not typed arrays.
-		const isCustomTexture = 'data' in nonShaderPadSource && nonShaderPadSource.data;
-		const shouldFlipY = !isCustomTexture && !info.options?.preserveY;
+		const isCustomTexture = 'data' in nonShaderPadSource;
+		const customData = isCustomTexture ? (nonShaderPadSource as PartialCustomTexture).data : undefined;
+		if (info.history_ && customData === null) return;
+		const uploadType = typeFor(info.options_.formatName_, customData);
+		const shouldFlipY = !isCustomTexture && !info.options_.preserveY_;
 		const previousFlipY = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL);
-		const needsAlignmentFix = isCustomTexture && !this.isRgba(info.options.format);
-		const shouldConvertColorSpace = !isCustomTexture && info.options.colorSpace && 'unpackColorSpace' in gl;
+		const needsAlignmentFix = isCustomTexture && info.options_.channelCount_ < 4;
+		const shouldConvertColorSpace = !isCustomTexture && info.options_.colorSpace_ && 'unpackColorSpace' in gl;
 		const previousColorSpace = gl.unpackColorSpace;
 		let previousAlignment;
 		if (needsAlignmentFix) {
 			previousAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
 			gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 		}
-		if (shouldConvertColorSpace) gl.unpackColorSpace = info.options.colorSpace!;
+		if (shouldConvertColorSpace) gl.unpackColorSpace = info.options_.colorSpace_!;
 
-		if (info.history) {
-			gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
-			gl.bindTexture(gl.TEXTURE_2D_ARRAY, info.texture);
-			const { depth } = info.history;
+		if (info.history_) {
+			const { depth_ } = info.history_;
 			const targetSlots =
 				historySlots === undefined
-					? [info.history.writeIndex]
-					: Array.isArray(historySlots)
-						? historySlots.map(i => safeMod(i, depth))
-						: [safeMod(historySlots, depth)];
+					? [info.history_.writeIndex_]
+					: (Array.isArray(historySlots) ? historySlots : [historySlots]).map(slot => safeMod(slot, depth_));
+			gl.activeTexture(gl.TEXTURE0 + info.unitIndex_);
+			gl.bindTexture(gl.TEXTURE_2D_ARRAY, info.texture_);
 
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 			const partialSource = nonShaderPadSource as PartialCustomTexture;
-			const sourceData =
-				partialSource.data ?? (nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>);
+			const sourceData = isCustomTexture
+				? customData
+				: (nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>);
 			const xOffset = isPartial ? (partialSource.x ?? 0) : 0;
 			const yOffset = isPartial ? (partialSource.y ?? 0) : 0;
 
@@ -1088,19 +977,19 @@ class ShaderPad {
 					width,
 					height,
 					1,
-					info.options.format,
-					info.options.type,
+					info.options_.uploadFormat_,
+					uploadType,
 					sourceData as any,
 				);
 			}
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
-			this.updateFrameOffset(name, targetSlots[targetSlots.length - 1]);
+			this.#updateFrameOffset(name, targetSlots[targetSlots.length - 1]);
 			if (historySlots === undefined) {
-				info.history.writeIndex = (info.history.writeIndex + 1) % depth;
+				info.history_.writeIndex_ = (info.history_.writeIndex_ + 1) % depth_;
 			}
 		} else {
-			gl.activeTexture(gl.TEXTURE0 + info.unitIndex);
-			gl.bindTexture(gl.TEXTURE_2D, info.texture);
+			gl.activeTexture(gl.TEXTURE0 + info.unitIndex_);
+			gl.bindTexture(gl.TEXTURE_2D, info.texture_);
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, shouldFlipY);
 
 			if (isPartial) {
@@ -1112,22 +1001,23 @@ class ShaderPad {
 					partialSource.y ?? 0,
 					width,
 					height,
-					info.options.format,
-					info.options.type,
+					info.options_.uploadFormat_,
+					uploadType,
 					partialSource.data,
 				);
 			} else {
 				gl.texImage2D(
 					gl.TEXTURE_2D,
 					0,
-					info.options.internalFormat,
+					info.options_.format_,
 					width,
 					height,
 					0,
-					info.options.format,
-					info.options.type,
-					((nonShaderPadSource as PartialCustomTexture).data ??
-						(nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>)) as any,
+					info.options_.uploadFormat_,
+					uploadType,
+					(isCustomTexture
+						? customData
+						: (nonShaderPadSource as Exclude<TextureSource, CustomTexture | ShaderPad>)) as any,
 				);
 			}
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, previousFlipY);
@@ -1137,20 +1027,19 @@ class ShaderPad {
 		if (needsAlignmentFix) gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousAlignment);
 	}
 
-	private bindIntermediate() {
+	#bindIntermediate() {
 		const gl = this.gl;
-		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
-		gl.bindFramebuffer(gl.FRAMEBUFFER, this.intermediateFbo);
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateInfo.texture, 0);
+		const intermediateInfo = this.#textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.#intermediateFbo);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, intermediateInfo.texture_, 0);
 	}
 
 	clear() {
-		this.bindIntermediate();
+		this.#bindIntermediate();
 		const gl = this.gl;
-		const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
-		if (intermediateInfo.options.isIntegerColorFormat) {
-			const t = intermediateInfo.options.type;
-			if (this.uintTypes.has(t)) {
+		const intermediateInfo = this.#textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+		if (intermediateInfo.options_.formatName_.endsWith('I')) {
+			if (intermediateInfo.options_.formatName_.endsWith('UI')) {
 				gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array(4));
 			} else {
 				gl.clearBufferiv(gl.COLOR, 0, new Int32Array(4));
@@ -1161,186 +1050,187 @@ class ShaderPad {
 	}
 
 	clearHistory() {
-		this.textures.forEach((texture, name) => {
-			this.resetHist(name, texture);
+		this.#textures.forEach((texture, name) => {
+			this.#resetHistory(name, texture);
 		});
 	}
 
 	draw(options?: StepOptions | void) {
-		this.emit('preDraw', ...arguments);
+		this.#emit('preDraw', ...arguments);
 		const gl = this.gl;
 		const w = gl.drawingBufferWidth;
 		const h = gl.drawingBufferHeight;
 
 		if (options?.skipClear) {
-			this.bindIntermediate();
+			this.#bindIntermediate();
 		} else {
 			this.clear();
 		}
 
-		gl.useProgram(this.program);
-		gl.bindVertexArray(this.vao);
+		gl.useProgram(this.#program);
+		gl.bindVertexArray(this.#vao);
 		gl.viewport(0, 0, w, h);
 		gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-		if (!this.isHeadless) {
-			const intermediateInfo = this.textures.get(INTERMEDIATE_TEXTURE_KEY)!;
-			if (!intermediateInfo.options.isIntegerColorFormat) {
-				const desiredColorSpace = intermediateInfo.options.colorSpace ?? 'srgb';
+		if (!this.#isHeadless) {
+			const intermediateInfo = this.#textures.get(INTERMEDIATE_TEXTURE_KEY)!;
+			if (!intermediateInfo.options_.formatName_.endsWith('I')) {
+				const desiredColorSpace = intermediateInfo.options_.colorSpace_ ?? 'srgb';
 				if ('drawingBufferColorSpace' in gl && gl.drawingBufferColorSpace !== desiredColorSpace) {
 					gl.drawingBufferColorSpace = desiredColorSpace;
 				}
-				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
+				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.#intermediateFbo);
 				gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 				gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
 				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 			}
 		}
-		this.emit('postDraw', ...arguments);
+		this.#emit('postDraw', ...arguments);
 	}
 
 	step(options?: StepOptions) {
-		this._step(performance.now(), options);
+		this.#step(performance.now(), options);
 	}
 
-	private tick() {
+	#tick() {
 		const updates: Record<string, number> = {};
-		if (this.uniforms.has('u_time')) updates.u_time = this.tElapsed;
-		if (this.uniforms.has('u_frame')) updates.u_frame = this.frame;
-		if (Object.keys(updates).length) this._updateUniforms(updates);
+		if (this.#uniforms.has('u_time')) updates.u_time = this.#tElapsed;
+		if (this.#uniforms.has('u_frame')) updates.u_frame = this.#frame;
+		if (Object.keys(updates).length) this.#updateUniforms(updates);
 	}
 
-	private _step(now: number, opts?: StepOptions | ((time: number, frame: number) => StepOptions | void)) {
-		const t = this.getElapsed(now);
-		this.tElapsed = t;
-		this.tStart = now;
-		const options = typeof opts === 'function' ? opts(t, this.frame) : opts;
-		this.emit('preStep', t, this.frame, options);
-		this.tick();
+	#step(now: number, opts?: StepOptions | ((time: number, frame: number) => StepOptions | void)) {
+		const t = this.#getElapsed(now);
+		this.#tElapsed = t;
+		this.#tStart = now;
+		const options = typeof opts === 'function' ? opts(t, this.#frame) : opts;
+		this.#emit('preStep', t, this.#frame, options);
+		this.#tick();
 		this.draw(options);
-		const historyInfo = this.textures.get(HISTORY_TEXTURE_KEY);
+		const historyInfo = this.#textures.get(HISTORY_TEXTURE_KEY);
 		if (historyInfo && !options?.skipHistory) {
-			const { writeIndex, depth } = historyInfo.history!;
+			const { writeIndex_, depth_ } = historyInfo.history_!;
 			const gl = this.gl;
-			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.intermediateFbo);
-			gl.bindTexture(gl.TEXTURE_2D_ARRAY, historyInfo.texture);
+			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.#intermediateFbo);
+			gl.activeTexture(gl.TEXTURE0 + historyInfo.unitIndex_);
+			gl.bindTexture(gl.TEXTURE_2D_ARRAY, historyInfo.texture_);
 			gl.copyTexSubImage3D(
 				gl.TEXTURE_2D_ARRAY,
 				0,
 				0,
 				0,
-				writeIndex,
+				writeIndex_,
 				0,
 				0,
 				gl.drawingBufferWidth,
 				gl.drawingBufferHeight,
 			);
 			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-			const nextWriteIndex = (writeIndex + 1) % depth;
-			this.updateFrameOffset(HISTORY_TEXTURE_KEY, nextWriteIndex, { allowMissing: true });
-			historyInfo.history!.writeIndex = nextWriteIndex;
+			const nextWriteIndex = (writeIndex_ + 1) % depth_;
+			this.#updateFrameOffset(HISTORY_TEXTURE_KEY, nextWriteIndex);
+			historyInfo.history_!.writeIndex_ = nextWriteIndex;
 		}
-		++this.frame;
-		this.emit('postStep', t, this.frame, options);
+		++this.#frame;
+		this.#emit('postStep', t, this.#frame, options);
 	}
 
 	play(onPreStep?: (time: number, frame: number) => StepOptions | void) {
-		this._pause();
+		this.#pause();
 		const loop = (now: number) => {
-			this._step(now, onPreStep);
-			if (this.frameId != null) this.frameId = requestAnimationFrame(loop);
+			this.#step(now, onPreStep);
+			if (this.#frameId != null) this.#frameId = requestAnimationFrame(loop);
 		};
-		this.frameId = requestAnimationFrame(loop);
-		this.emit('play');
+		this.#frameId = requestAnimationFrame(loop);
+		this.#emit('play');
 	}
 
-	private getElapsed(time: number) {
-		if (isNaN(this.tStart)) return this.tElapsed;
-		return this.tElapsed + (time - this.tStart) / 1000;
+	#getElapsed(time: number) {
+		if (isNaN(this.#tStart)) return this.#tElapsed;
+		return this.#tElapsed + (time - this.#tStart) / 1000;
 	}
 
-	private _pause() {
-		if (isNaN(this.tStart) && this.frameId == null) return;
-		if (this.frameId != null) {
-			cancelAnimationFrame(this.frameId);
-			this.frameId = null;
+	#pause() {
+		if (isNaN(this.#tStart) && this.#frameId == null) return;
+		if (this.#frameId != null) {
+			cancelAnimationFrame(this.#frameId);
+			this.#frameId = null;
 		}
-		this.tElapsed = this.getElapsed(performance.now());
-		this.tStart = NaN;
+		this.#tElapsed = this.#getElapsed(performance.now());
+		this.#tStart = NaN;
 		return true;
 	}
 
 	pause() {
-		if (this._pause()) this.emit('pause');
+		if (this.#pause()) this.#emit('pause');
 	}
 
 	rewind() {
-		this.frame = 0;
-		this.tElapsed = 0;
-		this.tStart = NaN;
-		this.tick();
+		this.#frame = 0;
+		this.#tElapsed = 0;
+		this.#tStart = NaN;
+		this.#tick();
 	}
 
 	reset() {
 		this.rewind();
 		this.clearHistory();
 		this.clear();
-		this.emit('reset');
+		this.#emit('reset');
 	}
 
 	destroy() {
-		this.emit('destroy');
+		this.#emit('destroy');
 
-		this._pause();
+		this.#pause();
 		const gl = this.gl;
 
-		if (this.cursorTgt) {
-			this.listeners.forEach((listener, event) => {
-				this.cursorTgt!.removeEventListener(event, listener);
+		if (this.#cursorTarget) {
+			this.#listeners.forEach((listener, event) => {
+				this.#cursorTarget!.removeEventListener(event, listener);
 			});
-			this.listeners.clear();
+			this.#listeners.clear();
 		}
 
-		if (this.resObserver) {
-			this.resObserver.disconnect();
-			this.resObserver = null;
+		if (this.#resObserver) {
+			this.#resObserver.disconnect();
+			this.#resObserver = null;
 		}
 
-		if (this.program) {
-			gl.deleteProgram(this.program);
-			this.program = null;
+		if (this.#program) {
+			gl.deleteProgram(this.#program);
+			this.#program = null;
 		}
 
-		if (this.intermediateFbo) {
-			gl.deleteFramebuffer(this.intermediateFbo);
-			this.intermediateFbo = null;
+		if (this.#intermediateFbo) {
+			gl.deleteFramebuffer(this.#intermediateFbo);
+			this.#intermediateFbo = null;
 		}
 
-		this.textures.forEach(texture => {
-			this.texPool.free.push(texture.unitIndex);
-			gl.deleteTexture(texture.texture);
+		this.#textures.forEach(texture => {
+			this.#texturePool.free_.push(texture.unitIndex_);
+			gl.deleteTexture(texture.texture_);
 		});
-		this.textures.clear();
+		this.#textures.clear();
 		const entry = canvasRegistry.get(this.canvas);
 		if (entry) {
-			entry.instances.delete(this);
-			if (entry.instances.size === 0) {
+			entry.instances_.delete(this);
+			if (entry.instances_.size === 0) {
 				canvasRegistry.delete(this.canvas);
 			}
 		}
 
-		if (this.vao) {
-			gl.deleteVertexArray(this.vao);
-			this.vao = null;
+		if (this.#vao) {
+			gl.deleteVertexArray(this.#vao);
+			this.#vao = null;
 		}
 
-		if (this.buffer) {
-			gl.deleteBuffer(this.buffer);
-			this.buffer = null;
+		if (this.#buffer) {
+			gl.deleteBuffer(this.#buffer);
+			this.#buffer = null;
 		}
 
-		this.uniforms.clear();
-		this.hooks.clear();
+		this.#uniforms.clear();
+		this.#hooks = {};
 	}
 }
 

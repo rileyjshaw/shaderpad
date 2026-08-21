@@ -1,0 +1,2 @@
+function e(e){return`https://mry.ac/s/${e}`}function t(e,t,n){let r=Error(e,n);return r.code=t,r}function n(n,r,i){return t(`ShaderPad error: ${e(n)}`,n,i)}function r(e,t){return(e%t+t)%t}function i(e){return e instanceof WebGLTexture?[0,0]:`canvas`in e?[e.canvas.width,e.canvas.height]:e instanceof HTMLVideoElement?[e.videoWidth,e.videoHeight]:e instanceof HTMLImageElement?[e.naturalWidth??e.width,e.naturalHeight??e.height]:[e.width,e.height]}export{r as n,n as r,i as t};
+//# sourceMappingURL=util-DInq5ADa.mjs.map

@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
+import { transform } from 'esbuild';
 import { defineConfig } from 'tsdown';
 
 const glslIncludePattern = /^[ \t]*#include\s+["']([^"']+)["'];?\s*$/gm;
@@ -20,12 +21,36 @@ function glslIncludePlugin() {
 	return {
 		name: 'shaderpad-glsl-includes',
 		load(id: string) {
-			if (!id.endsWith('.glsl')) return null;
+			const filePath = id.replace(/\?raw$/, '');
+			if (!filePath.endsWith('.glsl')) return null;
 
-			const source = inlineGLSLImports(readFileSync(id, 'utf-8'), id);
+			const source = inlineGLSLImports(readFileSync(filePath, 'utf-8'), filePath);
 			return {
 				code: `export default ${JSON.stringify(source)};`,
 			};
+		},
+	};
+}
+
+function mangleInternalProperties() {
+	const mangleCache: Record<string, string | false> = {};
+
+	return {
+		name: 'shaderpad-mangle-internal-properties',
+		renderChunk: {
+			sequential: true,
+			async handler(code: string, chunk: { fileName: string }) {
+				if (/\.d\.m?ts$/.test(chunk.fileName)) return null;
+				const result = await transform(code, {
+					loader: 'js',
+					target: 'esnext',
+					mangleProps: /_$/,
+					mangleCache,
+					sourcemap: true,
+				});
+				Object.assign(mangleCache, result.mangleCache);
+				return { code: result.code, map: result.map };
+			},
 		},
 	};
 }
@@ -48,6 +73,7 @@ export default defineConfig([
 			cjsDefault: false,
 		},
 		minify: true,
+		plugins: [...sharedConfig.plugins, mangleInternalProperties()],
 		define: {
 			'process.env.NODE_ENV': '"production"',
 			__SHADERPAD_DEV__: 'false',

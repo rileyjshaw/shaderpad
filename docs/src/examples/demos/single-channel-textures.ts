@@ -56,11 +56,7 @@ void main() {
 	canvasHistory.height = SIZE;
 	container.appendChild(canvasHistory);
 
-	const padOptions = {
-		internalFormat: 'R8' as const,
-		format: 'RED' as const,
-		type: 'UNSIGNED_BYTE' as const,
-	};
+	const padOptions = { format: 'R8' as const };
 
 	const bwPad = new ShaderPad(bwFragmentSrc, {
 		canvas: canvasBwOffscreen,

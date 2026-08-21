@@ -59,9 +59,7 @@ function createPlaybackVisibilityController({ target, autoplay, autopause, isPla
 //#endregion
 //#region src/internal/declarative-textures.ts
 const TEXTURE_OPTION_ATTRIBUTES = [
-	["internal-format", "internalFormat"],
 	["format", "format"],
-	["type", "type"],
 	["min-filter", "minFilter"],
 	["mag-filter", "magFilter"],
 	["wrap-s", "wrapS"],
@@ -158,5 +156,58 @@ function addDomTextureRefreshListener(element, listener) {
 }
 
 //#endregion
-export { loadDomTextureSource as a, parseTextureOptionsFromAttributes as c, isLiveDomTextureElement as i, createPlaybackVisibilityController as l, getLiveDomTextureSource as n, parseBooleanLikeValue as o, isDomTextureElement as r, parseTextureOptions as s, addDomTextureRefreshListener as t };
-//# sourceMappingURL=declarative-textures-CiZHpMui.mjs.map
+Object.defineProperty(exports, 'addDomTextureRefreshListener', {
+  enumerable: true,
+  get: function () {
+    return addDomTextureRefreshListener;
+  }
+});
+Object.defineProperty(exports, 'createPlaybackVisibilityController', {
+  enumerable: true,
+  get: function () {
+    return createPlaybackVisibilityController;
+  }
+});
+Object.defineProperty(exports, 'getLiveDomTextureSource', {
+  enumerable: true,
+  get: function () {
+    return getLiveDomTextureSource;
+  }
+});
+Object.defineProperty(exports, 'isDomTextureElement', {
+  enumerable: true,
+  get: function () {
+    return isDomTextureElement;
+  }
+});
+Object.defineProperty(exports, 'isLiveDomTextureElement', {
+  enumerable: true,
+  get: function () {
+    return isLiveDomTextureElement;
+  }
+});
+Object.defineProperty(exports, 'loadDomTextureSource', {
+  enumerable: true,
+  get: function () {
+    return loadDomTextureSource;
+  }
+});
+Object.defineProperty(exports, 'parseBooleanLikeValue', {
+  enumerable: true,
+  get: function () {
+    return parseBooleanLikeValue;
+  }
+});
+Object.defineProperty(exports, 'parseTextureOptions', {
+  enumerable: true,
+  get: function () {
+    return parseTextureOptions;
+  }
+});
+Object.defineProperty(exports, 'parseTextureOptionsFromAttributes', {
+  enumerable: true,
+  get: function () {
+    return parseTextureOptionsFromAttributes;
+  }
+});
+//# sourceMappingURL=declarative-textures-Cp3VOj4O.js.map

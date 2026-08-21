@@ -1,3 +1,4 @@
+import type { TextureSource } from '..';
 import { errorUrl, type ErrorCode } from './error-codes.gen.js';
 import { DEV_ERRORS } from './error-codes.dev.gen.js';
 
@@ -58,4 +59,14 @@ export function spError(code: ErrorCode, context?: DevContext, options?: ErrorOp
 
 export function safeMod(i: number, m: number): number {
 	return ((i % m) + m) % m;
+}
+
+export function getSourceDimensions(source: TextureSource): [number, number] {
+	if (source instanceof WebGLTexture) return [0, 0];
+	if ('canvas' in source) return [source.canvas.width, source.canvas.height];
+	if (source instanceof HTMLVideoElement) return [source.videoWidth, source.videoHeight];
+	if (source instanceof HTMLImageElement) {
+		return [source.naturalWidth ?? source.width, source.naturalHeight ?? source.height];
+	}
+	return [source.width, source.height];
 }

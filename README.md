@@ -195,8 +195,7 @@ shader.initializeTexture(
 	'u_custom',
 	{ data: new Float32Array(width * height * 4), width, height },
 	{
-		internalFormat: 'RGBA32F',
-		type: 'FLOAT',
+		format: 'RGBA32F',
 		minFilter: 'NEAREST',
 		magFilter: 'NEAREST',
 	},
@@ -215,11 +214,9 @@ shader.initializeTexture('u_canvas', canvasElement, { preserveY: true });
 
 - `history?: number` - Number of previous frames to store (creates a `sampler2DArray`)
 - `preserveY?: boolean` - For DOM sources only: if `true`, don't flip vertically (default: `false`, flips to match WebGL’s bottom-up convention)
-- `internalFormat?: string` - Storage format in GPU memory (e.g., `'RGBA8'`, `'RGBA32F'`, `'R8'`). Defaults to `'RGBA8'` for 8-bit, or `'RGBA32F'` if `type` is `'FLOAT'`
-- `format?: string` - Source data layout (default: `'RGBA'`). Describes the channels in your input data (e.g., `'RGBA'`, `'RGB'`, `'RED'`)
-- `type?: string` - Source data type (default: `'UNSIGNED_BYTE'` for DOM sources, must be specified for typed arrays). Examples: `'UNSIGNED_BYTE'`, `'FLOAT'`, `'HALF_FLOAT'`
-- `minFilter?: string` - Minification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
-- `magFilter?: string` - Magnification filter (default: `'LINEAR'`). Examples: `'LINEAR'`, `'NEAREST'`
+- `format?: string` - GPU storage format (default: `'RGBA8'`). Examples: `'RGBA32F'`, `'R8'`
+- `minFilter?: string` - Minification filter (default: `'LINEAR'`, or `'NEAREST'` for integer formats)
+- `magFilter?: string` - Magnification filter (default: `'LINEAR'`, or `'NEAREST'` for integer formats)
 - `wrapS?: string` - Wrap mode for S coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
 - `wrapT?: string` - Wrap mode for T coordinate (default: `'CLAMP_TO_EDGE'`). Examples: `'CLAMP_TO_EDGE'`, `'REPEAT'`, `'MIRRORED_REPEAT'`
 - `colorSpace?: 'srgb' | 'display-p3'` - Color space for DOM texture upload conversion where supported
@@ -373,9 +370,9 @@ Plugins may emit additional namespaced events (e.g., `face:ready`, `pose:result`
 
 ShaderPad plugins are plain functions passed in `plugins: [...]`. Each plugin receives the `ShaderPad` instance and a
 small `PluginContext` during construction, before the fragment shader is compiled. In practice, that means a plugin can
-inject GLSL, listen to lifecycle events with `shader.on(...)`, emit its own namespaced events, and publish plugin-owned
-textures with `updateTexture(...)`. If a plugin needs the backing canvas or raw WebGL access, use `shader.canvas` and
-`shader.gl`.
+inspect the constructor options supplied by the consumer through `context.options`, inject GLSL, listen to lifecycle
+events with `shader.on(...)`, emit its own namespaced events, and publish plugin-owned textures with
+`updateTexture(...)`. If a plugin needs the backing canvas or raw WebGL access, use `shader.canvas` and `shader.gl`.
 
 The most useful lifecycle hooks are usually `_init` for setup, `preStep` / `preDraw` for per-frame work, and
 `destroy` for cleanup. Plugin order is stable: plugins install in `plugins[]` order, handlers run in registration
@@ -394,7 +391,7 @@ examples, browse the
 ShaderPad’s constructor accepts an optional `options` object.
 
 In addition to the fields below, constructor options also accept texture storage/filter/wrap settings such as
-`internalFormat`, `format`, `type`, `minFilter`, `magFilter`, `wrapS`, `wrapT`, and `colorSpace`. These configure ShaderPad’s
+`format`, `minFilter`, `magFilter`, `wrapS`, `wrapT`, and `colorSpace`. These configure ShaderPad’s
 internal render targets and history buffers, which is mainly useful for float/integer pipelines and chained shaders.
 
 ### canvas
@@ -441,14 +438,13 @@ const shader = new ShaderPad(fragmentShaderSrc, { history: 10 });
 // uniform int u_historyFrameOffset;
 ```
 
-**High-precision history:** By default, history textures use 8-bit precision (RGBA8). For high-precision rendering, specify `internalFormat` and `type` options. This enables FBO rendering and preserves precision in history textures.
+**High-precision history:** By default, history textures use 8-bit precision (RGBA8). For high-precision rendering, specify a `format`. This enables FBO rendering and preserves precision in history textures.
 
 ```typescript
 // For 32-bit float precision (requires EXT_color_buffer_float extension):
 const shader = new ShaderPad(fragmentShaderSrc, {
 	history: 60,
-	internalFormat: 'RGBA32F',
-	type: 'FLOAT',
+	format: 'RGBA32F',
 });
 ```
 
@@ -469,6 +465,8 @@ int nFramesAgo = 2; // Get the color 2 frames ago.
 float zIndex = historyZ(u_webcam, u_webcamFrameOffset, nFramesAgo);
 vec4 historyColor = texture(u_webcam, vec3(v_uv, zIndex));
 ```
+
+For history too deep for one texture array, use the optional [`deepHistory`](#deephistory) plugin.
 
 ### colorSpace
 
@@ -518,6 +516,36 @@ uniform vec2 u_resolution;
 ```
 
 For `vite-plugin-glsl`, that leading `/` matches the common `root: '/node_modules/'` setup used in the ShaderPad starters.
+
+#### deepHistory
+
+`deepHistory(accessorName, source, options)` splits one history buffer across one or more texture arrays. It returns a
+`[plugin, update]` tuple: install the plugin in the ShaderPad constructor, then use the updater for new source frames.
+The first argument is the exact name of the generated GLSL accessor.
+
+```typescript
+import deepHistory from 'shaderpad/plugins/deep-history';
+
+const [webcamHistory, updateWebcam] = deepHistory('webcamHistory', video, {
+	history: 240,
+	chunks: 4,
+});
+const shader = new ShaderPad(fragmentShaderSrc, { plugins: [webcamHistory] });
+shader.play(() => updateWebcam(video));
+```
+
+Pass the exported `SHADER_OUTPUT` symbol instead of a texture source to capture output history. This mode
+returns a one-item plugin tuple, inherits the ShaderPad render format and sampler options, advances after `step()` but
+not `draw()`, and respects `skipHistory`.
+
+```typescript
+import deepHistory, { SHADER_OUTPUT } from 'shaderpad/plugins/deep-history';
+
+const [outputHistory] = deepHistory('outputHistory', SHADER_OUTPUT, { history: 320 });
+const shader = new ShaderPad(fragmentShaderSrc, { plugins: [outputHistory] });
+```
+
+Use the fewest chunks that fit: each chunk consumes one texture unit and adds a branch to the generated accessor.
 
 #### save / toBlob
 

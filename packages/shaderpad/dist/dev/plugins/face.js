@@ -1,5 +1,5 @@
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-const require_util = require('../util-DfeaXiHj.js');
+const require_util = require('../util-DAwznktR.js');
 const require_plugins_mediapipe_common = require('./mediapipe-common.js');
 
 //#region src/plugins/face.ts
@@ -528,8 +528,7 @@ function face(config) {
 				width: LANDMARKS_TEXTURE_WIDTH,
 				height: textureHeight
 			}, {
-				internalFormat: "RGBA32F",
-				type: "FLOAT",
+				format: "RGBA32F",
 				minFilter: "NEAREST",
 				magFilter: "NEAREST",
 				history

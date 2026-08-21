@@ -1,7 +1,7 @@
 import { gzipSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const args = new Set(process.argv.slice(2));
@@ -44,21 +44,57 @@ function getSpecifier(exportPath) {
 	return `${shaderpadPackage.name}/${exportPath.slice(2)}`;
 }
 
+async function getCoreModulePaths() {
+	const result = await build({
+		absWorkingDir: process.cwd(),
+		stdin: {
+			contents: `import entrypoint from ${JSON.stringify(shaderpadPackage.name)};\nself.x = entrypoint;\n`,
+			resolveDir: process.cwd(),
+			sourcefile: 'size-core-modules-entry.js',
+		},
+		bundle: true,
+		write: false,
+		format: 'esm',
+		platform: 'browser',
+		target: 'esnext',
+		mainFields: ['module', 'main'],
+		conditions: ['import', 'module', 'default'],
+		treeShaking: true,
+		logLevel: 'silent',
+		external: optionalPeerDependencies,
+		metafile: true,
+	});
+
+	return new Set(
+		Object.keys(result.metafile.inputs)
+			.filter(inputPath => inputPath !== '<stdin>')
+			.map(inputPath => resolve(process.cwd(), inputPath)),
+	);
+}
+
 // Plugins can only ever run as arguments to `new ShaderPad(...)`, so any real
 // bundle that contains a plugin already contains the core and bundlers dedupe
 // it. Measuring plugins with the core inlined would double-count it, so plugin
-// sizes are reported as incremental over the core by marking the core module
-// (imported from dist/plugins/* as `../index.mjs`) external.
-function externalizeCorePlugin() {
+// sizes are reported as incremental over every module in the core bundle.
+function externalizeCorePlugin(coreModulePaths) {
 	return {
 		name: 'externalize-shaderpad-core',
 		setup(build) {
-			build.onResolve({ filter: /^\.\.\/index\.m?js$/ }, args => ({ path: args.path, external: true }));
+			build.onResolve({ filter: /.*/ }, args => {
+				if (args.path === shaderpadPackage.name) {
+					return { path: args.path, external: true };
+				}
+
+				if (!args.path.startsWith('.') && !args.path.startsWith('/')) return;
+				if (!coreModulePaths.has(resolve(args.resolveDir, args.path))) return;
+
+				return { path: args.path, external: true };
+			});
 		},
 	};
 }
 
-async function measureExport(exportPath) {
+async function measureExport(exportPath, coreModulePaths) {
 	const specifier = getSpecifier(exportPath);
 	const isPlugin = exportPath.startsWith('./plugins/');
 
@@ -81,7 +117,7 @@ async function measureExport(exportPath) {
 		treeShaking: true,
 		logLevel: 'silent',
 		external: optionalPeerDependencies,
-		plugins: isPlugin ? [externalizeCorePlugin()] : [],
+		plugins: isPlugin ? [externalizeCorePlugin(coreModulePaths)] : [],
 	});
 
 	const [{ contents }] = result.outputFiles;
@@ -99,8 +135,11 @@ async function measureExport(exportPath) {
 }
 
 const exportPaths = Object.keys(shaderpadPackage.exports).filter(isMeasurableExportPath).sort(compareExportPaths);
+const coreModulePaths = await getCoreModulePaths();
 const exportSizes = Object.fromEntries(
-	await Promise.all(exportPaths.map(async exportPath => [exportPath, await measureExport(exportPath)])),
+	await Promise.all(
+		exportPaths.map(async exportPath => [exportPath, await measureExport(exportPath, coreModulePaths)]),
+	),
 );
 
 const report = {

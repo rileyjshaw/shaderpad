@@ -1,4 +1,4 @@
-import { n as spError } from "../util-F8Zq4veT.mjs";
+import { r as spError } from "../util-aX4PUebh.mjs";
 
 //#region src/plugins/mediapipe-common.ts
 const dummyTexture = {

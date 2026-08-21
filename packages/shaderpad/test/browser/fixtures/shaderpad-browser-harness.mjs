@@ -1,6 +1,8 @@
 import ShaderPad from 'shaderpad';
+import { ShaderPadElement } from 'shaderpad/web-component';
 import hands from 'shaderpad/plugins/hands';
 import helpers from 'shaderpad/plugins/helpers';
+import deepHistory, { SHADER_OUTPUT } from 'shaderpad/plugins/deep-history';
 
 const HISTORY_FRAMES = 16;
 const CANVAS_WIDTH = 48;
@@ -28,13 +30,53 @@ function installWebGlLogger() {
 	if (globalThis.__shaderpadGlOps) return globalThis.__shaderpadGlOps;
 
 	const operations = [];
-	const methods = ['copyTexSubImage3D', 'readPixels', 'texImage2D', 'texSubImage2D', 'texSubImage3D'];
+	const uniformNames = new WeakMap();
+	const getUniformLocation = WebGL2RenderingContext.prototype.getUniformLocation;
+	WebGL2RenderingContext.prototype.getUniformLocation = function (...args) {
+		const location = getUniformLocation.apply(this, args);
+		if (location) uniformNames.set(location, args[1]);
+		return location;
+	};
+	const methods = [
+		'compileShader',
+		'linkProgram',
+		'copyTexSubImage3D',
+		'readPixels',
+		'texImage2D',
+		'texSubImage2D',
+		'texSubImage3D',
+		'uniform1f',
+		'uniform2f',
+		'uniform3f',
+		'uniform4f',
+		'uniform1i',
+		'uniform2i',
+		'uniform3i',
+		'uniform4i',
+		'uniform1ui',
+		'uniform2ui',
+		'uniform3ui',
+		'uniform4ui',
+		'uniform1fv',
+		'uniform2fv',
+		'uniform3fv',
+		'uniform4fv',
+		'uniform1iv',
+		'uniform2iv',
+		'uniform3iv',
+		'uniform4iv',
+		'uniform1uiv',
+		'uniform2uiv',
+		'uniform3uiv',
+		'uniform4uiv',
+	];
 	for (const name of methods) {
 		const original = WebGL2RenderingContext.prototype[name];
 		WebGL2RenderingContext.prototype[name] = function (...args) {
 			operations.push({
 				method: name,
 				canvasId: this.canvas?.dataset?.testId ?? null,
+				uniform: name.startsWith('uniform') ? uniformNames.get(args[0]) : undefined,
 			});
 			return original.apply(this, args);
 		};
@@ -364,7 +406,7 @@ async function createFingerPensHarness(mount, options = {}) {
 	};
 }
 
-async function createTransferHarness(mount, { sharedCanvas }) {
+async function createTransferHarness(mount, { sharedCanvas, format }) {
 	resetGlOps();
 
 	const container = document.createElement('div');
@@ -388,25 +430,27 @@ precision mediump float;
 in vec2 v_uv;
 out vec4 outColor;
 void main() { outColor = vec4(v_uv, 0.0, 1.0); }`,
-		{ canvas: sourceCanvas },
+		{ canvas: sourceCanvas, format },
 	);
+	const [historyPlugin, updateInput] = deepHistory('inputHistory', source, { history: 1, format });
+	const historySample = format?.endsWith('I') ? 'vec4(inputHistory(v_uv, 0))' : 'inputHistory(v_uv, 0)';
 	const dest = new ShaderPad(
 		`#version 300 es
 precision mediump float;
 in vec2 v_uv;
-uniform sampler2D u_input;
-uniform int u_inputFrameOffset;
 out vec4 outColor;
-void main() { outColor = texture(u_input, v_uv) + vec4(float(u_inputFrameOffset) * 0.0); }`,
-		{ canvas: destCanvas },
+void main() { outColor = ${historySample}; }`,
+		{ canvas: destCanvas, plugins: [historyPlugin] },
 	);
-	dest.initializeTexture('u_input', source, { history: 1 });
 
+	while (source.gl.getError() !== source.gl.NO_ERROR) {}
+	while (dest.gl.getError() !== dest.gl.NO_ERROR) {}
 	resetGlOps();
-	dest.updateTextures({ u_input: source });
+	updateInput(source);
 
 	return {
 		getOps: () => [...globalThis.__shaderpadGlOps],
+		getErrors: () => ({ source: source.gl.getError(), dest: dest.gl.getError() }),
 		destroy: () => {
 			source.destroy();
 			dest.destroy();
@@ -415,9 +459,290 @@ void main() { outColor = texture(u_input, v_uv) + vec4(float(u_inputFrameOffset)
 	};
 }
 
+function auditFormatUploads() {
+	const shader = new ShaderPad(createMinimalOutputShader(), {
+		canvas: new OffscreenCanvas(2, 2),
+	});
+	const cases = [
+		['u_half', 'RGBA16F', null],
+		['u_565', 'RGB565', new Uint16Array(1)],
+		['u_5551', 'RGB5_A1', new Uint16Array(1)],
+		['u_4444', 'RGBA4', new Uint16Array(1)],
+		['u_111110', 'R11F_G11F_B10F', new Uint32Array(1)],
+		['u_shared_exp', 'RGB9_E5', new Float32Array(3)],
+	];
+	const errors = [];
+	for (const [name, format, data] of cases) {
+		shader.initializeTexture(
+			name,
+			{ data, width: 1, height: 1 },
+			{ format, minFilter: 'NEAREST', magFilter: 'NEAREST' },
+		);
+		errors.push([format, shader.gl.getError()]);
+	}
+	shader.updateTextures({
+		u_half: { data: new Float32Array([1, 2, 3, 4]), width: 1, height: 1 },
+	});
+	errors.push(['RGBA16F Float32Array update', shader.gl.getError()]);
+	shader.updateTextures({
+		u_shared_exp: { data: new Uint32Array(1), width: 1, height: 1 },
+	});
+	errors.push(['RGB9_E5 Uint32Array update', shader.gl.getError()]);
+	shader.initializeTexture(
+		'u_half_history',
+		{ data: null, width: 1, height: 1 },
+		{ format: 'RGBA16F', history: 1, minFilter: 'NEAREST', magFilter: 'NEAREST' },
+	);
+	errors.push(['RGBA16F null history', shader.gl.getError()]);
+	shader.updateTextures({
+		u_half_history: { data: new Uint16Array(4), width: 1, height: 1 },
+	});
+	errors.push(['RGBA16F Uint16Array history update', shader.gl.getError()]);
+	shader.destroy();
+	return errors;
+}
+
+function auditDeepHistory() {
+	const canvas = document.createElement('canvas');
+	canvas.width = 4;
+	canvas.height = 4;
+	const source = { data: new Uint8Array(4 * 4 * 4), width: 4, height: 4 };
+	const [historyPlugin] = deepHistory('inputHistory', source, { history: 3, chunks: 2 });
+	const shader = new ShaderPad(
+		`#version 300 es
+precision mediump float;
+in vec2 v_uv;
+uniform int u_frame;
+out vec4 outColor;
+void main() {
+	outColor = inputHistory(v_uv, min(u_frame, 3));
+}`,
+		{ canvas, plugins: [historyPlugin] },
+	);
+	while (shader.gl.getError() !== shader.gl.NO_ERROR) {}
+
+	shader.step();
+	const firstStep = shader.gl.getError();
+	shader.step();
+	const secondStep = shader.gl.getError();
+	shader.draw();
+	const draw = shader.gl.getError();
+	shader.destroy();
+
+	return { firstStep, secondStep, draw };
+}
+
+function auditEagerDeepHistory() {
+	resetGlOps();
+	const canvas = document.createElement('canvas');
+	canvas.width = canvas.height = 4;
+	const source = { data: new Uint8Array(4 * 4 * 4), width: 4, height: 4 };
+	const [historyPlugin, updateInput] = deepHistory('inputHistory', source, { history: 7, chunks: 4 });
+	const shader = new ShaderPad(
+		`#version 300 es
+precision mediump float;
+in vec2 v_uv;
+uniform vec2 u_pending;
+out vec4 outColor;
+void main() { outColor = inputHistory(v_uv, 0) + vec4(u_pending, 0.0, 0.0); }`,
+		{ canvas, plugins: [historyPlugin] },
+	);
+	shader.initializeUniform('u_pending', 'float', [1, 2]);
+	shader.updateUniforms({ u_pending: [3, 4] });
+	const startup = [...installWebGlLogger()];
+	resetGlOps();
+	updateInput(source);
+	shader.step();
+	const warm = [...installWebGlLogger()];
+	shader.destroy();
+
+	return { startup, warm };
+}
+
+function auditTypedDeepHistoryAccessors() {
+	return [
+		['RGBA8', 'vec4', new Uint8Array(4)],
+		['RGBA32UI', 'uvec4', new Uint32Array(4)],
+		['RGBA32I', 'ivec4', new Int32Array(4)],
+	].map(([format, type, data]) => {
+		const [historyPlugin] = deepHistory(
+			'inputHistory',
+			{ data, width: 1, height: 1 },
+			{
+				format,
+				history: 3,
+				chunks: 2,
+			},
+		);
+		const shader = new ShaderPad(
+			`#version 300 es
+precision highp float;
+precision highp int;
+in vec2 v_uv;
+layout(location=0) out ${type} outColor;
+void main() { outColor = inputHistory(v_uv, 0); }`,
+			{ canvas: new OffscreenCanvas(4, 4), format, plugins: [historyPlugin] },
+		);
+		shader.draw();
+		const error = shader.gl.getError();
+		shader.destroy();
+		return [format, error];
+	});
+}
+
+function auditDeepOutputFormatInheritance() {
+	const [historyPlugin] = deepHistory('outputHistory', SHADER_OUTPUT, { history: 3, chunks: 2 });
+	const shader = new ShaderPad(
+		`#version 300 es
+precision highp float;
+precision highp int;
+in vec2 v_uv;
+layout(location=0) out uvec4 outColor;
+void main() { outColor = outputHistory(v_uv, 0) + uvec4(1u, 2u, 3u, 4u); }`,
+		{ canvas: new OffscreenCanvas(4, 4), format: 'RGBA32UI', plugins: [historyPlugin] },
+	);
+	shader.step();
+	const error = shader.gl.getError();
+	shader.destroy();
+	return error;
+}
+
+function readRedPixels(shader, width) {
+	const pixels = new Uint8Array(width * 4);
+	shader.gl.readPixels(0, 0, width, 1, shader.gl.RGBA, shader.gl.UNSIGNED_BYTE, pixels);
+	return Array.from({ length: width }, (_, i) => pixels[i * 4]);
+}
+
+function auditHistoryChronology() {
+	const inputCanvas = document.createElement('canvas');
+	inputCanvas.width = 5;
+	inputCanvas.height = 1;
+	const source = value => ({ data: new Uint8Array([value, 0, 0, 255]), width: 1, height: 1 });
+	const [historyPlugin, updateInput] = deepHistory('inputHistory', source(10), {
+		history: 4,
+		chunks: 2,
+		minFilter: 'NEAREST',
+		magFilter: 'NEAREST',
+	});
+	const input = new ShaderPad(
+		`#version 300 es
+precision mediump float;
+in vec2 v_uv;
+out vec4 outColor;
+void main() { outColor = inputHistory(v_uv, int(floor(v_uv.x * 5.0))); }`,
+		{ canvas: inputCanvas, plugins: [historyPlugin] },
+	);
+	for (const value of [20, 30, 40, 50]) updateInput(source(value));
+	input.draw();
+	const beforeWrap = readRedPixels(input, 5);
+	updateInput(source(60));
+	input.draw();
+	const afterWrap = readRedPixels(input, 5);
+	input.destroy();
+
+	const outputCanvas = document.createElement('canvas');
+	outputCanvas.width = 3;
+	outputCanvas.height = 1;
+	const output = new ShaderPad(
+		`#version 300 es
+precision mediump float;
+in vec2 v_uv;
+uniform int u_frame;
+uniform highp sampler2DArray u_history;
+uniform int u_historyFrameOffset;
+out vec4 outColor;
+void main() {
+		if (u_frame < 3) outColor = vec4(float(u_frame) / 4.0, 0.0, 0.0, 1.0);
+		else outColor = texture(u_history, vec3(v_uv, historyZ(u_history, u_historyFrameOffset, 1 + int(floor(v_uv.x * 3.0)))));
+}`,
+		{ canvas: outputCanvas, history: 3, minFilter: 'NEAREST', magFilter: 'NEAREST', plugins: [helpers()] },
+	);
+	for (let i = 0; i < 4; ++i) output.step();
+	const outputAges = readRedPixels(output, 3);
+	output.destroy();
+
+	return { beforeWrap, afterWrap, outputAges };
+}
+
+function auditDeepOutputHistory() {
+	const canvas = document.createElement('canvas');
+	canvas.width = 3;
+	canvas.height = 1;
+	const [historyPlugin] = deepHistory('outputHistory', SHADER_OUTPUT, {
+		history: 4,
+		chunks: 2,
+		minFilter: 'NEAREST',
+		magFilter: 'NEAREST',
+	});
+	const shader = new ShaderPad(
+		`#version 300 es
+precision mediump float;
+in vec2 v_uv;
+uniform int u_frame;
+out vec4 outColor;
+void main() {
+	if (u_frame < 4) outColor = vec4(float(u_frame) / 4.0, 0.0, 0.0, 1.0);
+	else outColor = outputHistory(v_uv, int(floor(v_uv.x * 3.0)));
+}`,
+		{ canvas, plugins: [historyPlugin] },
+	);
+	for (let i = 0; i < 5; ++i) shader.step();
+	const ages = readRedPixels(shader, 3);
+	const error = shader.gl.getError();
+	shader.destroy();
+	return { ages, error };
+}
+
+function defineTestElement() {
+	if (!customElements.get('shader-pad-test')) customElements.define('shader-pad-test', ShaderPadElement);
+}
+
+async function auditConcurrentTextureLoading(mount) {
+	defineTestElement();
+	const element = document.createElement('shader-pad-test');
+	element.autoplay = false;
+	element.autosize = false;
+	const script = document.createElement('script');
+	script.type = 'x-shader/x-fragment';
+	script.textContent = `#version 300 es
+precision mediump float;
+in vec2 v_uv;
+out vec4 outColor;
+void main() { outColor = vec4(v_uv, 0.0, 1.0); }`;
+	element.append(script);
+
+	const listening = [];
+	const images = ['u_first', 'u_second'].map((name, i) => {
+		const image = document.createElement('img');
+		image.dataset.texture = name;
+		const addEventListener = image.addEventListener.bind(image);
+		image.addEventListener = (type, listener, options) => {
+			if (type === 'load') listening[i] = true;
+			return addEventListener(type, listener, options);
+		};
+		element.append(image);
+		return image;
+	});
+	mount.append(element);
+	for (let i = 0; i < 20 && listening.filter(Boolean).length < 2; ++i) {
+		await new Promise(resolve => setTimeout(resolve));
+	}
+	images.forEach(image => image.dispatchEvent(new Event('error')));
+	element.remove();
+	return listening;
+}
+
 export async function installBrowserHarness(mount) {
 	installWebGlLogger();
 	globalThis.__shaderpadBrowserHarness = {
+		auditDeepHistory,
+		auditDeepOutputHistory,
+		auditEagerDeepHistory,
+		auditTypedDeepHistoryAccessors,
+		auditDeepOutputFormatInheritance,
+		auditHistoryChronology,
+		auditConcurrentTextureLoading: () => auditConcurrentTextureLoading(mount),
+		auditFormatUploads,
 		createFingerPensHarness: options => createFingerPensHarness(mount, options),
 		createTransferHarness: options => createTransferHarness(mount, options),
 	};

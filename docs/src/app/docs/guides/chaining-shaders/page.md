@@ -49,12 +49,12 @@ If two passes live on different WebGL contexts, ShaderPad has to read pixels bac
 
 ## Texture Options In Chains
 
-When you initialize a texture from another `ShaderPad` without passing texture options, ShaderPad reuses the source pass’s render-texture settings for the destination texture. That includes `internalFormat`, `format`, `type`, filters, wrapping, and `colorSpace`.
+When you initialize a texture from another `ShaderPad` without passing texture options, ShaderPad reuses the source pass’s render-texture settings for the destination texture. That includes `format`, filters, wrapping, and `colorSpace`.
 
 ```javascript
 const passA = new ShaderPad(fragmentA, {
 	canvas: sharedCanvas,
-	internalFormat: 'RGBA32F',
+	format: 'RGBA32F',
 	colorSpace: 'display-p3',
 });
 
@@ -63,7 +63,7 @@ const passB = new ShaderPad(fragmentB, {
 	colorSpace: 'display-p3',
 });
 
-passB.initializeTexture('u_firstPass', passA); // Inherits passA’s internalFormat and colorSpace.
+passB.initializeTexture('u_firstPass', passA); // Inherits passA’s format and colorSpace.
 ```
 
 ## Synchronizing Renders

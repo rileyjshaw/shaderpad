@@ -1,5 +1,5 @@
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-const require_index = require('../index.js');
+const require_src = require('../src-DDTpIDcH.js');
 const require_plugins_mediapipe_common = require('./mediapipe-common.js');
 
 //#region src/plugins/segmenter.ts
@@ -111,12 +111,10 @@ function segmenter(config) {
 					imageSegmenter.close();
 					return;
 				}
-				const maskShader = new require_index.default(MASK_SHADER_SOURCE, { canvas: mediapipeCanvas });
+				const maskShader = new require_src.ShaderPad(MASK_SHADER_SOURCE, { canvas: mediapipeCanvas });
 				maskShader.initializeTexture("u_categoryMask", require_plugins_mediapipe_common.dummyTexture);
 				maskShader.initializeTexture("u_confidenceMask", dummyTextureFloat32, {
-					format: "RED",
-					internalFormat: "R32F",
-					type: "FLOAT",
+					format: "R32F",
 					minFilter: "NEAREST",
 					magFilter: "NEAREST"
 				});

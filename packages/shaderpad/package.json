@@ -95,6 +95,15 @@
 			"import": "./dist/plugins/segmenter.mjs",
 			"require": "./dist/plugins/segmenter.js"
 		},
+		"./plugins/deep-history": {
+			"types": "./dist/plugins/deep-history.d.ts",
+			"development": {
+				"import": "./dist/dev/plugins/deep-history.mjs",
+				"require": "./dist/dev/plugins/deep-history.js"
+			},
+			"import": "./dist/plugins/deep-history.mjs",
+			"require": "./dist/plugins/deep-history.js"
+		},
 		"./plugins/autosize": {
 			"types": "./dist/plugins/autosize.d.ts",
 			"development": {
@@ -139,6 +148,9 @@
 			],
 			"plugins/segmenter": [
 				"dist/plugins/segmenter.d.ts"
+			],
+			"plugins/deep-history": [
+				"dist/plugins/deep-history.d.ts"
 			],
 			"plugins/autosize": [
 				"dist/plugins/autosize.d.ts"

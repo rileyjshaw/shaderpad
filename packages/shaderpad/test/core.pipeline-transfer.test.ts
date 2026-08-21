@@ -144,22 +144,26 @@ describe('ShaderPad pipeline transfer paths', () => {
 		dest.destroy();
 	});
 
-	it('same-context chaining with destination history stays on the GPU via copyTexSubImage3D', async () => {
+	it('same-context chaining resizes deep history and performs one GPU copy', async () => {
 		const ShaderPad = await loadShaderPad();
+		const { default: deepHistory } = await import('../src/plugins/deep-history');
 		const sharedCanvas = new OffscreenCanvas(4, 4);
 
 		const source = new ShaderPad(SOURCE_FRAGMENT_SHADER, { canvas: sharedCanvas });
-		const dest = new ShaderPad(DEST_FRAGMENT_SHADER, { canvas: sharedCanvas });
-
-		dest.initializeTexture('u_input', source, { history: 2 });
+		const [historyPlugin, updateInput] = deepHistory('inputHistory', source, { history: 2, chunks: 2 });
+		const dest = new ShaderPad(DEST_FRAGMENT_SHADER, { canvas: sharedCanvas, plugins: [historyPlugin] });
+		sharedCanvas.width = 8;
+		sharedCanvas.height = 6;
 
 		clearGlOperations(source, dest);
-		dest.updateTextures({ u_input: source });
+		updateInput(source);
 
+		expect(getTextureInfo(dest as any, 'inputHistoryChunk0')).toMatchObject({ width: 8, height: 6 });
+		expect(getTextureInfo(dest as any, 'inputHistoryChunk1')).toMatchObject({ width: 8, height: 6 });
 		expect(getGlOperations(source, 'readPixels')).toHaveLength(0);
 		expect(getGlOperations(dest, 'readPixels')).toHaveLength(0);
 		expect(getGlOperations(dest, 'copyTexSubImage3D')).toHaveLength(1);
-		expect(getGlOperations(dest, 'texSubImage3D')).toHaveLength(0);
+		expect(getGlOperations(dest, 'texSubImage3D')).toHaveLength(4);
 
 		source.destroy();
 		dest.destroy();
@@ -179,6 +183,78 @@ describe('ShaderPad pipeline transfer paths', () => {
 		expect(getGlOperations(source, 'readPixels')).toHaveLength(1);
 		expect(getGlOperations(dest, 'texImage2D')).toHaveLength(1);
 		expect(getGlOperations(dest, 'copyTexSubImage3D')).toHaveLength(0);
+
+		source.destroy();
+		dest.destroy();
+	});
+
+	it('cross-context half-float chaining uses the implementation read type directly', async () => {
+		const ShaderPad = await loadShaderPad();
+		const source = new ShaderPad(SOURCE_FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(4, 4),
+			format: 'RGBA16F',
+		});
+		const dest = new ShaderPad(DEST_FRAGMENT_SHADER, { canvas: new OffscreenCanvas(4, 4) });
+
+		dest.initializeTexture('u_input', source);
+		clearGlOperations(source, dest);
+		dest.updateTextures({ u_input: source });
+
+		expect(getGlOperations(source, 'readPixels')).toContainEqual(
+			expect.objectContaining({ format: getGl(source).RGBA, type: getGl(source).HALF_FLOAT }),
+		);
+		expect(getGlOperations(dest, 'texImage2D')).toContainEqual(
+			expect.objectContaining({ format: getGl(dest).RGBA, type: getGl(dest).HALF_FLOAT }),
+		);
+
+		source.destroy();
+		dest.destroy();
+	});
+
+	it('cross-context reduced-channel chaining reads compact data directly', async () => {
+		const ShaderPad = await loadShaderPad();
+		const source = new ShaderPad(SOURCE_FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(2, 2),
+			format: 'R16F',
+		});
+		const dest = new ShaderPad(DEST_FRAGMENT_SHADER, { canvas: new OffscreenCanvas(2, 2) });
+
+		dest.initializeTexture('u_input', source);
+		const upload = getGlOperations(dest, 'texImage2D').at(-1);
+		expect(upload).toEqual(
+			expect.objectContaining({
+				format: getGl(dest).RED,
+				type: getGl(dest).HALF_FLOAT,
+				sourceData: new Uint16Array([0, 1, 2, 3]),
+			}),
+		);
+
+		source.destroy();
+		dest.destroy();
+	});
+
+	it('cross-context integer chaining uses the compact implementation read type', async () => {
+		const ShaderPad = await loadShaderPad();
+		const source = new ShaderPad(SOURCE_FRAGMENT_SHADER, {
+			canvas: new OffscreenCanvas(2, 2),
+			format: 'R8UI',
+		});
+		const dest = new ShaderPad(DEST_FRAGMENT_SHADER, { canvas: new OffscreenCanvas(2, 2) });
+
+		dest.initializeTexture('u_input', source);
+		clearGlOperations(source, dest);
+		dest.updateTextures({ u_input: source });
+
+		expect(getGlOperations(source, 'readPixels')).toContainEqual(
+			expect.objectContaining({ format: getGl(source).RED_INTEGER, type: getGl(source).UNSIGNED_BYTE }),
+		);
+		expect(getGlOperations(dest, 'texImage2D')).toContainEqual(
+			expect.objectContaining({
+				format: getGl(dest).RED_INTEGER,
+				type: getGl(dest).UNSIGNED_BYTE,
+				sourceData: new Uint8Array([0, 1, 2, 3]),
+			}),
+		);
 
 		source.destroy();
 		dest.destroy();

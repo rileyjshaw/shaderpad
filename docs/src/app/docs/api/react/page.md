@@ -50,7 +50,7 @@ If you want the usage patterns first, start with [Components / React](/docs/comp
 
 | Prop        | Type                                           | Meaning                                                                                                                      |
 | ----------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `onInit`    | `(shader, canvas) => void`                     | Runs after setup, before autoplay starts.                                                                                    |
+| `onInit`    | `(shader, canvas) => void \| Promise<void>`    | Runs after setup, before autoplay starts.                                                                                    |
 | `onPreStep` | `(shader, time, frame) => StepOptions \| void` | Runs whenever the underlying ShaderPad emits `preStep`. Returned step options apply to frames started through the component. |
 | `onError`   | `(error) => void`                              | Receives constructor/setup errors instead of letting them surface as uncaught runtime errors.                                |
 
@@ -69,18 +69,16 @@ If you want the usage patterns first, start with [Components / React](/docs/comp
 
 Texture option props map onto `initializeTexture()`:
 
-| Prop                           | Meaning                        |
-| ------------------------------ | ------------------------------ |
-| `data-texture-history`         | Texture history depth.         |
-| `data-texture-preserve-y`      | Preserves or flips source Y.   |
-| `data-texture-internal-format` | WebGL internal texture format. |
-| `data-texture-format`          | WebGL texture format.          |
-| `data-texture-type`            | WebGL texture type.            |
-| `data-texture-min-filter`      | WebGL minification filter.     |
-| `data-texture-mag-filter`      | WebGL magnification filter.    |
-| `data-texture-wrap-s`          | WebGL horizontal wrap mode.    |
-| `data-texture-wrap-t`          | WebGL vertical wrap mode.      |
-| `data-texture-color-space`     | Texture color space.           |
+| Prop                       | Meaning                      |
+| -------------------------- | ---------------------------- |
+| `data-texture-history`     | Texture history depth.       |
+| `data-texture-preserve-y`  | Preserves or flips source Y. |
+| `data-texture-format`      | WebGL texture format.        |
+| `data-texture-min-filter`  | WebGL minification filter.   |
+| `data-texture-mag-filter`  | WebGL magnification filter.  |
+| `data-texture-wrap-s`      | WebGL horizontal wrap mode.  |
+| `data-texture-wrap-t`      | WebGL vertical wrap mode.    |
+| `data-texture-color-space` | Texture color space.         |
 
 ### Canvas Props
 

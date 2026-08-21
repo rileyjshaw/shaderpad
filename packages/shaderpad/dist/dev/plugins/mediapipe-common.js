@@ -1,5 +1,5 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-const require_util = require('../util-DfeaXiHj.js');
+const require_util = require('../util-DAwznktR.js');
 
 //#region src/plugins/mediapipe-common.ts
 const dummyTexture = {

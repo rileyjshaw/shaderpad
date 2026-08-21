@@ -147,8 +147,7 @@ function hands(config) {
 				width: LANDMARKS_TEXTURE_WIDTH,
 				height: textureHeight
 			}, {
-				internalFormat: "RGBA32F",
-				type: "FLOAT",
+				format: "RGBA32F",
 				minFilter: "NEAREST",
 				magFilter: "NEAREST",
 				history

@@ -31,7 +31,7 @@ Start with these pages:
 - `/shaderpad/docs/api/shaderpad/` - constructor and options
 - `/shaderpad/docs/api/methods/` - methods and behavior
 - `/shaderpad/docs/core-concepts/built-in-inputs/` - built-in varying and uniforms
-- `/shaderpad/docs/core-concepts/history/` - history buffers, plugin history, and `historyZ()`
+- `/shaderpad/docs/core-concepts/history/` - history buffers, deep history, and `historyZ()`
 - `/shaderpad/docs/guides/chaining-shaders/` - multi-pass workflows
 - `/shaderpad/docs/guides/performance/` - bandwidth, context sharing, texture formats, and detector batching
 - `/shaderpad/docs/plugins/helpers/` - GLSL helpers, `fitCover()`, and the `u_resolution` caveat
@@ -45,6 +45,7 @@ Plugin docs:
 - `/shaderpad/docs/plugins/pose/`
 - `/shaderpad/docs/plugins/hands/`
 - `/shaderpad/docs/plugins/segmenter/`
+- `/shaderpad/docs/plugins/deep-history/`
 
 Concrete local example starting points:
 

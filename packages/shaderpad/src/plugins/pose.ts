@@ -403,8 +403,7 @@ function pose(config: PosePluginConfig) {
 					height: textureHeight,
 				},
 				{
-					internalFormat: 'RGBA32F',
-					type: 'FLOAT',
+					format: 'RGBA32F',
 					minFilter: 'NEAREST',
 					magFilter: 'NEAREST',
 					history,

@@ -1,5 +1,5 @@
 Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });
-const require_index = require('../index.js');
+const require_src = require('../src-DDTpIDcH.js');
 const require_plugins_mediapipe_common = require('./mediapipe-common.js');
 
 //#region src/plugins/pose.ts
@@ -172,7 +172,7 @@ function pose(config) {
 		const existingDetector = sharedDetectors.get(optionsKey);
 		const landmarksData = existingDetector?.landmarks ?? new Float32Array(LANDMARKS_TEXTURE_WIDTH * textureHeight * 4);
 		const maskShader = existingDetector?.maskShader ?? (() => {
-			const shader = new require_index.default(MASK_SHADER_SRC, { canvas: new OffscreenCanvas(1, 1) });
+			const shader = new require_src.ShaderPad(MASK_SHADER_SRC, { canvas: new OffscreenCanvas(1, 1) });
 			shader.initializeTexture("u_mask", require_plugins_mediapipe_common.dummyTexture);
 			shader.initializeUniform("u_poseIndex", "float", 0);
 			return shader;
@@ -268,8 +268,7 @@ function pose(config) {
 				width: LANDMARKS_TEXTURE_WIDTH,
 				height: textureHeight
 			}, {
-				internalFormat: "RGBA32F",
-				type: "FLOAT",
+				format: "RGBA32F",
 				minFilter: "NEAREST",
 				magFilter: "NEAREST",
 				history

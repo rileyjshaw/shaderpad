@@ -1,4 +1,4 @@
-import ShaderPad from "./index.js";
+import { d as ShaderPad } from "./index-Bx7YV0w_.js";
 //#region src/util.d.ts
 interface ToBlobOptions {
   type?: string;

@@ -106,6 +106,14 @@ const DEV_ERRORS = {
 	"63": {
 		title: "MediaPipe Plugin Initialization Failed",
 		summary: "A ShaderPad MediaPipe plugin could not initialize its vision runtime or task."
+	},
+	"64": {
+		title: "Deep History Configuration Invalid",
+		summary: "The deepHistory plugin received a configuration that it cannot allocate or express in GLSL."
+	},
+	"65": {
+		title: "Deep History Lifecycle Invalid",
+		summary: "The deepHistory plugin or its updater was used outside its valid ShaderPad lifecycle."
 	}
 };
 
@@ -145,7 +153,31 @@ function spError(code, context, options) {
 function safeMod(i, m) {
 	return (i % m + m) % m;
 }
+function getSourceDimensions(source) {
+	if (source instanceof WebGLTexture) return [0, 0];
+	if ("canvas" in source) return [source.canvas.width, source.canvas.height];
+	if (source instanceof HTMLVideoElement) return [source.videoWidth, source.videoHeight];
+	if (source instanceof HTMLImageElement) return [source.naturalWidth ?? source.width, source.naturalHeight ?? source.height];
+	return [source.width, source.height];
+}
 
 //#endregion
-export { spError as n, safeMod as t };
-//# sourceMappingURL=util-F8Zq4veT.mjs.map
+Object.defineProperty(exports, 'getSourceDimensions', {
+  enumerable: true,
+  get: function () {
+    return getSourceDimensions;
+  }
+});
+Object.defineProperty(exports, 'safeMod', {
+  enumerable: true,
+  get: function () {
+    return safeMod;
+  }
+});
+Object.defineProperty(exports, 'spError', {
+  enumerable: true,
+  get: function () {
+    return spError;
+  }
+});
+//# sourceMappingURL=util-DAwznktR.js.map

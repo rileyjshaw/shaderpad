@@ -3,6 +3,11 @@ declare module '*.glsl' {
 	export default value;
 }
 
+declare module '*.glsl?raw' {
+	const value: string;
+	export default value;
+}
+
 declare namespace NodeJS {
 	interface ProcessEnv {
 		NODE_ENV?: 'development' | 'production' | 'test';

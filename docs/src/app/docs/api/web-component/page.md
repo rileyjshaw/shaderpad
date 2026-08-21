@@ -69,9 +69,7 @@ Texture option attributes map onto `initializeTexture()`:
 
 - `data-texture-history`
 - `data-texture-preserve-y`
-- `data-texture-internal-format`
 - `data-texture-format`
-- `data-texture-type`
 - `data-texture-min-filter`
 - `data-texture-mag-filter`
 - `data-texture-wrap-s`

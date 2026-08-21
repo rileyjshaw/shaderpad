@@ -19,6 +19,7 @@ export const docs = {
 	hands: '/docs/plugins/hands',
 	helpers: '/docs/plugins/helpers',
 	history: '/docs/core-concepts/history',
+	deepHistory: '/docs/plugins/deep-history',
 	pose: '/docs/plugins/pose',
 	react: '/docs/components/react',
 	savingImages: '/docs/guides/saving-images',
@@ -208,6 +209,19 @@ const exampleDetails: Record<string, ExampleDetails> = {
 					5th frame, the demo pauses so you can inspect it.
 				</p>
 			</>
+		),
+	},
+	'deep-history': {
+		credit: (
+			<>
+				Original video by <ExtLink href="https://www.pexels.com/@823751876/">Israyosoy S.</ExtLink>
+			</>
+		),
+		fullDescription: (
+			<p>
+				Each horizontal band samples a different age from a{' '}
+				<CodeDocLink href={docs.deepHistory}>deepHistory</CodeDocLink> texture.
+			</p>
 		),
 	},
 	'webcam-trails': {

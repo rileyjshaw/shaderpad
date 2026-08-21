@@ -1,4 +1,4 @@
-import ShaderPad from "../index.mjs";
+import { t as ShaderPad } from "../src-SI9RyT8t.mjs";
 import { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, dummyTexture, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError } from "./mediapipe-common.mjs";
 
 //#region src/plugins/pose.ts
@@ -267,8 +267,7 @@ function pose(config) {
 				width: LANDMARKS_TEXTURE_WIDTH,
 				height: textureHeight
 			}, {
-				internalFormat: "RGBA32F",
-				type: "FLOAT",
+				format: "RGBA32F",
 				minFilter: "NEAREST",
 				magFilter: "NEAREST",
 				history

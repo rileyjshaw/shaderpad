@@ -5,9 +5,7 @@ export type DomTextureElement = HTMLImageElement | HTMLVideoElement | HTMLCanvas
 export type LiveTextureSource = HTMLVideoElement | HTMLCanvasElement | CoreShaderPad;
 
 const TEXTURE_OPTION_ATTRIBUTES = [
-	['internal-format', 'internalFormat'],
 	['format', 'format'],
-	['type', 'type'],
 	['min-filter', 'minFilter'],
 	['mag-filter', 'magFilter'],
 	['wrap-s', 'wrapS'],

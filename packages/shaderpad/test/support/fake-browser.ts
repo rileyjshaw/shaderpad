@@ -8,6 +8,8 @@ export type FakeTextureWrite = {
 	xOffset?: number;
 	yOffset?: number;
 	sourceData?: unknown;
+	format?: number;
+	type?: number;
 };
 
 export type FakeGlOperation = {
@@ -18,6 +20,10 @@ export type FakeGlOperation = {
 		| 'texSubImage3D'
 		| 'copyTexSubImage3D'
 		| 'readPixels'
+		| 'shaderSource'
+		| 'compileShader'
+		| 'linkProgram'
+		| 'uniform'
 		| 'drawArrays'
 		| 'clear'
 		| 'clearBufferiv'
@@ -34,6 +40,11 @@ export type FakeGlOperation = {
 	yOffset?: number;
 	sourceData?: unknown;
 	colorSpace?: string;
+	internalFormat?: number;
+	format?: number;
+	type?: number;
+	source?: string;
+	name?: string;
 };
 
 type EventMap = Map<string, Set<EventListener>>;
@@ -129,6 +140,9 @@ class FakeHTMLAnchorElement extends FakeElement {
 export class FakeWebGLTexture {
 	id = nextId++;
 	writes: FakeTextureWrite[] = [];
+	internalFormat?: number;
+	format?: number;
+	type?: number;
 }
 
 class FakeUniformLocation {
@@ -140,6 +154,7 @@ export class FakeWebGL2RenderingContext {
 	drawingBufferHeight: number;
 	operations: FakeGlOperation[] = [];
 	private boundTextures = new Map<number, FakeWebGLTexture | null>();
+	private readTexture: FakeWebGLTexture | null = null;
 	private unpackAlignment = 4;
 	private unpackFlipY = 0;
 	private drawingBufferColorSpaceValue: FakeColorSpace = 'srgb';
@@ -156,7 +171,9 @@ export class FakeWebGL2RenderingContext {
 	}
 
 	private writeUniform(name: string, value: number | number[]) {
-		this.uniformValues.set(name, Array.isArray(value) ? [...value] : value);
+		const nextValue = Array.isArray(value) ? [...value] : value;
+		this.uniformValues.set(name, nextValue);
+		this.log({ kind: 'uniform', name, sourceData: nextValue });
 	}
 
 	private boundTexture(target: number) {
@@ -185,16 +202,17 @@ export class FakeWebGL2RenderingContext {
 	}
 
 	readonly MAX_COMBINED_TEXTURE_IMAGE_UNITS = 1;
+	readonly MAX_ARRAY_TEXTURE_LAYERS = 6;
 	readonly UNPACK_ALIGNMENT = 2;
 	readonly UNPACK_FLIP_Y_WEBGL = 3;
-	readonly FLOAT = 4;
-	readonly HALF_FLOAT = 5;
-	readonly UNSIGNED_SHORT = 6;
-	readonly SHORT = 7;
-	readonly BYTE = 8;
-	readonly UNSIGNED_INT = 9;
-	readonly INT = 10;
-	readonly UNSIGNED_BYTE = 11;
+	readonly BYTE = 5120;
+	readonly UNSIGNED_BYTE = 5121;
+	readonly SHORT = 5122;
+	readonly UNSIGNED_SHORT = 5123;
+	readonly INT = 5124;
+	readonly UNSIGNED_INT = 5125;
+	readonly FLOAT = 5126;
+	readonly HALF_FLOAT = 5131;
 	readonly RGBA32F = 12;
 	readonly RGBA16F = 13;
 	readonly RGBA32UI = 14;
@@ -241,11 +259,22 @@ export class FakeWebGL2RenderingContext {
 	readonly MAX = 55;
 	readonly ONE = 56;
 	readonly FUNC_ADD = 57;
+	readonly R16F = 58;
+	readonly R8UI = 33330;
+	readonly IMPLEMENTATION_COLOR_READ_TYPE = 35738;
+	readonly IMPLEMENTATION_COLOR_READ_FORMAT = 35739;
 
 	getParameter(param: number) {
 		if (param === this.MAX_COMBINED_TEXTURE_IMAGE_UNITS) return 32;
+		if (param === this.MAX_ARRAY_TEXTURE_LAYERS) return 256;
 		if (param === this.UNPACK_ALIGNMENT) return this.unpackAlignment;
 		if (param === this.UNPACK_FLIP_Y_WEBGL) return this.unpackFlipY;
+		if (param === this.IMPLEMENTATION_COLOR_READ_FORMAT) return this.readTexture?.format ?? this.RGBA;
+		if (param === this.IMPLEMENTATION_COLOR_READ_TYPE) {
+			const internalFormat = this.readTexture?.internalFormat;
+			if (internalFormat === this.R16F || internalFormat === this.RGBA16F) return this.HALF_FLOAT;
+			return this.readTexture?.type ?? this.UNSIGNED_BYTE;
+		}
 		return 0;
 	}
 
@@ -265,9 +294,12 @@ export class FakeWebGL2RenderingContext {
 
 	shaderSource(shader: { source: string }, source: string) {
 		shader.source = source;
+		this.log({ kind: 'shaderSource', source });
 	}
 
-	compileShader(_shader: unknown) {}
+	compileShader(_shader: unknown) {
+		this.log({ kind: 'compileShader' });
+	}
 
 	getShaderParameter(_shader: unknown, param: number) {
 		return param === this.COMPILE_STATUS;
@@ -283,7 +315,9 @@ export class FakeWebGL2RenderingContext {
 
 	bindAttribLocation(_program: unknown, _index: number, _name: string) {}
 
-	linkProgram(_program: unknown) {}
+	linkProgram(_program: unknown) {
+		this.log({ kind: 'linkProgram' });
+	}
 
 	getProgramParameter(_program: unknown, param: number) {
 		return param === this.LINK_STATUS;
@@ -454,27 +488,21 @@ export class FakeWebGL2RenderingContext {
 
 	texParameteri(_target: number, _pname: number, _param: number) {}
 
-	texStorage3D(
-		_target: number,
-		_levels: number,
-		_internalFormat: number,
-		_width: number,
-		_height: number,
-		_depth: number,
-	) {}
+	texStorage3D(_target: number, _levels: number, _format: number, _width: number, _height: number, _depth: number) {}
 
 	texImage2D(
 		target: number,
 		_level: number,
-		_internalFormat: number,
+		internalFormat: number,
 		width: number,
 		height: number,
 		_border: number,
-		_format: number,
-		_type: number,
+		format: number,
+		type: number,
 		data: unknown,
 	) {
 		const texture = this.boundTexture(target);
+		if (texture) Object.assign(texture, { internalFormat, format, type });
 		const clonedData = cloneSourceData(data);
 		texture?.writes.push({ kind: 'image2d', width, height, sourceData: clonedData });
 		this.log({
@@ -483,6 +511,9 @@ export class FakeWebGL2RenderingContext {
 			textureId: texture?.id,
 			width,
 			height,
+			internalFormat,
+			format,
+			type,
 			sourceData: clonedData,
 		});
 	}
@@ -494,8 +525,8 @@ export class FakeWebGL2RenderingContext {
 		yOffset: number,
 		width: number,
 		height: number,
-		_format: number,
-		_type: number,
+		format: number,
+		type: number,
 		data: unknown,
 	) {
 		const texture = this.boundTexture(target);
@@ -509,6 +540,8 @@ export class FakeWebGL2RenderingContext {
 			yOffset,
 			width,
 			height,
+			format,
+			type,
 			sourceData: clonedData,
 		});
 	}
@@ -522,8 +555,8 @@ export class FakeWebGL2RenderingContext {
 		width: number,
 		height: number,
 		_depth: number,
-		_format: number,
-		_type: number,
+		format: number,
+		type: number,
 		data: unknown,
 	) {
 		const texture = this.boundTexture(target);
@@ -535,6 +568,8 @@ export class FakeWebGL2RenderingContext {
 			yOffset,
 			width,
 			height,
+			format,
+			type,
 			sourceData: clonedData,
 		});
 		this.log({
@@ -546,6 +581,8 @@ export class FakeWebGL2RenderingContext {
 			yOffset,
 			width,
 			height,
+			format,
+			type,
 			sourceData: clonedData,
 		});
 	}
@@ -581,7 +618,15 @@ export class FakeWebGL2RenderingContext {
 
 	bindFramebuffer(_target: number, _framebuffer: unknown) {}
 
-	framebufferTexture2D(_target: number, _attachment: number, _textarget: number, _texture: unknown, _level: number) {}
+	framebufferTexture2D(
+		_target: number,
+		_attachment: number,
+		_textarget: number,
+		texture: FakeWebGLTexture | null,
+		_level: number,
+	) {
+		this.readTexture = texture;
+	}
 
 	checkFramebufferStatus(_target: number) {
 		return this.FRAMEBUFFER_COMPLETE;
@@ -613,18 +658,18 @@ export class FakeWebGL2RenderingContext {
 		_y: number,
 		width: number,
 		height: number,
-		_format: number,
-		_type: number,
+		format: number,
+		type: number,
 		pixels: ArrayBufferView,
 	) {
 		this.log({
 			kind: 'readPixels',
 			width,
 			height,
+			format,
+			type,
 		});
-		if ('fill' in pixels && typeof pixels.fill === 'function') {
-			(pixels as Uint8Array).fill(0);
-		}
+		for (let i = 0; i < (pixels as Uint8Array).length; ++i) (pixels as Uint8Array)[i] = i;
 	}
 
 	pixelStorei(param: number, value: number | boolean) {
@@ -897,7 +942,7 @@ export function triggerResize(target: object) {
 }
 
 export function getUniformValue(shader: any, name: string) {
-	return shader.gl.uniformValues.get(name);
+	return shader.gl.uniformValues.get(name) ?? shader.uniforms.get(name)?.value_;
 }
 
 function getTextureRecord(shader: any, name: string) {
@@ -912,11 +957,47 @@ function getTextureRecord(shader: any, name: string) {
 }
 
 export function getTextureWrites(shader: any, name: string) {
-	return getTextureRecord(shader, name)?.texture?.writes ?? [];
+	return getTextureRecord(shader, name)?.texture_?.writes ?? [];
 }
 
 export function getTextureInfo(shader: any, name: string) {
-	return getTextureRecord(shader, name);
+	const texture = getTextureRecord(shader, name);
+	if (!texture) return texture;
+	const history = texture.history_;
+	return {
+		get texture() {
+			return texture.texture_;
+		},
+		get unitIndex() {
+			return texture.unitIndex_;
+		},
+		get width() {
+			return texture.width_;
+		},
+		get height() {
+			return texture.height_;
+		},
+		history: history && {
+			get depth() {
+				return history.depth_;
+			},
+			get writeIndex() {
+				return history.writeIndex_;
+			},
+		},
+		options: {
+			formatName: texture.options_.formatName_,
+			format: texture.options_.format_,
+			uploadFormat: texture.options_.uploadFormat_,
+			channelCount: texture.options_.channelCount_,
+			minFilter: texture.options_.minFilter_,
+			magFilter: texture.options_.magFilter_,
+			wrapS: texture.options_.wrapS_,
+			wrapT: texture.options_.wrapT_,
+			colorSpace: texture.options_.colorSpace_,
+			preserveY: texture.options_.preserveY_,
+		},
+	};
 }
 
 export function getGl(shader: any): FakeWebGL2RenderingContext {

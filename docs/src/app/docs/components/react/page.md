@@ -75,7 +75,7 @@ If you want the wrapper to own resizing, leave `autosize` alone and pass your ot
 
 ### `onInit` and `onPreStep`
 
-Use `onInit` for setup such as custom uniforms or textures. Use `onPreStep` for per-frame updates and to return optional `StepOptions`.
+Use `onInit` for setup such as custom uniforms or textures. It may return a promise; the wrapper awaits it before becoming ready or starting autoplay. Use `onPreStep` for per-frame updates and to return optional `StepOptions`.
 
 ```tsx
 <ShaderPad

@@ -251,7 +251,7 @@ export const errors: readonly ErrorEntry[] = [
 			'The source was used before it finished loading or before dimensions became available.',
 		],
 		fixes: [
-			'Wait until the source has valid dimensions before calling initializeTexture().',
+			'Wait until the source has valid dimensions before using it to initialize texture storage.',
 			'For custom textures, pass explicit non-zero width and height values.',
 		],
 	},
@@ -353,6 +353,34 @@ export const errors: readonly ErrorEntry[] = [
 			"Inspect error.cause to see MediaPipe's original failure.",
 			'Make sure the MediaPipe script, wasmBaseUrl, and modelPath are reachable and compatible with the installed @mediapipe/tasks-vision version.',
 			'Try a different browser or device, or create a new ShaderPad instance to retry a temporary failure.',
+		],
+	},
+	{
+		code: 64,
+		title: 'Deep History Configuration Invalid',
+		summary: 'The deepHistory plugin received a configuration that it cannot allocate or express in GLSL.',
+		causes: [
+			'The texture name is not a valid GLSL identifier.',
+			'History or chunks is not a positive integer, or chunks exceeds the history capacity.',
+			'The requested history depth per chunk exceeds the device array-texture layer limit.',
+		],
+		fixes: [
+			'Use a texture name that starts with a letter or underscore and contains only letters, numbers, and underscores.',
+			'Use positive integer history and chunks values, with chunks no greater than history plus one.',
+			'Increase chunks or reduce history until each chunk fits the device array-texture layer limit.',
+		],
+	},
+	{
+		code: 65,
+		title: 'Deep History Lifecycle Invalid',
+		summary: 'The deepHistory plugin or its updater was used outside its valid ShaderPad lifecycle.',
+		causes: [
+			'The updater was called before its ShaderPad instance finished construction or after that instance was destroyed.',
+			'The same plugin returned by deepHistory() was installed on more than one ShaderPad instance.',
+		],
+		fixes: [
+			'Construct ShaderPad with the plugin before calling the updater, and stop updating after destroy().',
+			'Call deepHistory() separately for each ShaderPad instance that needs its own history.',
 		],
 	},
 ];

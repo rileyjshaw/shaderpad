@@ -1,4 +1,4 @@
-import { n as spError } from "../util-F8Zq4veT.mjs";
+import { r as spError } from "../util-aX4PUebh.mjs";
 import { DEFAULT_WASM_BASE_URL, calculateBoundingBoxCenter, generateGLSLFn, getOrCreateSharedResource, getSharedFileset, hashOptions, isMediaPipeSource, reportMediaPipeError } from "./mediapipe-common.mjs";
 
 //#region src/plugins/face.ts
@@ -527,8 +527,7 @@ function face(config) {
 				width: LANDMARKS_TEXTURE_WIDTH,
 				height: textureHeight
 			}, {
-				internalFormat: "RGBA32F",
-				type: "FLOAT",
+				format: "RGBA32F",
 				minFilter: "NEAREST",
 				magFilter: "NEAREST",
 				history

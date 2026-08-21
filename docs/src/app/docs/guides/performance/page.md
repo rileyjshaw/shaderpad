@@ -51,6 +51,7 @@ History increases texture bandwidth, so use it mindfully.
 
 - Disable history entirely when the effect or texture does not sample prior frames
 - Use `skipHistory: true` on steps that should not become a new history frame
+- In `deepHistory`, use the fewest `chunks` needed to fit the history
 
 For instance, let’s say you want to store one sample per second for the previous 10 seconds. Instead of storing every rendered frame, you can do something like this:
 

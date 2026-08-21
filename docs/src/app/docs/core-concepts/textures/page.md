@@ -35,8 +35,7 @@ shader.initializeTexture(
 	'u_data',
 	{ data: new Float32Array(width * height * 4), width, height },
 	{
-		internalFormat: 'RGBA32F',
-		type: 'FLOAT',
+		format: 'RGBA32F',
 		minFilter: 'NEAREST',
 		magFilter: 'NEAREST',
 	},
@@ -90,6 +89,8 @@ vec4 color = texture(u_webcam, vec3(v_uv, z));
 ```
 
 Here, `historyZ(..., 1)` means the previous stored texture sample. `historyZ(..., 0)` is also valid for texture history and refers to the current value.
+
+For history too deep for one array, use the optional [`deepHistory` plugin](/docs/plugins/deep-history), which provides its own GLSL accessor and updater.
 
 ## ShaderPad As A Texture Source
 

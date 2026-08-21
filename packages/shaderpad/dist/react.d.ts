@@ -1,4 +1,4 @@
-import ShaderPad$1, { Options, Plugin, StepOptions } from "./index.js";
+import { c as Plugin, d as ShaderPad$1, o as Options, p as StepOptions } from "./index-Bx7YV0w_.js";
 import { AutosizeOptions } from "./plugins/autosize.js";
 import { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
 //#region src/react.d.ts
@@ -8,9 +8,7 @@ type TextureDataAttributes = {
   'data-texture'?: string;
   'data-texture-history'?: string | number;
   'data-texture-preserve-y'?: string | boolean;
-  'data-texture-internal-format'?: string;
   'data-texture-format'?: string;
-  'data-texture-type'?: string;
   'data-texture-min-filter'?: string;
   'data-texture-mag-filter'?: string;
   'data-texture-wrap-s'?: string;
@@ -38,7 +36,7 @@ interface ShaderPadProps extends Omit<ComponentPropsWithoutRef<'canvas'>, 'child
   cursorTarget?: CursorTarget;
   autoplay?: boolean;
   autopause?: boolean;
-  onInit?: (shader: ShaderPad$1, canvas: HTMLCanvasElement) => void;
+  onInit?: (shader: ShaderPad$1, canvas: HTMLCanvasElement) => void | Promise<void>;
   onPreStep?: (shader: ShaderPad$1, time: number, frame: number) => StepOptions | void;
   onError?: (error: unknown) => void;
 }

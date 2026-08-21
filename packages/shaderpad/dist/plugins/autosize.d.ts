@@ -1,4 +1,4 @@
-import ShaderPad, { PluginContext } from "../index.js";
+import { d as ShaderPad, l as PluginContext } from "../index-Bx7YV0w_.js";
 //#region src/plugins/autosize.d.ts
 interface AutosizeOptions {
   scale?: number;

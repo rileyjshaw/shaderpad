@@ -187,9 +187,7 @@ function segmenter(config: SegmenterPluginConfig) {
 					});
 					maskShader.initializeTexture('u_categoryMask', dummyTexture);
 					maskShader.initializeTexture('u_confidenceMask', dummyTextureFloat32, {
-						format: 'RED',
-						internalFormat: 'R32F',
-						type: 'FLOAT',
+						format: 'R32F',
 						minFilter: 'NEAREST',
 						magFilter: 'NEAREST',
 					});

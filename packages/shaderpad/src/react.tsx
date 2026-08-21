@@ -35,9 +35,7 @@ type TextureDataAttributes = {
 	'data-texture'?: string;
 	'data-texture-history'?: string | number;
 	'data-texture-preserve-y'?: string | boolean;
-	'data-texture-internal-format'?: string;
 	'data-texture-format'?: string;
-	'data-texture-type'?: string;
 	'data-texture-min-filter'?: string;
 	'data-texture-mag-filter'?: string;
 	'data-texture-wrap-s'?: string;
@@ -68,7 +66,7 @@ export interface ShaderPadProps
 	cursorTarget?: CursorTarget;
 	autoplay?: boolean;
 	autopause?: boolean;
-	onInit?: (shader: CoreShaderPad, canvas: HTMLCanvasElement) => void;
+	onInit?: (shader: CoreShaderPad, canvas: HTMLCanvasElement) => void | Promise<void>;
 	onPreStep?: (shader: CoreShaderPad, time: number, frame: number) => StepOptions | void;
 	onError?: (error: unknown) => void;
 }
@@ -151,9 +149,7 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 		'data-texture': textureNameValue,
 		'data-texture-history': textureHistory,
 		'data-texture-preserve-y': texturePreserveY,
-		'data-texture-internal-format': textureInternalFormat,
 		'data-texture-format': textureFormat,
-		'data-texture-type': textureType,
 		'data-texture-min-filter': textureMinFilter,
 		'data-texture-mag-filter': textureMagFilter,
 		'data-texture-wrap-s': textureWrapS,
@@ -188,9 +184,7 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 	const nestedTextureAttributes: TextureDataAttributes = {
 		'data-texture-history': textureHistory,
 		'data-texture-preserve-y': texturePreserveY,
-		'data-texture-internal-format': textureInternalFormat,
 		'data-texture-format': textureFormat,
-		'data-texture-type': textureType,
 		'data-texture-min-filter': textureMinFilter,
 		'data-texture-mag-filter': textureMagFilter,
 		'data-texture-wrap-s': textureWrapS,
@@ -522,13 +516,17 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 					}));
 				const textureBindings: TextureBinding[] = [...domTextureBindings, ...nestedTextureBindings];
 
-				for (const binding of textureBindings) {
-					const source =
+				const textureSources = await Promise.all(
+					textureBindings.map(binding =>
 						binding.kind === 'dom'
-							? await loadDomTextureSource(binding.element)
-							: await binding.registration.waitForShader();
+							? loadDomTextureSource(binding.element)
+							: binding.registration.waitForShader(),
+					),
+				);
+				for (let i = 0; i < textureBindings.length; ++i) {
 					if (isDisposed) return;
-					instance.initializeTexture(binding.name, source, binding.options);
+					const binding = textureBindings[i];
+					instance.initializeTexture(binding.name, textureSources[i], binding.options);
 				}
 
 				liveTexturesRef.current = textureBindings.filter(binding => binding.live);
@@ -549,8 +547,9 @@ export const ShaderPad = forwardRef<ShaderPadHandle, ShaderPadProps>(function Sh
 				}
 
 				if (isDisposed) return;
+				await onInitRef.current?.(instance, canvas);
+				if (isDisposed) return;
 				shaderRef.current = instance;
-				onInitRef.current?.(instance, canvas);
 				resolveReadyWaiters(instance);
 
 				playbackController = createPlaybackVisibilityController({

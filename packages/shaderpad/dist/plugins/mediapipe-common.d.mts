@@ -1,4 +1,4 @@
-import { TextureSource } from "../index.mjs";
+import { h as TextureSource } from "../index-Bx7YV0w_.mjs";
 //#region src/plugins/mediapipe-common.d.ts
 declare const dummyTexture: {
   data: Uint8Array<ArrayBuffer>;

@@ -154,7 +154,6 @@ export class ShaderPadElement extends ShaderPadElementBase {
 
 	constructor() {
 		super();
-		ensureShaderPadHostDefaults(this);
 		const defaults = (this.constructor as typeof ShaderPadElement).shaderPadConfig;
 		this.pluginsValue = [...defaults.plugins];
 		this.defaultOptionsValue = { ...defaults.options };
@@ -224,6 +223,7 @@ export class ShaderPadElement extends ShaderPadElementBase {
 	}
 
 	connectedCallback() {
+		ensureShaderPadHostDefaults(this);
 		void this.ensureInitialized().catch(() => {});
 	}
 
@@ -543,11 +543,16 @@ export class ShaderPadElement extends ShaderPadElementBase {
 	}
 
 	private async initializeTextures(instance: CoreShaderPad, bindings: TextureBinding[]) {
-		for (const binding of bindings) {
-			const source = isDomTextureElement(binding.element)
-				? await loadDomTextureSource(binding.element)
-				: await loadNestedShaderPadSource(binding.element);
-			instance.initializeTexture(binding.name, source, binding.options);
+		const sources = await Promise.all(
+			bindings.map(binding =>
+				isDomTextureElement(binding.element)
+					? loadDomTextureSource(binding.element)
+					: loadNestedShaderPadSource(binding.element),
+			),
+		);
+		for (let i = 0; i < bindings.length; ++i) {
+			const binding = bindings[i];
+			instance.initializeTexture(binding.name, sources[i], binding.options);
 		}
 	}
 

@@ -47,13 +47,17 @@ Import `Plugin`, `PluginContext`, and `ShaderPadEventName` from `shaderpad`.
 
 | Member                                       | Use it for                                                           |
 | -------------------------------------------- | -------------------------------------------------------------------- |
+| `options`                                    | Reading the ShaderPad constructor options supplied by the consumer   |
 | `injectGLSL(code)`                           | Inserting GLSL before shader compilation                             |
 | `emit(name, ...args)`                        | Emitting plugin events such as `myPlugin:ready`                      |
 | `updateTexture(name, source, historySlots?)` | Writing plugin-owned textures without firing public `updateTextures` |
 
 Use `shader.canvas` and `shader.gl` directly when a plugin needs the backing canvas or raw WebGL access.
 
-When `updateTexture(...)` writes to a history-backed texture, `historySlots` wraps automatically. On non-history textures it is ignored, and the last written slot becomes the frame-offset uniform.
+`options` is the same object passed to the `ShaderPad` constructor. It includes every explicitly supplied option;
+defaults for omitted options are applied internally and are not written back to this object.
+
+When `updateTexture(...)` writes to a history-backed texture, `historySlots` wraps automatically and the last written slot becomes the frame offset. On non-history textures it is ignored.
 
 ## Lifecycle Hooks
 
@@ -90,4 +94,5 @@ If you want to see how first-party plugins use the same public surface, the best
 
 - [autosize.ts](https://github.com/miseryco/shaderpad/blob/main/packages/shaderpad/src/plugins/autosize.ts) for lifecycle, events, and cleanup.
 - [helpers.ts](https://github.com/miseryco/shaderpad/blob/main/packages/shaderpad/src/plugins/helpers.ts) for pure GLSL injection.
+- [deep-history.ts](https://github.com/miseryco/shaderpad/blob/main/packages/shaderpad/src/plugins/deep-history.ts) for a plugin-owned texture controller.
 - [face.ts](https://github.com/miseryco/shaderpad/blob/main/packages/shaderpad/src/plugins/face.ts) if you need a larger example that publishes plugin-owned textures.

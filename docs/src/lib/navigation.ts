@@ -51,6 +51,7 @@ export const navigation = [
 			{ title: 'pose', href: '/docs/plugins/pose' },
 			{ title: 'hands', href: '/docs/plugins/hands' },
 			{ title: 'segmenter', href: '/docs/plugins/segmenter' },
+			{ title: 'deepHistory', href: '/docs/plugins/deep-history' },
 		],
 	},
 	{

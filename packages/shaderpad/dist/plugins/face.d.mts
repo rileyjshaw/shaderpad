@@ -1,4 +1,4 @@
-import ShaderPad, { PluginContext } from "../index.mjs";
+import { d as ShaderPad, l as PluginContext } from "../index-Bx7YV0w_.mjs";
 //#region src/plugins/face.d.ts
 interface FacePluginOptions {
   modelPath?: string;
