@@ -1,6 +1,6 @@
 /**
- * Hand detection visualization using hands plugin. Shows colored dots on
- * fingertips and hand centers.
+ * Hand detection visualization using hands plugin. Shows the entire hand
+ * skeleton, with colored dots on fingertips and hand centers.
  */
 import ShaderPad from 'shaderpad';
 import helpers from 'shaderpad/plugins/helpers';
@@ -25,8 +25,26 @@ uniform sampler2D u_webcam;
 #define PINKY_TIP 20
 #define HAND_CENTER 21
 
+#define N_CONNECTIONS 21
+const ivec2 HAND_CONNECTIONS[N_CONNECTIONS] = ivec2[](
+	ivec2(0, 1), ivec2(1, 2), ivec2(2, 3), ivec2(3, 4),
+	ivec2(0, 5), ivec2(5, 6), ivec2(6, 7), ivec2(7, 8),
+	ivec2(5, 9), ivec2(9, 10), ivec2(10, 11), ivec2(11, 12),
+	ivec2(9, 13), ivec2(13, 14), ivec2(14, 15), ivec2(15, 16),
+	ivec2(13, 17), ivec2(17, 18), ivec2(18, 19), ivec2(19, 20),
+	ivec2(0, 17)
+);
+
 float marker(vec2 uv, vec2 pos, float radius, float feather) {
 	return 1.0 - smoothstep(radius, radius + feather, distance(uv, pos));
+}
+
+float distToSegment(vec2 p, vec2 a, vec2 b) {
+	vec2 ba = b - a;
+	float denom = dot(ba, ba);
+	if (denom == 0.0) return distance(p, a);
+	float h = clamp(dot(p - a, ba) / denom, 0.0, 1.0);
+	return length(p - a - ba * h);
 }
 
 void main() {
@@ -35,6 +53,19 @@ void main() {
 	vec3 color = webcamColor.rgb;
 
 	for (int i = 0; i < u_nHands; ++i) {
+		for (int c = 0; c < N_CONNECTIONS; ++c) {
+			vec2 a = vec2(handLandmark(i, HAND_CONNECTIONS[c].x));
+			vec2 b = vec2(handLandmark(i, HAND_CONNECTIONS[c].y));
+			float edge = 0.0015;
+			float boneLine = smoothstep(0.003 + edge, max(0.003 - edge, 0.0), distToSegment(uv, a, b));
+			color = mix(color, vec3(1.0), boneLine * 0.8);
+		}
+
+		for (int lm = 0; lm < 21; ++lm) {
+			vec2 joint = vec2(handLandmark(i, lm));
+			color = mix(color, vec3(1.0), marker(uv, joint, 0.005, 0.004));
+		}
+
 		vec2 center = vec2(handLandmark(i, HAND_CENTER));
 		vec3 handednessColor = mix(vec3(0.08, 0.92, 1.0), vec3(1.0, 0.58, 0.14), isRightHand(i));
 		color = mix(color, handednessColor, marker(uv, center, 0.03, 0.015) * 0.75);

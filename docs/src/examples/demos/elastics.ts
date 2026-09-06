@@ -1,6 +1,6 @@
 /**
- * Hand detection visualization using hands plugin. Shows glowing lines connecting
- * index finger to thumb and middle finger to thumb for each detected hand.
+ * Hand detection visualization using hands plugin. Shows the entire hand skeleton
+ * as glowing connections for each detected hand.
  */
 import ShaderPad from 'shaderpad';
 import autosize from 'shaderpad/plugins/autosize';
@@ -23,9 +23,15 @@ in vec2 v_uv;
 out vec4 outColor;
 uniform sampler2D u_webcam;
 
-#define THUMB_TIP 4
-#define INDEX_TIP 8
-#define MIDDLE_TIP 12
+#define N_CONNECTIONS 21
+const ivec2 HAND_CONNECTIONS[N_CONNECTIONS] = ivec2[](
+	ivec2(0, 1), ivec2(1, 2), ivec2(2, 3), ivec2(3, 4),
+	ivec2(0, 5), ivec2(5, 6), ivec2(6, 7), ivec2(7, 8),
+	ivec2(5, 9), ivec2(9, 10), ivec2(10, 11), ivec2(11, 12),
+	ivec2(9, 13), ivec2(13, 14), ivec2(14, 15), ivec2(15, 16),
+	ivec2(13, 17), ivec2(17, 18), ivec2(18, 19), ivec2(19, 20),
+	ivec2(0, 17)
+);
 
 float falloffEase(float x) {
 	float t = clamp(1.0 - x, 0.0, 1.0);
@@ -87,25 +93,18 @@ float renderGlowingSegmentExpWidth(
 
 void main() {
 	vec2 uv = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
-	vec4 webcamColor = texture(u_webcam, uv);
 	vec3 lineColor = vec3(0.0, 0.0, 0.0);
-	float lineIntensity = 0.0;
 
-	float endpointRadiusPx = 40.0;
-	float sharpness = 1.25;
+	float endpointRadiusPx = 14.0;
+	float sharpness = 1.5;
 
 	for (int i = 0; i < u_nHands; ++i) {
-		vec2 thumb = vec2(handLandmark(i, THUMB_TIP));
-		vec2 index = vec2(handLandmark(i, INDEX_TIP));
-		vec2 middle = vec2(handLandmark(i, MIDDLE_TIP));
-
-		float indexIntensity = renderGlowingSegmentExpWidth(uv, index, thumb, endpointRadiusPx, sharpness);
-		lineIntensity += indexIntensity;
-		lineColor += indexIntensity * vec3(1.0, 0.0, 0.0);
-
-		float middleIntensity = renderGlowingSegmentExpWidth(uv, middle, thumb, endpointRadiusPx, sharpness);
-		lineIntensity += middleIntensity;
-		lineColor += middleIntensity * vec3(0.0, 1.0, 0.0);
+		for (int c = 0; c < N_CONNECTIONS; ++c) {
+			vec2 a = vec2(handLandmark(i, HAND_CONNECTIONS[c].x));
+			vec2 b = vec2(handLandmark(i, HAND_CONNECTIONS[c].y));
+			float segmentIntensity = renderGlowingSegmentExpWidth(uv, a, b, endpointRadiusPx, sharpness);
+			lineColor += segmentIntensity * vec3(0.3, 0.85, 1.0);
+		}
 	}
 
 	vec3 core = lineColor * lineColor;
@@ -114,7 +113,7 @@ void main() {
 	lineColor = lineColor / (1.0 + lineColor);
 	lineColor = pow(lineColor, vec3(0.4545));
 
-	outColor = vec4(mix(webcamColor.rgb + lineColor, lineColor, clamp(lineIntensity, 0.0, 1.0)), 1.0);
+	outColor = vec4(lineColor, 1.0);
 }`;
 
 	video = await getWebcamVideo();

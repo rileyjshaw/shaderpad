@@ -24,8 +24,7 @@ uniform sampler2D u_webcam;
 
 void main() {
 	vec2 webcamUV = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
-	vec4 webcamColor = texture(u_webcam, webcamUV);
-	vec3 color = webcamColor.rgb;
+	vec3 color = vec3(0.0);
 
 	// Draw face and oval regions.
 	vec2 faceHit = faceAt(webcamUV);

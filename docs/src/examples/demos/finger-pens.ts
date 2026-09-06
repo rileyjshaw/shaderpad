@@ -35,6 +35,24 @@ const vec3 FINGER_COLORS[N_FINGERS] = vec3[](
 	vec3(0.2, 1.0, 0.5),   // Ring — green
 	vec3(0.3, 0.6, 1.0)    // Pinky — blue
 );
+
+#define N_CONNECTIONS 21
+const ivec2 HAND_CONNECTIONS[N_CONNECTIONS] = ivec2[](
+	ivec2(0, 1), ivec2(1, 2), ivec2(2, 3), ivec2(3, 4),
+	ivec2(0, 5), ivec2(5, 6), ivec2(6, 7), ivec2(7, 8),
+	ivec2(5, 9), ivec2(9, 10), ivec2(10, 11), ivec2(11, 12),
+	ivec2(9, 13), ivec2(13, 14), ivec2(14, 15), ivec2(15, 16),
+	ivec2(13, 17), ivec2(17, 18), ivec2(18, 19), ivec2(19, 20),
+	ivec2(0, 17)
+);
+
+float distToSegment(vec2 p, vec2 a, vec2 b) {
+	vec2 ba = b - a;
+	float denom = dot(ba, ba);
+	if (denom == 0.0) return distance(p, a);
+	float h = clamp(dot(p - a, ba) / denom, 0.0, 1.0);
+	return length(p - a - ba * h);
+}
 `;
 
 export async function init({ mount }: ExampleContext) {
@@ -50,14 +68,6 @@ bool isRaised(int hand, int finger, int framesAgo) {
 	vec2 thumb = vec2(handLandmark(hand, THUMB_TIP, framesAgo));
 	vec2 tip = vec2(handLandmark(hand, FINGER_TIPS[finger], framesAgo));
 	return distance(tip, thumb) > 0.08;
-}
-
-float distToSegment(vec2 p, vec2 a, vec2 b) {
-	vec2 ba = b - a;
-	float denom = dot(ba, ba);
-	if (denom == 0.0) return distance(p, a);
-	float h = clamp(dot(p - a, ba) / denom, 0.0, 1.0);
-	return length(p - a - ba * h);
 }
 
 void main() {
@@ -103,12 +113,26 @@ ${SHARED_GLSL}
 
 void main() {
 	vec2 uv = fitCover(vec2(1.0 - v_uv.x, v_uv.y), vec2(textureSize(u_webcam, 0)));
-	vec3 color = texture(u_webcam, uv).rgb;
+	vec3 color = vec3(0.0);
 
 	vec4 trails = texture(u_trails, v_uv);
 	color = mix(color, trails.rgb, trails.a);
 
 	for (int hand = 0; hand < u_nHands; ++hand) {
+		for (int c = 0; c < N_CONNECTIONS; ++c) {
+			vec2 a = vec2(handLandmark(hand, HAND_CONNECTIONS[c].x));
+			vec2 b = vec2(handLandmark(hand, HAND_CONNECTIONS[c].y));
+			float edge = 0.0015;
+			float boneLine = smoothstep(0.003 + edge, max(0.003 - edge, 0.0), distToSegment(uv, a, b));
+			color = mix(color, vec3(0.55), boneLine);
+		}
+
+		for (int lm = 0; lm < 21; ++lm) {
+			vec2 joint = vec2(handLandmark(hand, lm));
+			float jointDot = smoothstep(0.008, 0.004, distance(uv, joint));
+			color = mix(color, vec3(0.8), jointDot);
+		}
+
 		for (int finger = 0; finger < N_FINGERS; ++finger) {
 			vec2 tip = vec2(handLandmark(hand, FINGER_TIPS[finger]));
 			float edge = max(0.001, TRAIL_RADIUS_START * 0.22);
